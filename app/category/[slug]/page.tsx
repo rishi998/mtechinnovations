@@ -21,8 +21,8 @@ export default function CategoryPage() {
   const [sortBy, setSortBy] = useState('popularity')
   const [filters, setFilters] = useState({
     priceRange: [0, 10000],
-    brands: [],
-    categories: [],
+    brands: [] as string[],
+    categories: [] as string[],
     rating: 0,
     inStock: false,
   })
