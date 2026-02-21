@@ -22,7 +22,7 @@ type EditProfileForm = z.infer<typeof editProfileSchema>
 
 export default function EditProfilePage() {
   const router = useRouter()
-  const { user, isAuthenticated, updateProfile } = useAuth()
+  const { user, isAuthenticated, updateUser } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -64,13 +64,11 @@ export default function EditProfilePage() {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 500))
       
-      if (updateProfile) {
-        updateProfile({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-        })
-      }
+      updateUser({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+      })
 
       setMessage('Profile updated successfully!')
       setTimeout(() => {
