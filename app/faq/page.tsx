@@ -140,7 +140,7 @@ export default function FAQPage() {
         <div className="mt-12 bg-primary-600 rounded-2xl p-8 text-center text-white">
           <h2 className="text-2xl font-bold mb-2">Still have questions?</h2>
           <p className="text-primary-100 mb-6">
-            Can't find the answer you're looking for? Please chat with our team.
+            Can&apos;t find the answer you&apos;re looking for? Please chat with our team.
           </p>
           <a href="/contact">
             <button className="px-8 py-3 bg-white text-primary-600 rounded-lg font-medium hover:bg-gray-100 transition-colors">

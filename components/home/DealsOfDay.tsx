@@ -40,7 +40,7 @@ export function DealsOfDay() {
             <Clock className="w-8 h-8" />
             <h2 className="text-3xl lg:text-4xl font-bold">Deals of the Day</h2>
           </div>
-          <p className="text-xl mb-6">Limited time offers - Grab them before they're gone!</p>
+          <p className="text-xl mb-6">Limited time offers - Grab them before they&apos;re gone!</p>
           
           {/* Countdown Timer */}
           <div className="flex items-center justify-center gap-4">

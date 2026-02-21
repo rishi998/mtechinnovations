@@ -47,7 +47,7 @@ export default function OrdersPage() {
             <Package className="w-24 h-24 text-gray-300 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-gray-900 mb-2">No Orders Yet</h1>
             <p className="text-gray-600 mb-6">
-              You haven't placed any orders yet. Start shopping!
+              You haven&apos;t placed any orders yet. Start shopping!
             </p>
             <Link href="/">
               <Button size="lg">Start Shopping</Button>

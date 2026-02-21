@@ -191,7 +191,7 @@ export default function SettingsPage() {
           </div>
 
           <p className="text-gray-600 text-sm mb-6">
-            Choose how you'd like to receive updates about your orders and our latest offers
+            Choose how you&apos;d like to receive updates about your orders and our latest offers
           </p>
 
           <div className="space-y-4">

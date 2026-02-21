@@ -25,7 +25,7 @@ export default function AboutPage() {
                 and makers.
               </p>
               <p>
-                What started as a small online store has grown into one of India's most trusted electronics 
+                What started as a small online store has grown into one of India&apos;s most trusted electronics 
                 component suppliers. We pride ourselves on offering authentic products, competitive prices, 
                 and exceptional customer service.
               </p>

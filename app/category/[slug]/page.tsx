@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Grid, List, SlidersHorizontal } from 'lucide-react'
 import { products } from '@/lib/data/products'
@@ -67,7 +68,7 @@ export default function CategoryPage() {
       <div className="container-custom">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <a href="/" className="hover:text-primary-600">Home</a>
+          <Link href="/" className="hover:text-primary-600">Home</Link>
           <span>/</span>
           <a href="/categories" className="hover:text-primary-600">Categories</a>
           {category && (

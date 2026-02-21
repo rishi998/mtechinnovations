@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -50,7 +51,7 @@ export default function ProductPage() {
       <div className="container-custom">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <a href="/" className="hover:text-primary-600">Home</a>
+          <Link href="/" className="hover:text-primary-600">Home</Link>
           <span>/</span>
           <a href={`/category/${product.category}`} className="hover:text-primary-600">
             {product.category}
