@@ -109,7 +109,7 @@ export default function OrdersPage() {
 
                   {/* Actions */}
                   <div className="flex gap-2">
-                    <Link href={`/order/${order.orderId}`}>
+                    <Link href={`/order-detail?orderId=${order.orderId}`}>
                       <Button variant="outline" size="sm">
                         View Details
                         <ChevronRight className="w-4 h-4 ml-1" />

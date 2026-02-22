@@ -46,6 +46,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500))
+
+    // Demo account
+    if (email === 'demo@example.com' && password === 'demo123') {
+      const demoUser: User = {
+        id: 'demo-user',
+        email: 'demo@example.com',
+        name: 'Demo User',
+        phone: '9876543210',
+        addresses: [],
+        orders: [],
+      }
+      setUser(demoUser)
+      return true
+    }
     
     // Check if user exists in localStorage
     const users = JSON.parse(localStorage.getItem('users') || '[]')

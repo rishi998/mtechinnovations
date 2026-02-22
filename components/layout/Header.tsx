@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react'
@@ -15,9 +15,12 @@ import { debounce } from '@/lib/utils'
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   
   const { cartCount } = useCart()
   const { wishlistCount } = useWishlist()
@@ -33,6 +36,22 @@ export function Header() {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [pathname])
 
   // Handle search
   const handleSearch = debounce((query: string) => {
@@ -64,6 +83,8 @@ export function Header() {
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
       setSearchResults([])
       setIsSearchFocused(false)
+      setIsMobileSearchFocused(false)
+      setIsMenuOpen(false)
     }
   }
 
@@ -173,54 +194,65 @@ export function Header() {
             </Link>
 
             {/* User Menu */}
-            <div className="relative group">
-              <Button variant="ghost" size="sm">
+            <div className="relative hidden sm:block" ref={userMenuRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                aria-expanded={isUserMenuOpen}
+              >
                 <User className="w-5 h-5" />
               </Button>
               
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                {isAuthenticated ? (
-                  <>
-                    <div className="px-4 py-3 border-b">
-                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
-                    </div>
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      My Profile
-                    </Link>
-                    <Link
-                      href="/orders"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      My Orders
-                    </Link>
-                    <button
-                      onClick={logout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      Login
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      Register
-                    </Link>
-                  </>
-                )}
-              </div>
+              {isUserMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {isAuthenticated ? (
+                    <>
+                      <div className="px-4 py-3 border-b">
+                        <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                      </div>
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        My Profile
+                      </Link>
+                      <Link
+                        href="/orders"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        My Orders
+                      </Link>
+                      <button
+                        onClick={() => { logout(); setIsUserMenuOpen(false) }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                      >
+                        Logout
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        Register
+                      </Link>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Mobile Menu Toggle */}
@@ -243,6 +275,8 @@ export function Header() {
               placeholder="Search products..."
               value={searchQuery}
               onChange={handleSearchChange}
+              onFocus={() => setIsMobileSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsMobileSearchFocused(false), 200)}
               className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base"
             />
             <button
@@ -251,6 +285,29 @@ export function Header() {
             >
               <Search className="w-5 h-5" />
             </button>
+
+            {/* Mobile Search Results Dropdown */}
+            {isMobileSearchFocused && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-72 overflow-y-auto z-50">
+                {searchResults.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/product/${product.slug}`}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                    onClick={() => { setIsMobileSearchFocused(false); setSearchResults([]) }}
+                  >
+                    <div className="w-10 h-10 bg-gray-100 rounded flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500">{product.category}</p>
+                    </div>
+                    <p className="text-sm font-semibold text-primary-600 flex-shrink-0">
+                      ₹{product.price}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </form>
       </div>

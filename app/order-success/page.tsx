@@ -1,12 +1,13 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, Package, Home } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { motion } from 'framer-motion'
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
 
@@ -47,7 +48,7 @@ export default function OrderSuccessPage() {
 
         {/* Actions */}
         <div className="space-y-3">
-          <Link href="/orders" className="block">
+          <Link href={orderId ? `/order-detail?orderId=${orderId}` : '/orders'} className="block">
             <Button size="lg" className="w-full">
               <Package className="w-5 h-5 mr-2" />
               View Order Details
@@ -69,5 +70,17 @@ export default function OrderSuccessPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <OrderSuccessContent />
+    </Suspense>
   )
 }

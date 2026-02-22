@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -31,6 +32,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('card')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [shippingAddress, setShippingAddress] = useState<AddressForm | null>(null)
 
   const {
     register,
@@ -38,6 +40,10 @@ export default function CheckoutPage() {
     formState: { errors },
   } = useForm<AddressForm>({
     resolver: zodResolver(addressSchema),
+    defaultValues: {
+      name: user?.name || '',
+      phone: user?.phone || '',
+    },
   })
 
   const shipping = cartTotal > 500 ? 0 : 50
@@ -50,6 +56,7 @@ export default function CheckoutPage() {
   }
 
   const onSubmitAddress = (data: AddressForm) => {
+    setShippingAddress(data)
     setStep(2)
   }
 
@@ -74,7 +81,19 @@ export default function CheckoutPage() {
         tax,
         shipping,
         total,
-        shippingAddress: {} as any, // Would come from form
+        shippingAddress: shippingAddress
+          ? {
+              id: generateId(),
+              name: shippingAddress.name,
+              phone: shippingAddress.phone,
+              addressLine1: shippingAddress.addressLine1,
+              addressLine2: shippingAddress.addressLine2,
+              city: shippingAddress.city,
+              state: shippingAddress.state,
+              pincode: shippingAddress.pincode,
+              isDefault: false,
+            }
+          : ({} as any),
         paymentMethod,
         trackingId,
       })
@@ -131,9 +150,9 @@ export default function CheckoutPage() {
                   <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-900">
                       Have an account?{' '}
-                      <a href="/login" className="font-medium underline">
+                      <Link href="/login" className="font-medium underline">
                         Login
-                      </a>{' '}
+                      </Link>{' '}
                       for faster checkout
                     </p>
                   </div>
@@ -252,15 +271,37 @@ export default function CheckoutPage() {
               <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Review Your Order</h2>
 
+                {/* Shipping Address Summary */}
+                {shippingAddress && (
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold text-gray-900 text-sm">Delivering to</h3>
+                      <button onClick={() => setStep(1)} className="text-xs text-primary-600 hover:underline">Edit</button>
+                    </div>
+                    <p className="text-sm text-gray-700">{shippingAddress.name} · {shippingAddress.phone}</p>
+                    <p className="text-sm text-gray-600">{shippingAddress.addressLine1}{shippingAddress.addressLine2 ? `, ${shippingAddress.addressLine2}` : ''}</p>
+                    <p className="text-sm text-gray-600">{shippingAddress.city}, {shippingAddress.state} - {shippingAddress.pincode}</p>
+                  </div>
+                )}
+
+                {/* Payment Method Summary */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="font-semibold text-gray-900 text-sm">Payment</h3>
+                    <button onClick={() => setStep(2)} className="text-xs text-primary-600 hover:underline">Edit</button>
+                  </div>
+                  <p className="text-sm text-gray-600 capitalize">{paymentMethod === 'card' ? 'Credit / Debit Card' : paymentMethod === 'upi' ? 'UPI' : 'Net Banking'}</p>
+                </div>
+
                 <div className="space-y-4 mb-6">
                   {cart.map((item) => (
                     <div key={item.product.id} className="flex gap-4 pb-4 border-b">
-                      <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{item.product.name}</p>
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-lg flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 line-clamp-2 text-sm sm:text-base">{item.product.name}</p>
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 flex-shrink-0">
                         {formatPrice(item.product.price * item.quantity)}
                       </p>
                     </div>

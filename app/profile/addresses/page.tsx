@@ -200,11 +200,12 @@ export default function AddressesPage() {
 
         {/* Modal */}
         {showModal && (
-          <Modal isOpen={showModal} onClose={handleCloseModal}>
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">
-                {editingId !== null ? 'Edit Address' : 'Add New Address'}
-              </h2>
+          <Modal
+            isOpen={showModal}
+            onClose={handleCloseModal}
+            title={editingId !== null ? 'Edit Address' : 'Add New Address'}
+          >
+            <div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 {/* Name */}

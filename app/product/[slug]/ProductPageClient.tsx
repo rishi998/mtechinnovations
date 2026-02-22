@@ -47,14 +47,14 @@ export default function ProductPageClient({ slug }: { slug: string }) {
     <div className="py-8 bg-gray-50">
       <div className="container-custom">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
+        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6 flex-wrap">
           <Link href="/" className="hover:text-primary-600">Home</Link>
           <span>/</span>
-          <a href={`/category/${product.category}`} className="hover:text-primary-600">
+          <Link href={`/category/${product.slug.split('-')[0]}`} className="hover:text-primary-600">
             {product.category}
-          </a>
+          </Link>
           <span>/</span>
-          <span className="text-gray-900">{product.name}</span>
+          <span className="text-gray-900 truncate max-w-[200px] sm:max-w-none">{product.name}</span>
         </nav>
 
         {/* Product Details */}

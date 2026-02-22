@@ -85,7 +85,10 @@ export function ProductCard({ product }: ProductCardProps) {
             {/* Wishlist Button */}
             <button
               onClick={handleWishlistToggle}
-              className="absolute top-3 right-3 w-9 h-9 bg-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+              className={`absolute top-3 right-3 w-9 h-9 bg-white rounded-full shadow-md flex items-center justify-center transition-all hover:scale-110 ${
+                inWishlist ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              }`}
+              aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
             >
               <Heart
                 className={`w-5 h-5 ${

@@ -59,10 +59,10 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
     <div className="py-8 bg-gray-50 min-h-screen">
       <div className="container-custom">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
+        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6 flex-wrap">
           <Link href="/" className="hover:text-primary-600">Home</Link>
           <span>/</span>
-          <a href="/categories" className="hover:text-primary-600">Categories</a>
+          <Link href="/categories" className="hover:text-primary-600">Categories</Link>
           {category && (
             <>
               <span>/</span>

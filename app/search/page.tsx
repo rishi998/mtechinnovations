@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useState, useMemo } from 'react'
 import { Search as SearchIcon } from 'lucide-react'
@@ -7,7 +8,7 @@ import { products } from '@/lib/data/products'
 import { ProductCard } from '@/components/shop/ProductCard'
 import { Input } from '@/components/ui/Input'
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
   const [searchQuery, setSearchQuery] = useState(initialQuery)
@@ -28,7 +29,7 @@ export default function SearchPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom">
         {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-12">
+        <div className="max-w-2xl mx-auto mb-10 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 text-center">Search Products</h1>
           <div className="relative">
             <Input
@@ -42,12 +43,12 @@ export default function SearchPage() {
         </div>
 
         {/* Results */}
-        {searchQuery.trim() && (
+        {searchQuery.trim() ? (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
               {searchResults.length > 0
-                ? `Found ${searchResults.length} results for "${searchQuery}"`
-                : `No results found for "${searchQuery}"`}
+                ? `Found ${searchResults.length} result${searchResults.length > 1 ? 's' : ''} for &quot;${searchQuery}&quot;`
+                : `No results found for &quot;${searchQuery}&quot;`}
             </h2>
 
             {searchResults.length > 0 ? (
@@ -58,14 +59,38 @@ export default function SearchPage() {
               </div>
             ) : (
               <div className="text-center py-16">
-                <p className="text-gray-600 mb-4">
+                <SearchIcon className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2 text-lg">No products found</p>
+                <p className="text-gray-500 text-sm">
                   Try different keywords or browse our categories
                 </p>
               </div>
             )}
           </div>
+        ) : (
+          <div className="text-center py-16 text-gray-400">
+            <SearchIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
+            <p>Start typing to search for products</p>
+          </div>
         )}
       </div>
     </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container-custom">
+          <div className="max-w-2xl mx-auto mb-12">
+            <div className="h-8 bg-gray-200 rounded animate-pulse mb-6 w-48 mx-auto" />
+            <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   )
 }
