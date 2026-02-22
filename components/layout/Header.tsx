@@ -280,20 +280,117 @@ export function Header() {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white">
-          <div className="container-custom py-4">
-            <div className="grid grid-cols-2 gap-1">
-              {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/category/${category.slug}`}
-                  className="flex items-center py-3 px-3 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {category.name}
-                </Link>
-              ))}
+        <div className="lg:hidden border-t border-gray-200 bg-white max-h-[80vh] overflow-y-auto">
+          <div className="container-custom py-4 space-y-4">
+
+            {/* Account Section */}
+            <div className="border border-gray-100 rounded-xl overflow-hidden">
+              {isAuthenticated ? (
+                <>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-primary-50">
+                    <div className="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {user?.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <User className="w-4 h-4 text-gray-400" />
+                    My Profile
+                  </Link>
+                  <Link
+                    href="/orders"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <ShoppingCart className="w-4 h-4 text-gray-400" />
+                    My Orders
+                  </Link>
+                  <button
+                    onClick={() => { logout(); setIsMenuOpen(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100"
+                  >
+                    <X className="w-4 h-4" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <div className="flex gap-2 p-3">
+                  <Link
+                    href="/login"
+                    className="flex-1 text-center py-2.5 text-sm font-medium text-primary-600 border border-primary-600 rounded-lg hover:bg-primary-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="flex-1 text-center py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
             </div>
+
+            {/* Cart & Wishlist Quick Links */}
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/cart"
+                className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5 text-primary-600" />
+                  <span className="text-sm font-medium text-gray-800">Cart</span>
+                </div>
+                {cartCount > 0 && (
+                  <span className="w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+              <Link
+                href="/wishlist"
+                className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <div className="flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-red-500" />
+                  <span className="text-sm font-medium text-gray-800">Wishlist</span>
+                </div>
+                {wishlistCount > 0 && (
+                  <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+
+            {/* Categories */}
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">Shop by Category</p>
+              <div className="grid grid-cols-2 gap-1">
+                {categories.map((category) => (
+                  <Link
+                    key={category.id}
+                    href={`/category/${category.slug}`}
+                    className="flex items-center py-3 px-3 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
       )}
