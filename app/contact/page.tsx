@@ -18,19 +18,19 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="bg-gray-50 py-16">
+    <div className="bg-gray-50 py-10 sm:py-16">
       <div className="container-custom">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
-          <p className="text-xl text-gray-600">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
+          <p className="text-base sm:text-xl text-gray-600">
             Have questions? We&apos;d love to hear from you
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Contact Info */}
           <div>
-            <div className="bg-white rounded-2xl shadow-sm p-8 mb-8">
+            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8 mb-6 sm:mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
@@ -91,7 +91,7 @@ export default function ContactPage() {
 
           {/* Contact Form */}
           <div>
-            <div className="bg-white rounded-2xl shadow-sm p-8">
+            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input

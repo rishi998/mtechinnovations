@@ -110,21 +110,21 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
 export default function FAQPage() {
   return (
-    <div className="bg-gray-50 py-16">
+    <div className="bg-gray-50 py-10 sm:py-16">
       <div className="container-custom max-w-4xl">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
             Frequently Asked Questions
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-base sm:text-xl text-gray-600 px-4">
             Find answers to common questions about our products and services
           </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {faqs.map((category, idx) => (
-            <div key={idx} className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <div key={idx} className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
                 {category.category}
               </h2>
               <div>
@@ -137,13 +137,13 @@ export default function FAQPage() {
         </div>
 
         {/* Contact CTA */}
-        <div className="mt-12 bg-primary-600 rounded-2xl p-8 text-center text-white">
-          <h2 className="text-2xl font-bold mb-2">Still have questions?</h2>
-          <p className="text-primary-100 mb-6">
+        <div className="mt-8 sm:mt-12 bg-primary-600 rounded-2xl p-5 sm:p-8 text-center text-white">
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">Still have questions?</h2>
+          <p className="text-primary-100 mb-4 sm:mb-6 text-sm sm:text-base">
             Can&apos;t find the answer you&apos;re looking for? Please chat with our team.
           </p>
           <a href="/contact">
-            <button className="px-8 py-3 bg-white text-primary-600 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+            <button className="px-6 sm:px-8 py-3 bg-white text-primary-600 rounded-lg font-medium hover:bg-gray-100 transition-colors">
               Contact Support
             </button>
           </a>

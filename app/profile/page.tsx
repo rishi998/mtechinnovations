@@ -34,15 +34,15 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8 mb-8 text-white">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-5 sm:p-8 mb-6 sm:mb-8 text-white">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-14 h-14 sm:w-20 sm:h-20 bg-white/20 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold flex-shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Hello, {user.name}!</h1>
-              <p className="text-primary-100">{user.email}</p>
-              {user.phone && <p className="text-primary-100">{user.phone}</p>}
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl font-bold mb-1 truncate">Hello, {user.name}!</h1>
+              <p className="text-primary-100 text-sm sm:text-base truncate">{user.email}</p>
+              {user.phone && <p className="text-primary-100 text-sm sm:text-base">{user.phone}</p>}
             </div>
           </div>
         </div>

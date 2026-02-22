@@ -29,7 +29,7 @@ export default function SearchPage() {
       <div className="container-custom">
         {/* Search Bar */}
         <div className="max-w-2xl mx-auto mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">Search Products</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 text-center">Search Products</h1>
           <div className="relative">
             <Input
               value={searchQuery}

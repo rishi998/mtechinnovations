@@ -33,30 +33,30 @@ export function DealsOfDay() {
   if (dealProducts.length === 0) return null
 
   return (
-    <section className="py-16 bg-gradient-to-r from-orange-500 to-red-600">
+    <section className="py-10 sm:py-16 bg-gradient-to-r from-orange-500 to-red-600">
       <div className="container-custom">
-        <div className="text-center text-white mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Clock className="w-8 h-8" />
-            <h2 className="text-3xl lg:text-4xl font-bold">Deals of the Day</h2>
+        <div className="text-center text-white mb-8 sm:mb-12">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <Clock className="w-6 h-6 sm:w-8 sm:h-8" />
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Deals of the Day</h2>
           </div>
-          <p className="text-xl mb-6">Limited time offers - Grab them before they&apos;re gone!</p>
-          
+          <p className="text-base sm:text-xl mb-4 sm:mb-6 px-4">Limited time offers - Grab them before they&apos;re gone!</p>
+
           {/* Countdown Timer */}
-          <div className="flex items-center justify-center gap-4">
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-              <div className="text-3xl font-bold">{String(timeLeft.hours).padStart(2, '0')}</div>
-              <div className="text-sm">Hours</div>
+          <div className="flex items-center justify-center gap-2 sm:gap-4">
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
+              <div className="text-xl sm:text-3xl font-bold">{String(timeLeft.hours).padStart(2, '0')}</div>
+              <div className="text-xs sm:text-sm">Hours</div>
             </div>
-            <div className="text-3xl font-bold">:</div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-              <div className="text-3xl font-bold">{String(timeLeft.minutes).padStart(2, '0')}</div>
-              <div className="text-sm">Minutes</div>
+            <div className="text-xl sm:text-3xl font-bold">:</div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
+              <div className="text-xl sm:text-3xl font-bold">{String(timeLeft.minutes).padStart(2, '0')}</div>
+              <div className="text-xs sm:text-sm">Minutes</div>
             </div>
-            <div className="text-3xl font-bold">:</div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-              <div className="text-3xl font-bold">{String(timeLeft.seconds).padStart(2, '0')}</div>
-              <div className="text-sm">Seconds</div>
+            <div className="text-xl sm:text-3xl font-bold">:</div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
+              <div className="text-xl sm:text-3xl font-bold">{String(timeLeft.seconds).padStart(2, '0')}</div>
+              <div className="text-xs sm:text-sm">Seconds</div>
             </div>
           </div>
         </div>

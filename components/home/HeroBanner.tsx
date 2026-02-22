@@ -56,7 +56,7 @@ export function HeroBanner() {
   }
 
   return (
-    <div className="relative h-[500px] lg:h-[600px] overflow-hidden rounded-2xl">
+    <div className="relative h-[320px] sm:h-[420px] lg:h-[560px] overflow-hidden rounded-xl sm:rounded-2xl">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide}
@@ -67,7 +67,7 @@ export function HeroBanner() {
           className={`absolute inset-0 ${slides[currentSlide].color}`}
         >
           <div className="container-custom h-full">
-            <div className="grid lg:grid-cols-2 gap-8 items-center h-full py-12">
+            <div className="grid lg:grid-cols-2 gap-4 items-center h-full py-8 sm:py-10 lg:py-12">
               {/* Content */}
               <motion.div
                 initial={{ x: -50, opacity: 0 }}
@@ -75,17 +75,17 @@ export function HeroBanner() {
                 transition={{ delay: 0.2 }}
                 className="text-white z-10"
               >
-                <p className="text-lg font-medium mb-2">
+                <p className="text-sm sm:text-base lg:text-lg font-medium mb-1 sm:mb-2">
                   {slides[currentSlide].subtitle}
                 </p>
-                <h2 className="text-4xl lg:text-6xl font-bold mb-4">
+                <h2 className="text-2xl sm:text-4xl lg:text-6xl font-bold mb-2 sm:mb-4 leading-tight">
                   {slides[currentSlide].title}
                 </h2>
-                <p className="text-xl mb-8 text-white/90">
+                <p className="text-sm sm:text-base lg:text-xl mb-4 sm:mb-8 text-white/90 line-clamp-2 sm:line-clamp-none">
                   {slides[currentSlide].description}
                 </p>
                 <Link href={slides[currentSlide].link}>
-                  <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100">
+                  <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3">
                     Shop Now
                   </Button>
                 </Link>
@@ -111,25 +111,25 @@ export function HeroBanner() {
       {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10"
       >
-        <ChevronLeft className="w-6 h-6" />
+        <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10"
       >
-        <ChevronRight className="w-6 h-6" />
+        <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+      <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
         {slides.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}
-            className={`h-2 rounded-full transition-all ${
-              index === currentSlide ? 'w-8 bg-white' : 'w-2 bg-white/50'
+            className={`h-1.5 sm:h-2 rounded-full transition-all ${
+              index === currentSlide ? 'w-6 sm:w-8 bg-white' : 'w-1.5 sm:w-2 bg-white/50'
             }`}
           />
         ))}

@@ -61,7 +61,7 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
         <p className="text-gray-600 mb-8">{user.orders.length} orders placed</p>
 
         <div className="space-y-4">
@@ -92,16 +92,16 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Products Preview */}
-                  <div className="flex gap-2">
+                  <div className="hidden sm:flex gap-2 flex-shrink-0">
                     {order.items.slice(0, 3).map((item, idx) => (
                       <div
                         key={idx}
-                        className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0"
+                        className="w-14 h-14 bg-gray-100 rounded-lg flex-shrink-0"
                         title={item.product.name}
                       />
                     ))}
                     {order.items.length > 3 && (
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-medium text-gray-600">
+                      <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-medium text-gray-600">
                         +{order.items.length - 3}
                       </div>
                     )}

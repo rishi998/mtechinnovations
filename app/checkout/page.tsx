@@ -89,22 +89,22 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom max-w-5xl">
         {/* Progress Steps */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-center">
             {[1, 2, 3].map((num) => (
               <div key={num} className="flex items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base ${
                     step >= num
                       ? 'bg-primary-600 text-white'
                       : 'bg-gray-200 text-gray-600'
                   }`}
                 >
-                  {step > num ? <CheckCircle2 className="w-6 h-6" /> : num}
+                  {step > num ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : num}
                 </div>
                 {num < 3 && (
                   <div
-                    className={`w-24 h-1 mx-2 ${
+                    className={`w-12 sm:w-20 md:w-28 h-1 mx-1 sm:mx-2 ${
                       step > num ? 'bg-primary-600' : 'bg-gray-200'
                     }`}
                   />
@@ -112,10 +112,10 @@ export default function CheckoutPage() {
               </div>
             ))}
           </div>
-          <div className="flex justify-between max-w-md mx-auto mt-2">
-            <span className="text-sm font-medium">Address</span>
-            <span className="text-sm font-medium">Payment</span>
-            <span className="text-sm font-medium">Review</span>
+          <div className="flex justify-between max-w-xs sm:max-w-md mx-auto mt-2 px-2">
+            <span className="text-xs sm:text-sm font-medium">Address</span>
+            <span className="text-xs sm:text-sm font-medium">Payment</span>
+            <span className="text-xs sm:text-sm font-medium">Review</span>
           </div>
         </div>
 
@@ -124,8 +124,8 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2">
             {/* Step 1: Shipping Address */}
             {step === 1 && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Shipping Address</h2>
+              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Shipping Address</h2>
                 
                 {!isAuthenticated && (
                   <div className="mb-6 p-4 bg-blue-50 rounded-lg">
@@ -160,7 +160,7 @@ export default function CheckoutPage() {
                     {...register('addressLine2')}
                     error={errors.addressLine2?.message}
                   />
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Input
                       label="City"
                       {...register('city')}
@@ -186,8 +186,8 @@ export default function CheckoutPage() {
 
             {/* Step 2: Payment Method */}
             {step === 2 && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Method</h2>
+              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Payment Method</h2>
 
                 <div className="space-y-3 mb-6">
                   <button
@@ -249,8 +249,8 @@ export default function CheckoutPage() {
 
             {/* Step 3: Review Order */}
             {step === 3 && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Review Your Order</h2>
+              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Review Your Order</h2>
 
                 <div className="space-y-4 mb-6">
                   {cart.map((item) => (

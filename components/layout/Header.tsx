@@ -74,15 +74,15 @@ export function Header() {
       }`}
     >
       {/* Top Bar */}
-      <div className="bg-primary-600 text-white py-2">
+      <div className="bg-primary-600 text-white py-1.5">
         <div className="container-custom">
-          <div className="flex items-center justify-between text-sm">
-            <p>Free shipping on orders above ₹500</p>
-            <div className="flex items-center gap-4">
-              <Link href="/track" className="hover:underline">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
+            <p className="truncate">Free shipping on orders above ₹500</p>
+            <div className="hidden sm:flex items-center gap-4 flex-shrink-0 ml-4">
+              <Link href="/track" className="hover:underline whitespace-nowrap">
                 Track Order
               </Link>
-              <Link href="/contact" className="hover:underline">
+              <Link href="/contact" className="hover:underline whitespace-nowrap">
                 Contact Us
               </Link>
             </div>
@@ -91,14 +91,14 @@ export function Header() {
       </div>
 
       {/* Main Header */}
-      <div className="container-custom py-4">
-        <div className="flex items-center justify-between gap-4">
+      <div className="container-custom py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <h1 className="text-2xl font-bold text-primary-600">
+            <h1 className="text-lg sm:text-2xl font-bold text-primary-600 leading-tight">
               MTech Innovations
             </h1>
-            <h5 className="text-sm font-bold text-primary-600">Innovating the future</h5>
+            <h5 className="text-xs sm:text-sm font-bold text-primary-600">Innovating the future</h5>
           </Link>
 
           {/* Search Bar (Desktop) */}
@@ -147,10 +147,10 @@ export function Header() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Wishlist */}
             <Link href="/wishlist">
-              <Button variant="ghost" size="sm" className="relative">
+              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2">
                 <Heart className="w-5 h-5" />
                 {wishlistCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
@@ -162,7 +162,7 @@ export function Header() {
 
             {/* Cart */}
             <Link href="/cart">
-              <Button variant="ghost" size="sm" className="relative">
+              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2">
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
@@ -236,14 +236,14 @@ export function Header() {
         </div>
 
         {/* Mobile Search */}
-        <form onSubmit={handleSearchSubmit} className="lg:hidden mt-4">
+        <form onSubmit={handleSearchSubmit} className="lg:hidden mt-3">
           <div className="relative">
             <input
               type="text"
               placeholder="Search products..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full px-4 py-2.5 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base"
             />
             <button
               type="submit"
@@ -282,12 +282,12 @@ export function Header() {
       {isMenuOpen && (
         <div className="lg:hidden border-t border-gray-200 bg-white">
           <div className="container-custom py-4">
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-1">
               {categories.map((category) => (
                 <Link
                   key={category.id}
                   href={`/category/${category.slug}`}
-                  className="block py-2 text-sm font-medium text-gray-700 hover:text-primary-600"
+                  className="flex items-center py-3 px-3 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {category.name}

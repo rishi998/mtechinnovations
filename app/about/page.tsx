@@ -4,19 +4,19 @@ export default function AboutPage() {
   return (
     <div className="bg-gray-50">
       {/* Hero */}
-      <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-20">
+      <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-12 sm:py-16 lg:py-20">
         <div className="container-custom text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold mb-4">About ElectroStore</h1>
-          <p className="text-xl text-primary-100 max-w-2xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">About ElectroStore</h1>
+          <p className="text-base sm:text-xl text-primary-100 max-w-2xl mx-auto px-4">
             Your trusted partner for electronics, robotics, and DIY projects since 2020
           </p>
         </div>
       </section>
 
       {/* Story */}
-      <section className="py-16">
+      <section className="py-10 sm:py-16">
         <div className="container-custom max-w-4xl">
-          <div className="bg-white rounded-2xl shadow-sm p-8">
+          <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
             <div className="prose max-w-none text-gray-700 space-y-4">
               <p>
@@ -40,9 +40,9 @@ export default function AboutPage() {
       </section>
 
       {/* Values */}
-      <section className="py-16 bg-white">
+      <section className="py-10 sm:py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">Our Values</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 sm:mb-12">Our Values</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -85,9 +85,9 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section className="py-16">
+      <section className="py-10 sm:py-16">
         <div className="container-custom">
-          <div className="grid md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 text-center">
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="text-4xl font-bold text-primary-600 mb-2">10,000+</div>
               <div className="text-gray-600">Happy Customers</div>

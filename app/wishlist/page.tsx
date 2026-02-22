@@ -31,7 +31,7 @@ export default function WishlistPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Wishlist</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">My Wishlist</h1>
         <p className="text-gray-600 mb-8">{wishlist.length} items saved</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

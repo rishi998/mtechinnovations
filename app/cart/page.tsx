@@ -49,16 +49,16 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Shopping Cart ({cartCount} items)</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Shopping Cart ({cartCount} items)</h1>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {cart.map((item) => (
-              <div key={item.product.id} className="bg-white rounded-xl shadow-sm p-6">
-                <div className="flex gap-4">
+              <div key={item.product.id} className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                <div className="flex gap-3 sm:gap-4">
                   {/* Image */}
-                  <div className="relative w-24 h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
                     <Image
                       src={item.product.images[0]}
                       alt={item.product.name}
@@ -68,51 +68,51 @@ export default function CartPage() {
                   </div>
 
                   {/* Details */}
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-2">
-                      <div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between mb-2 gap-2">
+                      <div className="min-w-0">
                         <Link
                           href={`/product/${item.product.slug}`}
-                          className="font-medium text-gray-900 hover:text-primary-600 line-clamp-2"
+                          className="font-medium text-gray-900 hover:text-primary-600 line-clamp-2 text-sm sm:text-base"
                         >
                           {item.product.name}
                         </Link>
-                        <p className="text-sm text-gray-500">{item.product.brand}</p>
+                        <p className="text-xs sm:text-sm text-gray-500">{item.product.brand}</p>
                       </div>
                       <button
                         onClick={() => removeFromCart(item.product.id)}
-                        className="text-red-600 hover:text-red-700 flex-shrink-0"
+                        className="text-red-600 hover:text-red-700 flex-shrink-0 p-1"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       {/* Quantity Controls */}
                       <div className="flex items-center border border-gray-300 rounded-lg">
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                          className="px-3 py-1.5 hover:bg-gray-100"
+                          className="px-2.5 sm:px-3 py-2 hover:bg-gray-100 active:bg-gray-200"
                         >
-                          <Minus className="w-4 h-4" />
+                          <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
-                        <span className="px-4 py-1.5 font-medium border-x">{item.quantity}</span>
+                        <span className="px-3 sm:px-4 py-2 font-medium border-x text-sm sm:text-base min-w-[36px] text-center">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                           disabled={item.quantity >= item.product.stock}
-                          className="px-3 py-1.5 hover:bg-gray-100 disabled:opacity-50"
+                          className="px-2.5 sm:px-3 py-2 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-50"
                         >
-                          <Plus className="w-4 h-4" />
+                          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
                       </div>
 
                       {/* Price */}
                       <div className="text-right">
-                        <p className="text-lg font-bold text-primary-600">
+                        <p className="text-base sm:text-lg font-bold text-primary-600">
                           {formatPrice(item.product.price * item.quantity)}
                         </p>
                         {item.product.originalPrice && (
-                          <p className="text-sm text-gray-400 line-through">
+                          <p className="text-xs sm:text-sm text-gray-400 line-through">
                             {formatPrice(item.product.originalPrice * item.quantity)}
                           </p>
                         )}
@@ -131,13 +131,13 @@ export default function CartPage() {
 
               {/* Coupon Code */}
               <div className="mb-6">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     placeholder="Enter coupon code"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
                   />
-                  <Button onClick={handleApplyCoupon} variant="outline">
+                  <Button onClick={handleApplyCoupon} variant="outline" className="sm:flex-shrink-0">
                     Apply
                   </Button>
                 </div>

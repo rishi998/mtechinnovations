@@ -9,7 +9,7 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Banner */}
-      <section className="container-custom py-8">
+      <section className="container-custom py-4 sm:py-8">
         <HeroBanner />
       </section>
 

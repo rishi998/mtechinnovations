@@ -8,11 +8,11 @@ export function TrendingProducts() {
   const trendingProducts = products.filter((p) => p.trending).slice(0, 8)
 
   return (
-    <section className="py-16">
+    <section className="py-10 sm:py-16">
       <div className="container-custom">
-        <div className="flex items-center justify-center gap-3 mb-12">
-          <TrendingUp className="w-8 h-8 text-primary-600" />
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-8 sm:mb-12">
+          <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" />
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
             Trending Now
           </h2>
         </div>
