@@ -9,7 +9,7 @@ export function FeaturedBrands() {
       <div className="container-custom">
         <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-            Featured Brands
+            Shop by Brand
           </h2>
           <p className="text-gray-600 text-base sm:text-lg">
             We partner with the best brands in electronics

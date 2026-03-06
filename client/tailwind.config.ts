@@ -35,6 +35,10 @@ const config: Config = {
           900: '#7f1d1d',
           950: '#450a0a',
         },
+        accent: {
+          orange: '#ea580c',
+          'orange-light': '#fb923c',
+        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react'
+import Image from 'next/image'
+import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, Truck, Shield, Award, Quote } from 'lucide-react'
 import { categories } from '@/lib/data/categories'
 
 export function Footer() {
@@ -7,13 +8,48 @@ export function Footer() {
 
   return (
     <footer className="bg-gray-900 text-gray-300">
+      {/* Trust strip (Robu/Robocraze style) */}
+      <div className="border-b border-gray-800">
+        <div className="container-custom py-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <Truck className="w-8 h-8 text-primary-400" />
+              <span className="font-semibold text-white">Free Shipping</span>
+              <span className="text-sm">On orders over ₹999</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Shield className="w-8 h-8 text-primary-400" />
+              <span className="font-semibold text-white">Best Price Guarantee</span>
+              <span className="text-sm">Lowest prices assured</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <Award className="w-8 h-8 text-primary-400" />
+              <span className="font-semibold text-white">300,000+ Orders</span>
+              <span className="text-sm">Trusted by makers</span>
+            </div>
+            <div className="flex flex-col items-center gap-2 col-span-2 lg:col-span-1">
+              <span className="text-2xl font-bold text-white">Pan-India</span>
+              <span className="text-sm">Delivery to all states</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Footer */}
       <div className="container-custom py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-white text-xl font-bold mb-4">MTech Innovations</h3>
-            <h4>MTech Innovations is a brand owned by Maurya Enterprises</h4>
+            <Link href="/" className="inline-block mb-4">
+              <Image
+                src="/images/logo.png"
+                alt="MTech Innovations"
+                width={120}
+                height={38}
+                className="h-9 w-auto object-contain"
+              />
+            </Link>
+            <h4 className="text-sm text-gray-400">MTech Innovations is a brand owned by Maurya Enterprises</h4>
             <p className="text-sm mb-4 mt-2">
               Your one-stop shop for all electronics, Arduino, Raspberry Pi, sensors,
               motors, and robotics components.
@@ -124,6 +160,18 @@ export function Footer() {
                 </a>
               </li>
             </ul>
+          </div>
+
+          {/* Customer testimonials placeholder */}
+          <div>
+            <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <Quote className="w-4 h-4 text-primary-400" />
+              What customers say
+            </h4>
+            <blockquote className="text-sm italic text-gray-400 border-l-2 border-primary-500 pl-4">
+              &ldquo;Great components, fast delivery. Best place for Arduino and sensors.&rdquo;
+            </blockquote>
+            <p className="text-xs text-gray-500 mt-2">— Verified buyer</p>
           </div>
         </div>
       </div>

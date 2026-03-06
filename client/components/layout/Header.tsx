@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react'
 import { useCart } from '@/lib/context/CartContext'
@@ -94,12 +95,18 @@ export function Header() {
         isScrolled ? 'shadow-md' : 'shadow-sm'
       }`}
     >
-      {/* Top Bar */}
-      <div className="bg-primary-600 text-white py-1.5">
+      {/* Top Bar - Trust signals (Robu/Robocraze style) */}
+      <div className="bg-primary-600 text-white py-2">
         <div className="container-custom">
-          <div className="flex items-center justify-between text-xs sm:text-sm">
-            <p className="truncate">Free shipping on orders above ₹500</p>
-            <div className="hidden sm:flex items-center gap-4 flex-shrink-0 ml-4">
+          <div className="flex flex-wrap items-center justify-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
+              <span className="font-medium">Free Shipping over ₹999</span>
+              <span className="hidden sm:inline text-white/80">|</span>
+              <span className="font-medium">Best Price Guarantee</span>
+              <span className="hidden sm:inline text-white/80">|</span>
+              <span className="font-medium">Pan-India Delivery</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
               <Link href="/track" className="hover:underline whitespace-nowrap">
                 Track Order
               </Link>
@@ -115,11 +122,16 @@ export function Header() {
       <div className="container-custom py-3 sm:py-4">
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
-            <h1 className="text-lg sm:text-2xl font-bold text-primary-600 leading-tight">
-              MTech Innovations
-            </h1>
-            <h5 className="text-xs sm:text-sm font-bold text-primary-600">Innovating the future</h5>
+          <Link href="/" className="flex-shrink-0 flex items-center gap-2">
+            <Image
+              src="/images/logo.png"
+              alt="MTech Innovations"
+              width={140}
+              height={44}
+              className="h-9 sm:h-11 w-auto object-contain"
+              priority
+            />
+            <span className="hidden sm:block text-xs font-bold text-primary-600">Innovating the future</span>
           </Link>
 
           {/* Search Bar (Desktop) */}
@@ -312,10 +324,11 @@ export function Header() {
         </form>
       </div>
 
-      {/* Categories Nav */}
-      <nav className="border-t border-gray-200">
+      {/* Categories Nav - Fast jumps (Development Boards, Sensors, Batteries, Tools) */}
+      <nav className="border-t border-gray-200 bg-white">
         <div className="container-custom">
-          <div className="hidden lg:flex items-center gap-6 py-3 overflow-x-auto">
+          <div className="hidden lg:flex items-center gap-5 py-3 overflow-x-auto">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Shop:</span>
             {categories.slice(0, 8).map((category) => (
               <Link
                 key={category.id}
@@ -327,7 +340,7 @@ export function Header() {
             ))}
             <Link
               href="/categories"
-              className="text-sm font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap"
+              className="text-sm font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap ml-auto"
             >
               View All
             </Link>

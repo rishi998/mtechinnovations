@@ -6,6 +6,7 @@ export const products: Product[] = [
     id: '1',
     name: 'Arduino Uno R3 Development Board',
     slug: 'arduino-uno-r3',
+    sku: 'RC-ARD-001',
     category: 'Arduino',
     subcategory: 'Arduino Boards',
     price: 450,
@@ -106,6 +107,7 @@ export const products: Product[] = [
     featured: true,
     trending: true,
     dealOfDay: true,
+    isNewLaunch: true,
   },
   {
     id: '5',
@@ -748,6 +750,7 @@ export const products: Product[] = [
     brand: 'Tower Pro',
     trending: true,
     dealOfDay: true,
+    isNewLaunch: true,
   },
   {
     id: '32',

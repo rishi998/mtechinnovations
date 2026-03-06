@@ -2,6 +2,7 @@ export interface Product {
   id: string
   name: string
   slug: string
+  sku?: string
   category: string
   subcategory: string
   price: number
@@ -18,6 +19,7 @@ export interface Product {
   featured?: boolean
   trending?: boolean
   dealOfDay?: boolean
+  isNewLaunch?: boolean
 }
 
 export interface Category {

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Heart, ShoppingCart, Star } from 'lucide-react'
 import { Product } from '@/lib/types'
-import { formatPrice, calculateDiscount } from '@/lib/utils'
+import { formatPrice, calculateDiscount, getSaveAmount } from '@/lib/utils'
 import { useCart } from '@/lib/context/CartContext'
 import { useWishlist } from '@/lib/context/WishlistContext'
 import { Badge } from '../ui/Badge'
@@ -39,6 +39,10 @@ export function ProductCard({ product }: ProductCardProps) {
   const discount = product.originalPrice
     ? calculateDiscount(product.originalPrice, product.price)
     : 0
+  const saveAmount = product.originalPrice
+    ? getSaveAmount(product.originalPrice, product.price)
+    : 0
+  const sku = product.sku ?? `SKU-${product.id}`
 
   return (
     <motion.div
@@ -48,9 +52,9 @@ export function ProductCard({ product }: ProductCardProps) {
       transition={{ duration: 0.2 }}
     >
       <Link href={`/product/${product.slug}`}>
-        <div className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
-          {/* Image Container */}
-          <div className="relative aspect-square overflow-hidden bg-gray-50">
+        <div className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200">
+          {/* Image Container - high contrast card */}
+          <div className="relative aspect-square overflow-hidden bg-gray-100">
             <Image
               src={product.images[0]}
               alt={product.name}
@@ -58,9 +62,19 @@ export function ProductCard({ product }: ProductCardProps) {
               className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
             
-            {/* Badges */}
+            {/* Badges - New Launch, Save Rs.X, % OFF */}
             <div className="absolute top-3 left-3 flex flex-col gap-2">
-              {discount > 0 && (
+              {product.isNewLaunch && (
+                <Badge className="bg-green-600 text-white border-0" size="sm">
+                  New Launch
+                </Badge>
+              )}
+              {saveAmount > 0 && (
+                <Badge variant="danger" size="sm">
+                  Save ₹{saveAmount.toLocaleString('en-IN')}
+                </Badge>
+              )}
+              {discount > 0 && saveAmount === 0 && (
                 <Badge variant="danger" size="sm">
                   {discount}% OFF
                 </Badge>
@@ -100,13 +114,16 @@ export function ProductCard({ product }: ProductCardProps) {
 
           {/* Content */}
           <div className="p-4">
-            {/* Brand */}
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-              {product.brand}
-            </p>
+            {/* SKU & Brand */}
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                {product.brand}
+              </p>
+              <span className="text-xs text-gray-400 font-mono">{sku}</span>
+            </div>
 
-            {/* Title */}
-            <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 min-h-[3rem]">
+            {/* Title - short description style */}
+            <h3 className="font-semibold text-gray-900 line-clamp-2 mb-2 min-h-[3rem] leading-snug">
               {product.name}
             </h3>
 

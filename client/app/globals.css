@@ -42,4 +42,7 @@
   .text-balance {
     text-wrap: balance;
   }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

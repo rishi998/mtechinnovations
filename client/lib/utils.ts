@@ -25,6 +25,11 @@ export function calculateDiscount(originalPrice: number, currentPrice: number): 
   return Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
 }
 
+/** Returns savings amount in Rs (original - current) for "Save Rs. X" badges */
+export function getSaveAmount(originalPrice: number, currentPrice: number): number {
+  return Math.max(0, Math.round(originalPrice - currentPrice))
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()
