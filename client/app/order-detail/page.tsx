@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -14,6 +14,8 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { useAuth } from '@/lib/context/AuthContext'
+import { getOrders } from '@/lib/api/orders'
+import type { Order } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { formatPrice, formatDate } from '@/lib/utils'
@@ -40,18 +42,40 @@ function getStatusVariant(status: string): 'success' | 'info' | 'warning' | 'dan
 function OrderDetailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
   const orderId = searchParams.get('orderId')
+  const [order, setOrder] = useState<Order | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login')
+      return
     }
-  }, [isAuthenticated, router])
+    if (!orderId) {
+      setLoading(false)
+      return
+    }
+    getOrders()
+      .then((orders) => {
+        const found = orders.find((o) => o.orderId === orderId)
+        setOrder(found ?? null)
+      })
+      .catch(() => setOrder(null))
+      .finally(() => setLoading(false))
+  }, [isAuthenticated, orderId, router])
 
-  if (!isAuthenticated || !user) return null
-
-  const order = user.orders.find((o) => o.orderId === orderId)
+  if (!isAuthenticated) return null
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading order details...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!orderId || !order) {
     return (

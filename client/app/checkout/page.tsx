@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/context/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { formatPrice, generateId } from '@/lib/utils'
+import { createOrder } from '@/lib/api'
 
 const addressSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -32,6 +33,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('card')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [orderError, setOrderError] = useState('')
   const [shippingAddress, setShippingAddress] = useState<AddressForm | null>(null)
 
   const {
@@ -61,16 +63,32 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = async () => {
+    if (!shippingAddress) return
+    setOrderError('')
     setIsProcessing(true)
-    
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    const orderId = 'ORD' + generateId().toUpperCase().substring(0, 10)
-    const trackingId = 'TRK' + generateId().toUpperCase().substring(0, 10)
+    try {
+      if (isAuthenticated) {
+        const order = await createOrder({
+          shippingAddress: {
+            name: shippingAddress.name,
+            phone: shippingAddress.phone,
+            addressLine1: shippingAddress.addressLine1,
+            addressLine2: shippingAddress.addressLine2,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            pincode: shippingAddress.pincode,
+          },
+          paymentMethod,
+        })
+        clearCart()
+        router.push(`/order-success?orderId=${order.orderId}`)
+        return
+      }
 
-    // Create order
-    if (isAuthenticated) {
+      // Guest: mock order (no server order)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const orderId = 'ORD' + generateId().toUpperCase().substring(0, 10)
       addOrder({
         orderId,
         date: new Date(),
@@ -81,27 +99,27 @@ export default function CheckoutPage() {
         tax,
         shipping,
         total,
-        shippingAddress: shippingAddress
-          ? {
-              id: generateId(),
-              name: shippingAddress.name,
-              phone: shippingAddress.phone,
-              addressLine1: shippingAddress.addressLine1,
-              addressLine2: shippingAddress.addressLine2,
-              city: shippingAddress.city,
-              state: shippingAddress.state,
-              pincode: shippingAddress.pincode,
-              isDefault: false,
-            }
-          : ({} as any),
+        shippingAddress: {
+          id: generateId(),
+          name: shippingAddress.name,
+          phone: shippingAddress.phone,
+          addressLine1: shippingAddress.addressLine1,
+          addressLine2: shippingAddress.addressLine2,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          pincode: shippingAddress.pincode,
+          isDefault: false,
+        },
         paymentMethod,
-        trackingId,
+        trackingId: 'TRK' + generateId().toUpperCase().substring(0, 10),
       })
+      clearCart()
+      router.push(`/order-success?orderId=${orderId}`)
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : 'Failed to place order. Please try again.')
+    } finally {
+      setIsProcessing(false)
     }
-
-    clearCart()
-    setIsProcessing(false)
-    router.push(`/order-success?orderId=${orderId}`)
   }
 
   return (
@@ -308,6 +326,9 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
+                {orderError && (
+                  <p className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg">{orderError}</p>
+                )}
                 <div className="flex gap-3">
                   <Button onClick={() => setStep(2)} variant="outline" className="flex-1">
                     Back

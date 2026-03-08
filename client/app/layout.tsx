@@ -6,6 +6,7 @@ import { WishlistProvider } from '@/lib/context/WishlistContext'
 import { AuthProvider } from '@/lib/context/AuthContext'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { PageBackButton } from '@/components/layout/PageBackButton'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,6 +28,7 @@ export default function RootLayout({
           <CartProvider>
             <WishlistProvider>
               <Header />
+              <PageBackButton />
               <main className="min-h-screen">{children}</main>
               <Footer />
             </WishlistProvider>

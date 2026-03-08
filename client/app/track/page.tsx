@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Package, Search, Truck, CheckCircle, Clock, MapPin, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useAuth } from '@/lib/context/AuthContext'
+import { getOrders } from '@/lib/api'
+import type { Order } from '@/lib/types'
 
 const trackingSteps = [
   { id: 1, title: 'Order Placed', description: 'Your order has been received', icon: CheckCircle },
@@ -17,10 +19,18 @@ const trackingSteps = [
 
 export default function TrackOrderPage() {
   const [trackingId, setTrackingId] = useState('')
-  const [trackedOrder, setTrackedOrder] = useState<any>(null)
+  const [trackedOrder, setTrackedOrder] = useState<Order | null>(null)
+  const [ordersList, setOrdersList] = useState<Order[]>([])
   const [error, setError] = useState('')
   const [isSearching, setIsSearching] = useState(false)
-  const { user, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    getOrders()
+      .then(setOrdersList)
+      .catch(() => setOrdersList([]))
+  }, [isAuthenticated])
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,15 +38,23 @@ export default function TrackOrderPage() {
 
     setError('')
     setIsSearching(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    // Search in user orders
-    if (isAuthenticated && user) {
-      const order = user.orders.find(
-        (o) => o.trackingId === trackingId.trim() || o.orderId === trackingId.trim()
-      )
-      if (order) {
-        setTrackedOrder(order)
+    if (isAuthenticated) {
+      try {
+        const orders = ordersList.length > 0 ? ordersList : await getOrders()
+        if (orders.length > 0 && ordersList.length === 0) setOrdersList(orders)
+        const order = orders.find(
+          (o) =>
+            o.trackingId === trackingId.trim() ||
+            o.orderId === trackingId.trim()
+        )
+        if (order) {
+          setTrackedOrder(order)
+          setIsSearching(false)
+          return
+        }
+      } catch {
+        setError('Could not load orders. Please try again.')
         setIsSearching(false)
         return
       }
@@ -132,7 +150,7 @@ export default function TrackOrderPage() {
             <div className="mb-6">
               <h3 className="font-semibold text-gray-900 mb-3">Items Ordered</h3>
               <div className="space-y-3">
-                {trackedOrder.items.map((item: any, idx: number) => (
+                {trackedOrder.items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -195,11 +213,11 @@ export default function TrackOrderPage() {
         )}
 
         {/* User Orders Quick Access */}
-        {isAuthenticated && user && user.orders.length > 0 && !trackedOrder && (
+        {isAuthenticated && ordersList.length > 0 && !trackedOrder && (
           <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
             <h2 className="font-bold text-gray-900 mb-4">Your Recent Orders</h2>
             <div className="space-y-3">
-              {user.orders.slice(0, 3).map((order) => (
+              {ordersList.slice(0, 5).map((order) => (
                 <button
                   key={order.id}
                   onClick={() => {

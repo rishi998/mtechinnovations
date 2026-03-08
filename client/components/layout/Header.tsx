@@ -118,41 +118,42 @@ export function Header() {
         </div>
       </div>
 
-      {/* Main Header */}
-      <div className="container-custom py-3 sm:py-4">
-        <div className="flex items-center justify-between gap-2 sm:gap-4">
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-            <Image
-              src="/images/logo.png"
-              alt="MTech Innovations"
-              width={140}
-              height={44}
-              className="h-9 sm:h-11 w-auto object-contain"
-              priority
-            />
-            <span className="hidden sm:block text-xs font-bold text-primary-600">Innovating the future</span>
-          </Link>
-
-          {/* Search Bar (Desktop) */}
-          <div className="hidden lg:flex flex-1 max-w-2xl relative">
-            <form onSubmit={handleSearchSubmit} className="w-full relative">
-              <input
-                type="text"
-                placeholder="Search for products, brands, or categories..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                className="w-full px-4 py-2.5 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+      {/* Main Header - black bar with search, favourites, cart, profile */}
+      <div className="bg-black">
+        <div className="container-custom py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            {/* Logo */}
+            <Link href="/" className="flex-shrink-0 flex items-center gap-2">
+              <Image
+                src="/images/logo.png"
+                alt="MTech Innovations"
+                width={140}
+                height={44}
+                className="h-9 sm:h-11 w-auto object-contain"
+                priority
               />
-              <button
-                type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary-600 hover:text-primary-700"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            </form>
+              <span className="hidden sm:block text-xs font-bold text-gray-300">Innovating the future</span>
+            </Link>
+
+            {/* Search Bar (Desktop) */}
+            <div className="hidden lg:flex flex-1 max-w-2xl relative">
+              <form onSubmit={handleSearchSubmit} className="w-full relative">
+                <input
+                  type="text"
+                  placeholder="Search for products, brands, or categories..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                  className="w-full px-4 py-2.5 pr-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-white"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </form>
 
             {/* Search Results Dropdown */}
             {isSearchFocused && searchResults.length > 0 && (
@@ -179,11 +180,11 @@ export function Header() {
             )}
           </div>
 
-          {/* Actions */}
+          {/* Actions - light icons on black */}
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Wishlist */}
             <Link href="/wishlist">
-              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2">
+              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2 text-gray-300 hover:text-white hover:bg-white/10">
                 <Heart className="w-5 h-5" />
                 {wishlistCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
@@ -195,10 +196,10 @@ export function Header() {
 
             {/* Cart */}
             <Link href="/cart">
-              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2">
+              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2 text-gray-300 hover:text-white hover:bg-white/10">
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
@@ -212,6 +213,7 @@ export function Header() {
                 size="sm"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 aria-expanded={isUserMenuOpen}
+                className="text-gray-300 hover:text-white hover:bg-white/10"
               >
                 <User className="w-5 h-5" />
               </Button>
@@ -271,16 +273,17 @@ export function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden"
+              className="lg:hidden text-gray-300 hover:text-white hover:bg-white/10"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           </div>
         </div>
+        </div>
 
         {/* Mobile Search */}
-        <form onSubmit={handleSearchSubmit} className="lg:hidden mt-3">
+        <form onSubmit={handleSearchSubmit} className="lg:hidden mt-3 container-custom pb-3">
           <div className="relative">
             <input
               type="text"
@@ -289,11 +292,11 @@ export function Header() {
               onChange={handleSearchChange}
               onFocus={() => setIsMobileSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsMobileSearchFocused(false), 200)}
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-base"
+              className="w-full px-4 py-3 pr-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 text-base"
             />
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-white"
             >
               <Search className="w-5 h-5" />
             </button>

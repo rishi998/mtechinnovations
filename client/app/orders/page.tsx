@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Package, ChevronRight } from 'lucide-react'
@@ -9,15 +9,32 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { formatDate, formatPrice } from '@/lib/utils'
+import { getOrders } from '@/lib/api'
+import type { Order } from '@/lib/types'
 
 export default function OrdersPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login')
+      return
     }
+    let cancelled = false
+    getOrders()
+      .then((list) => {
+        if (!cancelled) setOrders(list)
+      })
+      .catch(() => {
+        if (!cancelled) setOrders([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
   }, [isAuthenticated, router])
 
   if (!isAuthenticated || !user) {
@@ -39,7 +56,17 @@ export default function OrdersPage() {
     }
   }
 
-  if (user.orders.length === 0) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-16">
+        <div className="container-custom text-center">
+          <p className="text-gray-600">Loading orders...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (orders.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 py-16">
         <div className="container-custom text-center">
@@ -58,67 +85,66 @@ export default function OrdersPage() {
     )
   }
 
+  const sortedOrders = [...orders].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
-        <p className="text-gray-600 mb-8">{user.orders.length} orders placed</p>
+        <p className="text-gray-600 mb-8">{orders.length} orders placed</p>
 
         <div className="space-y-4">
-          {user.orders
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .map((order) => (
-              <Card key={order.id} className="hover:shadow-md transition-shadow">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  {/* Order Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">Order #{order.orderId}</h3>
-                      <Badge variant={getStatusVariant(order.status)} size="sm">
-                        {order.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Placed on {formatDate(order.date)}
+          {sortedOrders.map((order) => (
+            <Card key={order.id} className="hover:shadow-md transition-shadow">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-semibold text-gray-900">Order #{order.orderId}</h3>
+                    <Badge variant={getStatusVariant(order.status)} size="sm">
+                      {order.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Placed on {formatDate(order.date)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {order.items.length} item{order.items.length > 1 ? 's' : ''} • Total: {formatPrice(order.total)}
+                  </p>
+                  {order.trackingId && (
+                    <p className="text-sm text-primary-600 mt-1">
+                      Tracking ID: {order.trackingId}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      {order.items.length} item{order.items.length > 1 ? 's' : ''} • Total: {formatPrice(order.total)}
-                    </p>
-                    {order.trackingId && (
-                      <p className="text-sm text-primary-600 mt-1">
-                        Tracking ID: {order.trackingId}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Products Preview */}
-                  <div className="hidden sm:flex gap-2 flex-shrink-0">
-                    {order.items.slice(0, 3).map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="w-14 h-14 bg-gray-100 rounded-lg flex-shrink-0"
-                        title={item.product.name}
-                      />
-                    ))}
-                    {order.items.length > 3 && (
-                      <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-medium text-gray-600">
-                        +{order.items.length - 3}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Link href={`/order-detail?orderId=${order.orderId}`}>
-                      <Button variant="outline" size="sm">
-                        View Details
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
+                  )}
                 </div>
-              </Card>
-            ))}
+
+                <div className="hidden sm:flex gap-2 flex-shrink-0">
+                  {order.items.slice(0, 3).map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="w-14 h-14 bg-gray-100 rounded-lg flex-shrink-0"
+                      title={item.product.name}
+                    />
+                  ))}
+                  {order.items.length > 3 && (
+                    <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-medium text-gray-600">
+                      +{order.items.length - 3}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Link href={`/order-detail?orderId=${order.orderId}`}>
+                    <Button variant="outline" size="sm">
+                      View Details
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </div>
     </div>

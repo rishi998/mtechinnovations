@@ -3,10 +3,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Order, Address } from '../types'
 import { generateId } from '../utils'
+import { apiLogin, apiRegister, getProfile, apiLogout, getToken } from '../api'
 
 interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
+  isLoading: boolean
   login: (email: string, password: string) => Promise<boolean>
   register: (name: string, email: string, password: string, phone?: string) => Promise<boolean>
   logout: () => void
@@ -15,65 +17,44 @@ interface AuthContextType {
   updateAddress: (addressId: string, address: Partial<Address>) => void
   deleteAddress: (addressId: string) => void
   addOrder: (order: Omit<Order, 'id'>) => void
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const savedUser = localStorage.getItem('user')
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+  const refreshUser = async () => {
+    const token = getToken()
+    if (!token) {
+      setUser(null)
+      setIsLoading(false)
+      return
     }
-    setIsLoaded(true)
+    try {
+      const profile = await getProfile()
+      setUser(profile)
+    } catch {
+      setUser(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    refreshUser()
   }, [])
 
-  // Save user to localStorage whenever it changes
-  useEffect(() => {
-    if (isLoaded) {
-      if (user) {
-        localStorage.setItem('user', JSON.stringify(user))
-      } else {
-        localStorage.removeItem('user')
-      }
-    }
-  }, [user, isLoaded])
-
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Demo account
-    if (email === 'demo@example.com' && password === 'demo123') {
-      const demoUser: User = {
-        id: 'demo-user',
-        email: 'demo@example.com',
-        name: 'Demo User',
-        phone: '9876543210',
-        addresses: [],
-        orders: [],
-      }
-      setUser(demoUser)
+    try {
+      const { user: u } = await apiLogin(email, password)
+      setUser(u)
       return true
+    } catch {
+      return false
     }
-    
-    // Check if user exists in localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const foundUser = users.find(
-      (u: any) => u.email === email && u.password === password
-    )
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser
-      setUser(userWithoutPassword)
-      return true
-    }
-    
-    return false
   }
 
   const register = async (
@@ -82,65 +63,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     phone?: string
   ): Promise<boolean> => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    
-    // Check if user already exists
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const exists = users.some((u: any) => u.email === email)
-    
-    if (exists) {
+    try {
+      const { user: u } = await apiRegister(name, email, password, phone)
+      setUser(u)
+      return true
+    } catch {
       return false
     }
-    
-    // Create new user
-    const newUser: User & { password: string } = {
-      id: generateId(),
-      email,
-      name,
-      phone,
-      password,
-      addresses: [],
-      orders: [],
-    }
-    
-    // Save to users list
-    users.push(newUser)
-    localStorage.setItem('users', JSON.stringify(users))
-    
-    // Set as current user (without password)
-    const { password: _, ...userWithoutPassword } = newUser
-    setUser(userWithoutPassword)
-    
-    return true
   }
 
   const logout = () => {
+    apiLogout()
     setUser(null)
   }
 
   const updateUser = (userData: Partial<User>) => {
     if (!user) return
-    
-    const updatedUser = { ...user, ...userData }
-    setUser(updatedUser)
-    
-    // Update in users list
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const updatedUsers = users.map((u: any) =>
-      u.id === user.id ? { ...u, ...userData } : u
-    )
-    localStorage.setItem('users', JSON.stringify(updatedUsers))
+    setUser((prev) => (prev ? { ...prev, ...userData } : null))
   }
 
   const addAddress = (address: Omit<Address, 'id'>) => {
     if (!user) return
-    
     const newAddress: Address = {
       ...address,
       id: generateId(),
     }
-    
     updateUser({
       addresses: [...user.addresses, newAddress],
     })
@@ -148,29 +95,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateAddress = (addressId: string, address: Partial<Address>) => {
     if (!user) return
-    
     const updatedAddresses = user.addresses.map((addr) =>
       addr.id === addressId ? { ...addr, ...address } : addr
     )
-    
     updateUser({ addresses: updatedAddresses })
   }
 
   const deleteAddress = (addressId: string) => {
     if (!user) return
-    
-    const updatedAddresses = user.addresses.filter((addr) => addr.id !== addressId)
-    updateUser({ addresses: updatedAddresses })
+    updateUser({
+      addresses: user.addresses.filter((addr) => addr.id !== addressId),
+    })
   }
 
   const addOrder = (order: Omit<Order, 'id'>) => {
     if (!user) return
-    
     const newOrder: Order = {
       ...order,
       id: generateId(),
     }
-    
     updateUser({
       orders: [...user.orders, newOrder],
     })
@@ -181,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
         login,
         register,
         logout,
@@ -189,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateAddress,
         deleteAddress,
         addOrder,
+        refreshUser,
       }}
     >
       {children}

@@ -1,0 +1,10 @@
+# Hostinger / Apache config for Next.js static export (out folder)
+# Enables clean URLs and 404 handling
+
+# Use 404.html for not-found pages (Next.js static export generates this)
+ErrorDocument 404 /404.html
+
+# Optional: force HTTPS (uncomment if your Hostinger plan supports it)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
