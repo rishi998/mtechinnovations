@@ -1,16 +1,20 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User, Package, Heart, MapPin, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '@/lib/context/AuthContext'
+import { getOrders } from '@/lib/api'
+import type { Order } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user, isAuthenticated, logout } = useAuth()
+  const [ordersCount, setOrdersCount] = useState<number | null>(null)
+  const [recentOrders, setRecentOrders] = useState<Order[]>([])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -18,13 +22,32 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated, router])
 
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+    getOrders()
+      .then((orders) => {
+        setOrdersCount(orders.length)
+        setRecentOrders(orders.slice(0, 3))
+      })
+      .catch(() => {
+        setOrdersCount(0)
+        setRecentOrders([])
+      })
+  }, [isAuthenticated, user])
+
   if (!isAuthenticated || !user) {
     return null
   }
 
   const menuItems = [
     { icon: User, label: 'Personal Information', href: '/profile/edit', color: 'text-blue-600' },
-    { icon: Package, label: 'My Orders', href: '/orders', color: 'text-green-600', count: user.orders.length },
+    {
+      icon: Package,
+      label: 'My Orders',
+      href: '/orders',
+      color: 'text-green-600',
+      count: ordersCount ?? user.orders.length,
+    },
     { icon: Heart, label: 'Wishlist', href: '/wishlist', color: 'text-red-600' },
     { icon: MapPin, label: 'Saved Addresses', href: '/profile/addresses', color: 'text-purple-600', count: user.addresses.length },
     { icon: Settings, label: 'Account Settings', href: '/profile/settings', color: 'text-gray-600' },
@@ -98,8 +121,8 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Recent Orders */}
-        {user.orders.length > 0 && (
+        {/* Recent Orders (from API) */}
+        {recentOrders.length > 0 && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-900">Recent Orders</h2>
@@ -108,7 +131,7 @@ export default function ProfilePage() {
               </Link>
             </div>
             <div className="space-y-4">
-              {user.orders.slice(0, 3).map((order) => (
+              {recentOrders.map((order) => (
                 <Card key={order.id}>
                   <div className="flex items-center justify-between">
                     <div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react'
 import { Product, CartItem } from '../types'
 import { useAuth } from './AuthContext'
 import { getCart, addToCart as apiAddToCart, updateCartItem as apiUpdateCartItem, removeFromCart as apiRemoveFromCart } from '../api'
@@ -25,6 +25,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [localCart, setLocalCart] = useState<CartItem[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const localCartRef = useRef(localCart)
+  localCartRef.current = localCart
 
   const refreshCart = useCallback(async () => {
     if (!isAuthenticated) return
@@ -39,13 +41,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated])
 
+  /** When logged in: merge guest cart into server, then load server cart. */
   useEffect(() => {
-    if (isAuthenticated) {
-      refreshCart()
-    } else {
+    if (!isAuthenticated) {
       setCart([])
+      return
     }
-  }, [isAuthenticated, refreshCart])
+    let cancelled = false
+    const sync = async () => {
+      setIsLoading(true)
+      const guest = localCartRef.current
+      try {
+        if (guest.length > 0) {
+          for (const item of guest) {
+            try {
+              await apiAddToCart(item.product.id, item.quantity)
+            } catch {
+              // product id may not exist on server; skip
+            }
+          }
+          setLocalCart([])
+        }
+        const items = await getCart()
+        if (!cancelled) setCart(items)
+      } catch {
+        if (!cancelled) setCart([])
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+    sync()
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (isAuthenticated) return

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { formatPrice, generateId } from '@/lib/utils'
 import { createOrder } from '@/lib/api'
+import type { CartItem } from '@/lib/types'
 
 const addressSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -28,13 +29,15 @@ type AddressForm = z.infer<typeof addressSchema>
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { cart, cartTotal, clearCart } = useCart()
+  const { cart, cartTotal, clearCart, refreshCart } = useCart()
   const { isAuthenticated, user, addOrder } = useAuth()
   const [step, setStep] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('card')
   const [isProcessing, setIsProcessing] = useState(false)
   const [orderError, setOrderError] = useState('')
   const [shippingAddress, setShippingAddress] = useState<AddressForm | null>(null)
+  /** Snapshot when leaving step 1 so payment/review still work if context cart refetches empty */
+  const [checkoutCart, setCheckoutCart] = useState<CartItem[]>([])
 
   const {
     register,
@@ -48,17 +51,20 @@ export default function CheckoutPage() {
     },
   })
 
-  const shipping = cartTotal > 500 ? 0 : 50
-  const tax = Math.round(cartTotal * 0.18)
-  const total = cartTotal + shipping + tax
+  const effectiveCart = step >= 2 && checkoutCart.length > 0 ? checkoutCart : cart
+  const effectiveTotal = effectiveCart.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
+  const shipping = effectiveTotal > 500 ? 0 : 50
+  const tax = Math.round(effectiveTotal * 0.18)
+  const total = effectiveTotal + shipping + tax
 
-  if (cart.length === 0) {
+  if (effectiveCart.length === 0) {
     router.push('/cart')
     return null
   }
 
   const onSubmitAddress = (data: AddressForm) => {
     setShippingAddress(data)
+    setCheckoutCart(cart)
     setStep(2)
   }
 
@@ -82,6 +88,7 @@ export default function CheckoutPage() {
           paymentMethod,
         })
         clearCart()
+        void refreshCart()
         router.push(`/order-success?orderId=${order.orderId}`)
         return
       }
@@ -93,8 +100,8 @@ export default function CheckoutPage() {
         orderId,
         date: new Date(),
         status: 'processing',
-        items: cart,
-        subtotal: cartTotal,
+        items: effectiveCart,
+        subtotal: effectiveTotal,
         discount: 0,
         tax,
         shipping,
@@ -312,7 +319,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  {cart.map((item) => (
+                  {effectiveCart.map((item) => (
                     <div key={item.product.id} className="flex gap-4 pb-4 border-b">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-lg flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -351,8 +358,8 @@ export default function CheckoutPage() {
               <h3 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-600">
-                  <span>Subtotal ({cart.length} items)</span>
-                  <span>{formatPrice(cartTotal)}</span>
+                  <span>Subtotal ({effectiveCart.length} items)</span>
+                  <span>{formatPrice(effectiveTotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>

@@ -21,7 +21,19 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const savedWishlist = localStorage.getItem('wishlist')
     if (savedWishlist) {
-      setWishlist(JSON.parse(savedWishlist))
+      try {
+        const parsed = JSON.parse(savedWishlist) as WishlistItem[]
+        if (Array.isArray(parsed)) {
+          setWishlist(
+            parsed.map((item) => ({
+              ...item,
+              addedAt: item.addedAt ? new Date(item.addedAt as unknown as string) : new Date(),
+            }))
+          )
+        }
+      } catch {
+        setWishlist([])
+      }
     }
     setIsLoaded(true)
   }, [])
