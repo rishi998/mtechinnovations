@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Order, OrderDocument, OrderStatus } from './schemas/order.schema';
+import {
+  Order,
+  OrderDocument,
+  OrderStatus,
+  OrderZohoSyncStatus,
+} from './schemas/order.schema';
 import { CartService } from '../cart/cart.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -143,6 +148,101 @@ export class OrdersService {
       )
       .exec();
     if (!order) throw new NotFoundException('Order not found');
+    return order;
+  }
+
+  async findByRazorpayOrderId(
+    razorpayOrderId: string,
+  ): Promise<OrderDocument | null> {
+    return this.orderModel
+      .findOne({ razorpay_order_id: razorpayOrderId })
+      .populate('items.productId')
+      .exec();
+  }
+
+  async attachRazorpayOrderId(
+    orderMongoId: string,
+    userId: string,
+    razorpayOrderId: string,
+  ): Promise<OrderDocument> {
+    const order = await this.findOne(orderMongoId, userId);
+    if (order.status !== 'pending') {
+      throw new BadRequestException('Order cannot be paid');
+    }
+    if (order.payment_status === 'success') {
+      throw new BadRequestException('Order already paid');
+    }
+    order.razorpay_order_id = razorpayOrderId;
+    await order.save();
+    return order;
+  }
+
+  async applyVerifiedRazorpayPayment(input: {
+    orderMongoId: string;
+    razorpayPaymentId: string;
+    zohoSalesOrderId: string | null;
+    zohoInvoiceId: string | null;
+    zohoSyncStatus: OrderZohoSyncStatus;
+  }): Promise<OrderDocument> {
+    const order = await this.orderModel
+      .findByIdAndUpdate(
+        input.orderMongoId,
+        {
+          $set: {
+            payment_status: 'success',
+            razorpay_payment_id: input.razorpayPaymentId,
+            paymentId: input.razorpayPaymentId,
+            zoho_salesorder_id: input.zohoSalesOrderId,
+            zoho_invoice_id: input.zohoInvoiceId,
+            zoho_sync_status: input.zohoSyncStatus,
+            status: 'processing',
+          },
+        },
+        { new: true },
+      )
+      .populate('items.productId')
+      .exec();
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    return order;
+  }
+
+  async markPaymentFailedForRazorpayOrder(razorpayOrderId: string): Promise<void> {
+    await this.orderModel
+      .updateMany(
+        {
+          razorpay_order_id: razorpayOrderId,
+          payment_status: { $ne: 'success' },
+        },
+        { $set: { payment_status: 'failed' } },
+      )
+      .exec();
+  }
+
+  async updateZohoSyncForOrder(
+    orderMongoId: string,
+    zohoSalesOrderId: string | null,
+    zohoInvoiceId: string | null,
+    zohoSyncStatus: OrderZohoSyncStatus,
+  ): Promise<OrderDocument> {
+    const order = await this.orderModel
+      .findByIdAndUpdate(
+        orderMongoId,
+        {
+          $set: {
+            zoho_salesorder_id: zohoSalesOrderId,
+            zoho_invoice_id: zohoInvoiceId,
+            zoho_sync_status: zohoSyncStatus,
+          },
+        },
+        { new: true },
+      )
+      .populate('items.productId')
+      .exec();
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
     return order;
   }
 }

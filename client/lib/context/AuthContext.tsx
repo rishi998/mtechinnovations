@@ -10,7 +10,12 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<boolean>
-  register: (name: string, email: string, password: string, phone?: string) => Promise<boolean>
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string,
+  ) => Promise<{ ok: true } | { ok: false; message: string }>
   logout: () => void
   updateUser: (userData: Partial<User>) => void
   addAddress: (address: Omit<Address, 'id'>) => void
@@ -61,14 +66,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    phone?: string
-  ): Promise<boolean> => {
+    phone?: string,
+  ): Promise<{ ok: true } | { ok: false; message: string }> => {
     try {
       const { user: u } = await apiRegister(name, email, password, phone)
       setUser(u)
-      return true
-    } catch {
-      return false
+      return { ok: true }
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : 'Registration failed. Please try again.'
+      return { ok: false, message }
     }
   }
 

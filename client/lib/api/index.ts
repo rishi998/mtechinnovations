@@ -7,3 +7,9 @@ export { getCart, addToCart, updateCartItem, removeFromCart } from './cart'
 
 export type { CreateOrderPayload } from './orders'
 export { createOrder, getOrders, getOrderById } from './orders'
+
+export type {
+  CreateOrderPaymentResponse,
+  VerifyRazorpayResponse,
+} from './payments'
+export { createOrderPayment, verifyRazorpayPayment } from './payments'

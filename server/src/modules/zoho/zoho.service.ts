@@ -16,14 +16,17 @@ import type {
   ZohoInventoryItemNormalized,
   ZohoInventoryItemsListResponse,
 } from './zoho-inventory.types';
-import type { ZohoCreateSalesOrderPayload } from './zoho-inventory-salesorder.types';
+import type {
+  ZohoCreateSalesOrderLineItem,
+  ZohoCreateSalesOrderPayload,
+} from './zoho-inventory-salesorder.types';
 
 const ACCESS_EXPIRY_BUFFER_MS = 60_000;
 const ZOHO_ITEMS_PAGE_SIZE = 200;
 const ZOHO_ITEMS_MAX_PAGES = 500;
 
-/** Normalize tax / exemption ids from .env (quotes, comments, accidental text). */
-function parseZohoNumericEnvId(raw: string | undefined | null): string | null {
+/** Normalize env ids from .env (quotes, comments, accidental text). */
+function parseZohoEnvId(raw: string | undefined | null): string | null {
   if (raw == null) {
     return null;
   }
@@ -38,14 +41,12 @@ function parseZohoNumericEnvId(raw: string | undefined | null): string | null {
   ) {
     s = s.slice(1, -1).trim();
   }
-  if (/^\d+$/.test(s)) {
-    return s;
-  }
-  const m = s.match(/\d{3,}/);
-  if (m && /^\d+$/.test(m[0])) {
-    return m[0];
-  }
-  return null;
+  return s || null;
+}
+
+/** Common mistake: GSTIN pasted instead of Zoho tax_id. */
+function looksLikeIndianGstin(value: string): boolean {
+  return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/i.test(value);
 }
 
 @Injectable()
@@ -271,6 +272,8 @@ export class ZohoService {
       client_id: this.clientId,
       response_type: 'code',
       access_type: 'offline',
+      // Required to consistently receive a new refresh_token on relink.
+      prompt: 'consent',
       redirect_uri: redirectUri.trim(),
     });
 
@@ -391,6 +394,101 @@ export class ZohoService {
   }
 
   /**
+   * Same tax / exemption rules as sales orders for Inventory payloads that use `line_items`
+   * (sales orders, invoices).
+   */
+  private async resolveInventoryLineItemsTax(
+    line_items: ZohoCreateSalesOrderLineItem[],
+    payloadTaxExemptionId?: string,
+  ): Promise<{ line_items: ZohoCreateSalesOrderLineItem[]; tax_exemption_id?: string }> {
+    const items = line_items.map((li) => ({ ...li }));
+
+    const lineTaxRaw =
+      this.config.get<string>('ZOHO_SALES_ORDER_LINE_TAX_ID') ??
+      process.env.ZOHO_SALES_ORDER_LINE_TAX_ID;
+    const exemptionRaw =
+      this.config.get<string>('ZOHO_SALES_ORDER_TAX_EXEMPTION_ID') ??
+      process.env.ZOHO_SALES_ORDER_TAX_EXEMPTION_ID;
+
+    let lineTaxId = parseZohoEnvId(lineTaxRaw);
+    const taxExemptionId = parseZohoEnvId(exemptionRaw);
+    if (lineTaxId && looksLikeIndianGstin(lineTaxId)) {
+      this.logger.warn(
+        'ZOHO_SALES_ORDER_LINE_TAX_ID looks like a GSTIN, not a Zoho tax_id. Falling back to default tax from Zoho settings.',
+      );
+      lineTaxId = null;
+    }
+
+    if (String(lineTaxRaw ?? '').trim() !== '' && !lineTaxId) {
+      this.logger.warn(
+        'ZOHO_SALES_ORDER_LINE_TAX_ID is set but cannot be parsed (check quotes/spaces/text after #).',
+      );
+    }
+    if (String(exemptionRaw ?? '').trim() !== '' && !taxExemptionId) {
+      this.logger.warn(
+        'ZOHO_SALES_ORDER_TAX_EXEMPTION_ID is set but cannot be parsed.',
+      );
+    }
+
+    if (lineTaxId) {
+      this.logger.log(`Sales order line tax_id from env: ${lineTaxId}`);
+      return {
+        line_items: items.map((li) => ({
+          ...li,
+          tax_id: lineTaxId!,
+        })),
+      };
+    }
+
+    if (taxExemptionId) {
+      this.logger.log(
+        `Sales order tax_exemption_id from env: ${taxExemptionId}`,
+      );
+      return { line_items: items, tax_exemption_id: taxExemptionId };
+    }
+
+    const payloadEx = payloadTaxExemptionId?.trim();
+    if (payloadEx) {
+      return { line_items: items, tax_exemption_id: payloadEx };
+    }
+
+    const taxes = await this.listInventoryTaxes();
+    const fallbackTax =
+      taxes.find((t) => t.is_default_tax === true) ?? taxes[0] ?? null;
+    if (fallbackTax?.tax_id) {
+      this.logger.warn(
+        `Sales order tax_id fallback applied from Zoho settings: ${fallbackTax.tax_id}`,
+      );
+      return {
+        line_items: items.map((li) => ({
+          ...li,
+          tax_id: fallbackTax.tax_id,
+        })),
+      };
+    }
+
+    throw new ZohoOAuthException(
+      'Zoho requires a tax or tax exemption on sales orders. Set ZOHO_SALES_ORDER_LINE_TAX_ID (Zoho Inventory -> Settings -> Taxes -> copy tax id) or ZOHO_SALES_ORDER_TAX_EXEMPTION_ID in server .env, then restart.',
+    );
+  }
+
+  private throwIfInventoryMutationFailed(
+    data: unknown,
+    fallbackMessage: string,
+  ): void {
+    if (data && typeof data === 'object' && 'code' in data) {
+      const c = Number((data as { code?: number }).code);
+      if (Number.isFinite(c) && c !== 0) {
+        const msg = String(
+          (data as { message?: string }).message ?? fallbackMessage,
+        );
+        this.logger.error(`${fallbackMessage}: ${msg}`);
+        throw new ZohoOAuthException(msg);
+      }
+    }
+  }
+
+  /**
    * Creates a sales order in Zoho Inventory. Requires scope e.g. ZohoInventory.salesorders.CREATE.
    */
   async createSalesOrder(
@@ -409,56 +507,19 @@ export class ZohoService {
     this.logger.log(`Customer ID used: ${String(cidRaw).trim()}`);
     this.logger.log('Creating Zoho Sales Order...');
 
-    const lineTaxRaw =
-      this.config.get<string>('ZOHO_SALES_ORDER_LINE_TAX_ID') ??
-      process.env.ZOHO_SALES_ORDER_LINE_TAX_ID;
-    const exemptionRaw =
-      this.config.get<string>('ZOHO_SALES_ORDER_TAX_EXEMPTION_ID') ??
-      process.env.ZOHO_SALES_ORDER_TAX_EXEMPTION_ID;
-
-    const lineTaxId = parseZohoNumericEnvId(lineTaxRaw);
-    const taxExemptionId = parseZohoNumericEnvId(exemptionRaw);
-
-    if (String(lineTaxRaw ?? '').trim() !== '' && !lineTaxId) {
-      this.logger.warn(
-        'ZOHO_SALES_ORDER_LINE_TAX_ID is set but not usable as a numeric id (check quotes, spaces, or text after #).',
+    const { line_items, tax_exemption_id } =
+      await this.resolveInventoryLineItemsTax(
+        payload.line_items.map((li) => ({ ...li })),
+        payload.tax_exemption_id,
       );
-    }
-    if (String(exemptionRaw ?? '').trim() !== '' && !taxExemptionId) {
-      this.logger.warn(
-        'ZOHO_SALES_ORDER_TAX_EXEMPTION_ID is set but not usable as a numeric id.',
-      );
-    }
 
     const body: Record<string, unknown> = {
       customer_id: String(cidRaw).trim(),
       date: payload.date,
-      line_items: payload.line_items.map((li) => ({ ...li })),
+      line_items,
     };
-    if (payload.tax_exemption_id?.trim()) {
-      body.tax_exemption_id = payload.tax_exemption_id.trim();
-    }
-
-    if (lineTaxId && /^\d+$/.test(lineTaxId)) {
-      body.line_items = (body.line_items as ZohoCreateSalesOrderPayload['line_items']).map(
-        (li) => ({
-          ...li,
-          tax_id: lineTaxId,
-        }),
-      );
-      this.logger.log(`Sales order line tax_id from env: ${lineTaxId}`);
-    } else if (taxExemptionId && /^\d+$/.test(taxExemptionId)) {
-      body.tax_exemption_id = taxExemptionId;
-      this.logger.log(`Sales order tax_exemption_id from env: ${taxExemptionId}`);
-    } else if (
-      body.tax_exemption_id &&
-      /^\d+$/.test(String(body.tax_exemption_id))
-    ) {
-      /* payload already carried exemption */
-    } else {
-      throw new ZohoOAuthException(
-        'Zoho requires a tax or tax exemption on sales orders. Set ZOHO_SALES_ORDER_LINE_TAX_ID (Zoho Inventory → Settings → Taxes → copy tax id) or ZOHO_SALES_ORDER_TAX_EXEMPTION_ID in server .env, then restart.',
-      );
+    if (tax_exemption_id) {
+      body.tax_exemption_id = tax_exemption_id;
     }
 
     const qs = new URLSearchParams({
@@ -475,22 +536,135 @@ export class ZohoService {
         },
       });
 
-      if (data && typeof data === 'object' && 'code' in data) {
-        const c = Number((data as { code?: number }).code);
-        if (Number.isFinite(c) && c !== 0) {
-          const msg = String(
-            (data as { message?: string }).message ?? 'Zoho rejected sales order',
-          );
-          this.logger.error(`Sales Order failed: ${msg}`);
-          throw new ZohoOAuthException(msg);
-        }
-      }
+      this.throwIfInventoryMutationFailed(data, 'Zoho rejected sales order');
 
       this.logger.log('Sales Order created successfully');
       return data;
     } catch (err) {
       this.logger.error(
         'Sales Order failed',
+        err instanceof Error ? err.stack : undefined,
+      );
+      throw err;
+    }
+  }
+
+  /**
+   * Creates an invoice in Zoho Inventory. Requires e.g. ZohoInventory.invoices.CREATE.
+   */
+  async createInvoice(params: {
+    customer_id: string;
+    date: string;
+    line_items: ZohoCreateSalesOrderLineItem[];
+    tax_exemption_id?: string;
+  }): Promise<Record<string, unknown>> {
+    const cid = String(params.customer_id ?? '').trim();
+    if (!/^\d+$/.test(cid)) {
+      throw new ZohoOAuthException(
+        'Invalid Zoho customer_id before creating invoice',
+      );
+    }
+    this.logger.log('Creating Zoho Invoice...');
+
+    const { line_items, tax_exemption_id } =
+      await this.resolveInventoryLineItemsTax(
+        params.line_items.map((li) => ({ ...li })),
+        params.tax_exemption_id,
+      );
+
+    const body: Record<string, unknown> = {
+      customer_id: cid,
+      date: params.date,
+      line_items,
+    };
+    if (tax_exemption_id) {
+      body.tax_exemption_id = tax_exemption_id;
+    }
+
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+    try {
+      const data = await this.requestInventory<Record<string, unknown>>({
+        method: 'POST',
+        url: `/invoices?${qs.toString()}`,
+        data: body,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+
+      this.throwIfInventoryMutationFailed(data, 'Zoho rejected invoice');
+
+      this.logger.log('Zoho Invoice created successfully');
+      return data;
+    } catch (err) {
+      this.logger.error(
+        'Zoho Invoice failed',
+        err instanceof Error ? err.stack : undefined,
+      );
+      throw err;
+    }
+  }
+
+  /**
+   * Records a customer payment against an invoice. Requires e.g. ZohoInventory.customerpayments.CREATE.
+   */
+  async recordCustomerPayment(params: {
+    customer_id: string;
+    invoice_id: string;
+    /** Amount in major currency units (e.g. INR rupees), matching Zoho invoice totals. */
+    amount: number;
+    date: string;
+    payment_mode?: string;
+  }): Promise<Record<string, unknown>> {
+    const cid = String(params.customer_id ?? '').trim();
+    const invId = String(params.invoice_id ?? '').trim();
+    if (!/^\d+$/.test(cid) || !/^\d+$/.test(invId)) {
+      throw new ZohoOAuthException(
+        'Invalid customer_id or invoice_id for customer payment',
+      );
+    }
+
+    const body = {
+      customer_id: cid,
+      payment_mode: params.payment_mode ?? 'Razorpay',
+      amount: params.amount,
+      date: params.date,
+      invoices: [
+        {
+          invoice_id: invId,
+          amount_applied: params.amount,
+        },
+      ],
+    };
+
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+
+    try {
+      const data = await this.requestInventory<Record<string, unknown>>({
+        method: 'POST',
+        url: `/customerpayments?${qs.toString()}`,
+        data: body,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      });
+
+      this.throwIfInventoryMutationFailed(
+        data,
+        'Zoho rejected customer payment',
+      );
+
+      this.logger.log('Zoho customer payment recorded');
+      return data;
+    } catch (err) {
+      this.logger.error(
+        'Zoho customer payment failed',
         err instanceof Error ? err.stack : undefined,
       );
       throw err;
@@ -646,7 +820,7 @@ export class ZohoService {
             detail = String(d.message ?? d.error ?? '').trim();
           }
           const hint =
-            'Check: refresh token must include scopes for this API (e.g. ZohoInventory.salesorders.CREATE for sales orders). Re-auth via GET /api/zoho/login?type=order or type=full, then update ZOHO_REFRESH_TOKEN in .env. Also verify ZOHO_ORGANIZATION_ID and India DC (.in) settings.';
+            'Check: refresh token must include scopes for this API (e.g. ZohoInventory.salesorders.CREATE for sales orders). Re-auth via GET /api/zoho/login?type=order or type=full. Also verify ZOHO_ORGANIZATION_ID and India DC (.in) settings.';
           const msg = detail
             ? `Zoho Inventory 401: ${detail}. ${hint}`
             : `Zoho Inventory 401 Unauthorized. ${hint}`;
@@ -756,8 +930,22 @@ export class ZohoService {
     await this.tokenFetchLock;
   }
 
+  private async resolveRefreshToken(): Promise<string> {
+    const persisted = await this.tokens.load();
+    if (persisted?.refreshToken?.trim()) {
+      return persisted.refreshToken.trim();
+    }
+    const envRefresh = this.config.get<string>('ZOHO_REFRESH_TOKEN');
+    if (envRefresh?.trim()) {
+      return envRefresh.trim();
+    }
+    throw new ZohoOAuthException(
+      'No Zoho refresh token available. Complete OAuth via GET /api/zoho/login?type=order (or type=full), or set ZOHO_REFRESH_TOKEN in .env.',
+    );
+  }
+
   private async fetchAccessTokenUsingEnvRefreshToken(): Promise<void> {
-    const refreshToken = this.config.getOrThrow<string>('ZOHO_REFRESH_TOKEN');
+    const refreshToken = await this.resolveRefreshToken();
 
     const body = new URLSearchParams({
       grant_type: 'refresh_token',

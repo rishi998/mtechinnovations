@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "clean": "node -e \"try{require('fs').rmSync(require('path').join(process.cwd(),'dist'),{recursive:true,force:true})}catch(e){}\"",
     "build": "nest build",
+    "rebuild": "npm run clean && nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -28,6 +30,7 @@
     "mongoose": "^8.0.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "razorpay": "^2.9.6",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1"
   },

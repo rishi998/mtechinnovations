@@ -89,7 +89,7 @@ export default function CheckoutPage() {
         })
         clearCart()
         void refreshCart()
-        router.push(`/order-success?orderId=${order.orderId}`)
+        router.push(`/checkout/${order.id}`)
         return
       }
 

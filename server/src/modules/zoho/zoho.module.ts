@@ -1,13 +1,15 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import { ZohoController } from './zoho.controller';
 import { ZohoDebugController } from './zoho.debug.controller';
 import { ZohoScopeLogger } from './zoho-scope-logger';
 import {
-  ZohoInMemoryTokenPersistence,
+  ZohoMongoTokenPersistence,
   ZohoTokenPersistence,
 } from './zoho-token.persistence';
+import { ZohoTokenState, ZohoTokenStateSchema } from './zoho-token.entity';
 import { ZohoService } from './zoho.service';
 
 @Module({
@@ -17,6 +19,9 @@ import { ZohoService } from './zoho.service';
       timeout: 30_000,
       maxRedirects: 5,
     }),
+    MongooseModule.forFeature([
+      { name: ZohoTokenState.name, schema: ZohoTokenStateSchema },
+    ]),
   ],
   controllers: [ZohoController, ZohoDebugController],
   providers: [
@@ -24,7 +29,7 @@ import { ZohoService } from './zoho.service';
     ZohoScopeLogger,
     {
       provide: ZohoTokenPersistence,
-      useClass: ZohoInMemoryTokenPersistence,
+      useClass: ZohoMongoTokenPersistence,
     },
   ],
   exports: [ZohoService, ZohoTokenPersistence, ZohoScopeLogger],

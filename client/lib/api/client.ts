@@ -36,7 +36,12 @@ async function request<T>(
   const res = await fetch(url, { ...init, headers })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const message = data.message || (Array.isArray(data.message) ? data.message.join(', ') : res.statusText)
+    const raw = (data as { message?: string | string[] }).message
+    const message = Array.isArray(raw)
+      ? raw.join(', ')
+      : typeof raw === 'string'
+        ? raw
+        : res.statusText
     throw new Error(message || `Request failed: ${res.status}`)
   }
   return data as T

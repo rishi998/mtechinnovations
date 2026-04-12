@@ -9,6 +9,10 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
+export type OrderPaymentStatus = 'pending' | 'success' | 'failed';
+
+export type OrderZohoSyncStatus = 'pending' | 'synced' | 'failed';
+
 export type OrderDocument = Order & Document;
 
 const ShippingAddressSchema = {
@@ -66,6 +70,32 @@ export class Order {
 
   @Prop({ type: String, default: null })
   paymentId: string | null;
+
+  @Prop({ type: String, default: null })
+  razorpay_order_id: string | null;
+
+  @Prop({ type: String, default: null })
+  razorpay_payment_id: string | null;
+
+  @Prop({
+    type: String,
+    enum: ['pending', 'success', 'failed'],
+    default: 'pending',
+  })
+  payment_status: OrderPaymentStatus;
+
+  @Prop({ type: String, default: null })
+  zoho_salesorder_id: string | null;
+
+  @Prop({ type: String, default: null })
+  zoho_invoice_id: string | null;
+
+  @Prop({
+    type: String,
+    enum: ['pending', 'synced', 'failed'],
+    default: 'pending',
+  })
+  zoho_sync_status: OrderZohoSyncStatus;
 
   @Prop({ type: [OrderItemSchema], default: [] })
   items: OrderItem[];

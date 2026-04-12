@@ -12,6 +12,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { ZohoModule } from './modules/zoho/zoho.module';
 import { ProductModule } from './modules/product/product.module';
 import { OrderModule } from './modules/order/order.module';
+import { RazorpayModule } from './razorpay/razorpay.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { OrderModule } from './modules/order/order.module';
     ZohoModule,
     ProductModule,
     OrderModule,
+    RazorpayModule,
   ],
 })
 export class AppModule {}

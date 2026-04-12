@@ -50,7 +50,7 @@ function mapOrder(o: ServerOrder): Order {
       quantity: i.quantity,
     }
   })
-  const shippingAddress = o.shippingAddress as Address
+  const shippingAddress = o.shippingAddress as unknown as Address
   if (shippingAddress && !shippingAddress.id) {
     (shippingAddress as Address & { id?: string }).id = (o as unknown as { shippingAddress?: { id?: string } }).shippingAddress?.id ?? ''
   }
