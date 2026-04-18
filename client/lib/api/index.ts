@@ -5,8 +5,22 @@ export { login as apiLogin, register as apiRegister, getProfile, logout as apiLo
 
 export { getCart, addToCart, updateCartItem, removeFromCart } from './cart'
 
-export type { CreateOrderPayload } from './orders'
-export { createOrder, getOrders, getOrderById } from './orders'
+export {
+  getProducts,
+  getProductBySlugOrId,
+  mapServerProductDoc,
+  deriveCategoriesFromProducts,
+  slugifyCatalogLabel,
+  fetchProductsListForBuild,
+} from './catalog'
+
+export type { CreateOrderPayload, SyncZohoResponse } from './orders'
+export {
+  createOrder,
+  getOrders,
+  getOrderById,
+  syncZohoForPaidOrder,
+} from './orders'
 
 export type {
   CreateOrderPaymentResponse,

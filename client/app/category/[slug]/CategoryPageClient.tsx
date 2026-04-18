@@ -3,20 +3,22 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Grid, List, SlidersHorizontal } from 'lucide-react'
-import { products } from '@/lib/data/products'
-import { categories } from '@/lib/data/categories'
+import { useCatalog } from '@/lib/context/CatalogContext'
+import { slugifyCatalogLabel } from '@/lib/api/catalog'
 import { ProductCard } from '@/components/shop/ProductCard'
 import { FilterSidebar } from '@/components/shop/FilterSidebar'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 
 export default function CategoryPageClient({ slug }: { slug: string }) {
+  const { products, categories, loading } = useCatalog()
   const category = categories.find((c) => c.slug === slug)
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState('popularity')
   const [filters, setFilters] = useState({
-    priceRange: [0, 10000],
+    priceRange: [0, 100000],
     brands: [] as string[],
     categories: [] as string[],
     rating: 0,
@@ -24,45 +26,55 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
   })
 
   const filteredProducts = useMemo(() => {
-    let filtered = products.filter((p) => p.category === category?.name || !category)
+    let filtered = category
+      ? products.filter((p) => p.category === category.name)
+      : products.filter((p) => slugifyCatalogLabel(p.category) === slug)
 
     filtered = filtered.filter((p) => {
-      const priceMatch = p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
-      const brandMatch = filters.brands.length === 0 || filters.brands.includes(p.brand)
+      const priceMatch =
+        p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
+      const brandMatch =
+        filters.brands.length === 0 || filters.brands.includes(p.brand)
       const ratingMatch = p.rating >= filters.rating
       const stockMatch = !filters.inStock || p.stock > 0
 
       return priceMatch && brandMatch && ratingMatch && stockMatch
     })
 
+    const sorted = [...filtered]
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => a.price - b.price)
+        sorted.sort((a, b) => a.price - b.price)
         break
       case 'price-high':
-        filtered.sort((a, b) => b.price - a.price)
+        sorted.sort((a, b) => b.price - a.price)
         break
       case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating)
+        sorted.sort((a, b) => b.rating - a.rating)
         break
       case 'newest':
-        filtered.reverse()
+        sorted.reverse()
         break
       default:
         break
     }
 
-    return filtered
-  }, [category, filters, sortBy])
+    return sorted
+  }, [category, slug, products, filters, sortBy])
+
+  const title = category?.name ?? (loading ? 'Loading…' : 'Category')
 
   return (
     <div className="py-8 bg-gray-50 min-h-screen">
       <div className="container-custom">
-        {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6 flex-wrap">
-          <Link href="/" className="hover:text-primary-600">Home</Link>
+          <Link href="/" className="hover:text-primary-600">
+            Home
+          </Link>
           <span>/</span>
-          <Link href="/categories" className="hover:text-primary-600">Categories</Link>
+          <Link href="/categories" className="hover:text-primary-600">
+            Categories
+          </Link>
           {category && (
             <>
               <span>/</span>
@@ -71,17 +83,17 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
           )}
         </nav>
 
-        {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-            {category?.name || 'All Products'}
+            {title}
           </h1>
           <p className="text-gray-600">
-            {filteredProducts.length} products found
+            {loading && products.length === 0
+              ? 'Loading products…'
+              : `${filteredProducts.length} products found`}
           </p>
         </div>
 
-        {/* Toolbar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <Button
@@ -96,6 +108,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
 
             <div className="hidden sm:flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg ${
                   viewMode === 'grid'
@@ -106,6 +119,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
                 <Grid className="w-5 h-5" />
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-lg ${
                   viewMode === 'list'
@@ -132,7 +146,6 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
           />
         </div>
 
-        {/* Content */}
         <div className="grid lg:grid-cols-4 gap-6">
           <aside className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
             <FilterSidebar
@@ -158,15 +171,19 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
               </div>
             ) : (
               <div className="text-center py-16">
-                <p className="text-gray-500 text-lg">No products found matching your filters.</p>
+                <p className="text-gray-500 text-lg">
+                  No products found matching your filters.
+                </p>
                 <Button
-                  onClick={() => setFilters({
-                    priceRange: [0, 10000],
-                    brands: [],
-                    categories: [],
-                    rating: 0,
-                    inStock: false,
-                  })}
+                  onClick={() =>
+                    setFilters({
+                      priceRange: [0, 100000],
+                      brands: [],
+                      categories: [],
+                      rating: 0,
+                      inStock: false,
+                    })
+                  }
                   className="mt-4"
                 >
                   Clear Filters

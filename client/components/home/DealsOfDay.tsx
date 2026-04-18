@@ -1,12 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { products } from '@/lib/data/products'
+import { useState, useEffect, useMemo } from 'react'
+import { useCatalog } from '@/lib/context/CatalogContext'
 import { ProductCard } from '../shop/ProductCard'
 import { Clock } from 'lucide-react'
 
 export function DealsOfDay() {
-  const dealProducts = products.filter((p) => p.dealOfDay).slice(0, 4)
+  const { products, loading } = useCatalog()
+  const dealProducts = useMemo(() => {
+    const deals = products.filter((p) => p.dealOfDay)
+    if (deals.length) return deals.slice(0, 4)
+    const inStock = products.filter((p) => p.stock > 0).slice(0, 4)
+    if (inStock.length) return inStock
+    return products.slice(0, 4)
+  }, [products])
+
   const [timeLeft, setTimeLeft] = useState({
     hours: 23,
     minutes: 59,
@@ -30,6 +38,7 @@ export function DealsOfDay() {
     return () => clearInterval(timer)
   }, [])
 
+  if (loading && products.length === 0) return null
   if (dealProducts.length === 0) return null
 
   return (
@@ -40,32 +49,23 @@ export function DealsOfDay() {
             <Clock className="w-6 h-6 sm:w-8 sm:h-8" />
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Deals of the Day</h2>
           </div>
-          <p className="text-base sm:text-xl mb-4 sm:mb-6 px-4">
-            Limited time offers — Save big with our best prices. Grab them before they&apos;re gone!
+          <p className="text-white/90 text-sm sm:text-base mb-4">
+            Limited-time picks from your live catalog
           </p>
-
-          {/* Countdown Timer */}
-          <div className="flex items-center justify-center gap-2 sm:gap-4">
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
-              <div className="text-xl sm:text-3xl font-bold">{String(timeLeft.hours).padStart(2, '0')}</div>
-              <div className="text-xs sm:text-sm">Hours</div>
-            </div>
-            <div className="text-xl sm:text-3xl font-bold">:</div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
-              <div className="text-xl sm:text-3xl font-bold">{String(timeLeft.minutes).padStart(2, '0')}</div>
-              <div className="text-xs sm:text-sm">Minutes</div>
-            </div>
-            <div className="text-xl sm:text-3xl font-bold">:</div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
-              <div className="text-xl sm:text-3xl font-bold">{String(timeLeft.seconds).padStart(2, '0')}</div>
-              <div className="text-xs sm:text-sm">Seconds</div>
-            </div>
+          <div className="flex items-center justify-center gap-3 text-lg font-mono font-bold">
+            <span>{String(timeLeft.hours).padStart(2, '0')}</span>
+            <span>:</span>
+            <span>{String(timeLeft.minutes).padStart(2, '0')}</span>
+            <span>:</span>
+            <span>{String(timeLeft.seconds).padStart(2, '0')}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {dealProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <div key={product.id} className="bg-white rounded-xl p-2 shadow-lg">
+              <ProductCard product={product} />
+            </div>
           ))}
         </div>
       </div>

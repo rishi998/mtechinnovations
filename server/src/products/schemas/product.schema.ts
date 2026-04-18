@@ -11,6 +11,10 @@ export class Product {
   @Prop({ required: true, unique: true })
   slug: string;
 
+  /** Set when this storefront row is owned by Zoho sync (enables safe prune). */
+  @Prop({ type: String, default: null })
+  zoho_item_id: string | null;
+
   @Prop({ type: String, default: null })
   sku: string | null;
 
@@ -67,3 +71,5 @@ export class Product {
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
+
+ProductSchema.index({ zoho_item_id: 1 }, { unique: true, sparse: true });

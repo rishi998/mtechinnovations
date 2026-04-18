@@ -19,6 +19,13 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+/** Prefer slug for `/api/cart/*` so Mongo lookup works (mock numeric `id` is not an ObjectId). */
+function productRefForApi(p: Pick<Product, 'id' | 'slug'>): string {
+  const s = p.slug?.trim()
+  if (s) return s
+  return p.id
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth()
   const [cart, setCart] = useState<CartItem[]>([])
@@ -98,7 +105,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = async (product: Product, quantity = 1) => {
     if (isAuthenticated) {
       try {
-        const items = await apiAddToCart(product.id, quantity)
+        const items = await apiAddToCart(productRefForApi(product), quantity)
         setCart(items)
       } catch {
         // fallback: add locally for UX
@@ -128,7 +135,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeFromCart = async (productId: string) => {
     if (isAuthenticated) {
       try {
-        const items = await apiRemoveFromCart(productId)
+        const line = cart.find(
+          (i) => i.product.id === productId || i.product.slug === productId,
+        )
+        const ref = line ? productRefForApi(line.product) : productId
+        const items = await apiRemoveFromCart(ref)
         setCart(items)
       } catch {
         setCart((prev) => prev.filter((i) => i.product.id !== productId))
@@ -145,7 +156,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     if (isAuthenticated) {
       try {
-        const items = await apiUpdateCartItem(productId, quantity)
+        const line = cart.find(
+          (i) => i.product.id === productId || i.product.slug === productId,
+        )
+        const ref = line ? productRefForApi(line.product) : productId
+        const items = await apiUpdateCartItem(ref, quantity)
         setCart(items)
       } catch {
         setCart((prev) =>

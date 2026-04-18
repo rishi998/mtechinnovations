@@ -98,6 +98,10 @@ export class ProductController {
       updated: result.updated,
       skipped: result.skipped,
       durationMs: result.durationMs,
+      removedZohoCache: result.removedZohoCache ?? 0,
+      catalogUpserted: result.catalogUpserted ?? 0,
+      catalogModified: result.catalogModified ?? 0,
+      catalogRemoved: result.catalogRemoved ?? 0,
     };
   }
 }

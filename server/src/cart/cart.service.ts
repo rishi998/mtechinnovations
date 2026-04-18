@@ -33,17 +33,18 @@ export class CartService {
   }
 
   async addItem(userId: string, dto: AddToCartDto): Promise<CartDocument> {
-    await this.productsService.findOne(dto.productId);
+    const product = await this.productsService.findOne(dto.productId);
+    const pid = String(product._id);
     const cart = await this.getOrCreateCart(userId);
     const existingIndex = cart.items.findIndex(
-      (i: { productId: any }) => String(i.productId?._id || i.productId) === dto.productId,
+      (i: { productId: any }) => String(i.productId?._id || i.productId) === pid,
     );
     const qty = dto.quantity ?? 1;
     if (existingIndex >= 0) {
       cart.items[existingIndex].quantity += qty;
     } else {
       cart.items.push({
-        productId: this.toObjectId(dto.productId) as any,
+        productId: product._id as any,
         quantity: qty,
       });
     }
@@ -56,9 +57,11 @@ export class CartService {
     productId: string,
     dto: UpdateCartItemDto,
   ): Promise<CartDocument> {
+    const product = await this.productsService.findOne(productId);
+    const pid = String(product._id);
     const cart = await this.getOrCreateCart(userId);
     const idx = cart.items.findIndex(
-      (i: { productId: any }) => String(i.productId?._id || i.productId) === productId,
+      (i: { productId: any }) => String(i.productId?._id || i.productId) === pid,
     );
     if (idx < 0) return cart;
     if (dto.quantity <= 0) {
@@ -71,9 +74,11 @@ export class CartService {
   }
 
   async removeItem(userId: string, productId: string): Promise<CartDocument> {
+    const product = await this.productsService.findOne(productId);
+    const pid = String(product._id);
     const cart = await this.getOrCreateCart(userId);
     cart.items = cart.items.filter(
-      (i: { productId: any }) => String(i.productId?._id || i.productId) !== productId,
+      (i: { productId: any }) => String(i.productId?._id || i.productId) !== pid,
     );
     await cart.save();
     return this.getOrCreateCart(userId);

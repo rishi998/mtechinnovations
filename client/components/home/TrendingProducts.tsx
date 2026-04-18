@@ -1,11 +1,20 @@
 'use client'
 
-import { products } from '@/lib/data/products'
+import { useMemo } from 'react'
+import { useCatalog } from '@/lib/context/CatalogContext'
 import { ProductCard } from '../shop/ProductCard'
 import { TrendingUp } from 'lucide-react'
 
 export function TrendingProducts() {
-  const trendingProducts = products.filter((p) => p.trending).slice(0, 8)
+  const { products, loading } = useCatalog()
+  const trendingProducts = useMemo(() => {
+    const t = products.filter((p) => p.trending)
+    if (t.length) return t.slice(0, 8)
+    return products.slice(0, 8)
+  }, [products])
+
+  if (loading && products.length === 0) return null
+  if (trendingProducts.length === 0) return null
 
   return (
     <section className="py-10 sm:py-16">

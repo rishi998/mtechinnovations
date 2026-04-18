@@ -5,6 +5,13 @@ export interface ZohoInventoryItemRaw {
   sku?: string | null;
   rate?: number | string | null;
   stock_on_hand?: number | string | null;
+  /** Product group / “category” in Zoho Inventory */
+  group_id?: string | number | null;
+  group_name?: string | null;
+  category_name?: string | null;
+  item_type?: string | null;
+  product_type?: string | null;
+  description?: string | null;
 }
 
 export interface ZohoInventoryItemsListResponse {
@@ -25,4 +32,9 @@ export interface ZohoInventoryItemNormalized {
   sku: string | null;
   price: number;
   stock: number;
+  /** From Zoho group_name / category_name (storefront “category”) */
+  category: string;
+  /** From item_type / product_type (finer bucket under category) */
+  subcategory: string;
+  description: string;
 }

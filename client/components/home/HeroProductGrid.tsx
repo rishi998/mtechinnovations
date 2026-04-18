@@ -1,14 +1,27 @@
 'use client'
 
-import { products } from '@/lib/data/products'
+import { useMemo } from 'react'
+import { useCatalog } from '@/lib/context/CatalogContext'
 import { ProductCard } from '../shop/ProductCard'
 
 /**
- * Product grid as hero section (Robu/Robocraze/Quartz style):
- * Bestsellers/featured with prominent pricing and Add to Cart CTAs.
+ * Product grid as hero section — data from GET /api/products (Zoho-backed catalog).
  */
 export function HeroProductGrid() {
-  const bestsellers = products.filter((p) => p.featured || p.trending).slice(0, 8)
+  const { products, loading } = useCatalog()
+  const bestsellers = useMemo(() => {
+    const tagged = products.filter((p) => p.featured || p.trending)
+    if (tagged.length) return tagged.slice(0, 8)
+    return products.slice(0, 8)
+  }, [products])
+
+  if (loading && products.length === 0) {
+    return (
+      <section className="container-custom py-6 sm:py-8 bg-white border-b border-gray-100">
+        <p className="text-sm text-gray-500">Loading products…</p>
+      </section>
+    )
+  }
 
   if (bestsellers.length === 0) return null
 
@@ -20,7 +33,7 @@ export function HeroProductGrid() {
             Bestsellers & Featured
           </h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            Most popular with makers and engineers
+            Synced from your inventory
           </p>
         </div>
       </div>

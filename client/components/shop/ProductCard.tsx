@@ -6,6 +6,8 @@ import { motion } from 'framer-motion'
 import { Heart, ShoppingCart, Star } from 'lucide-react'
 import { Product } from '@/lib/types'
 import { formatPrice, calculateDiscount, getSaveAmount } from '@/lib/utils'
+import { productPath } from '@/lib/paths'
+import { firstProductImageUrl } from '@/lib/api/catalog'
 import { useCart } from '@/lib/context/CartContext'
 import { useWishlist } from '@/lib/context/WishlistContext'
 import { Badge } from '../ui/Badge'
@@ -51,12 +53,12 @@ export function ProductCard({ product }: ProductCardProps) {
       whileHover={{ y: -5 }}
       transition={{ duration: 0.2 }}
     >
-      <Link href={`/product/${product.slug}`}>
+      <Link href={productPath(product.slug, product.id)}>
         <div className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200">
           {/* Image Container - high contrast card */}
           <div className="relative aspect-square overflow-hidden bg-gray-100">
             <Image
-              src={product.images[0]}
+              src={firstProductImageUrl(product.images)}
               alt={product.name}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"

@@ -21,6 +21,10 @@ interface ServerOrder {
   shippingAddress: Record<string, string>
   paymentMethod: string
   trackingId?: string | null
+  payment_status?: string
+  zoho_sync_status?: string
+  zoho_salesorder_id?: string | null
+  zoho_invoice_id?: string | null
   createdAt: string
   items: ServerOrderItem[]
 }
@@ -68,6 +72,10 @@ function mapOrder(o: ServerOrder): Order {
     shippingAddress: shippingAddress ?? ({} as Address),
     paymentMethod: o.paymentMethod,
     trackingId: o.trackingId ?? undefined,
+    paymentStatus: o.payment_status as Order['paymentStatus'],
+    zohoSyncStatus: o.zoho_sync_status as Order['zohoSyncStatus'],
+    zohoSalesOrderId: o.zoho_salesorder_id ?? null,
+    zohoInvoiceId: o.zoho_invoice_id ?? null,
   }
 }
 
@@ -98,4 +106,20 @@ export async function getOrders(): Promise<Order[]> {
 export async function getOrderById(orderId: string): Promise<Order> {
   const res = await api.get<ServerOrder>(`/orders/${orderId}`)
   return mapOrder(res)
+}
+
+export interface SyncZohoResponse {
+  orderId: string
+  zohoSynced: boolean
+  zohoSalesOrderId: string | null
+  zohoInvoiceId: string | null
+}
+
+/** Re-run Zoho sales order + invoice for a paid order (`POST /orders/:id/sync-zoho`). */
+export async function syncZohoForPaidOrder(
+  mongoOrderId: string,
+): Promise<SyncZohoResponse> {
+  return api.post<SyncZohoResponse>(
+    `/orders/${encodeURIComponent(mongoOrderId)}/sync-zoho`,
+  )
 }

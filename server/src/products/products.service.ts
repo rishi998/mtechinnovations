@@ -1,9 +1,44 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import type { ZohoInventoryItemNormalized } from '../modules/zoho/zoho-inventory.types';
 import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+
+/** Only treat 24-char hex strings as Mongo ObjectIds (avoids e.g. `"3"` or slugs). */
+function isMongoObjectIdString(value: string): boolean {
+  return /^[a-fA-F0-9]{24}$/.test(value);
+}
+
+/** Stable URL slug for Zoho-backed storefront rows (includes Zoho id to avoid collisions). */
+export function slugifyZohoStorefrontProduct(
+  name: string,
+  zohoItemId: string,
+  sku: string | null,
+): string {
+  const base =
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'item';
+  const safeSku =
+    sku && /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(sku)
+      ? sku.toLowerCase().slice(0, 30)
+      : '';
+  const z = `z-${zohoItemId}`;
+  const combined = safeSku ? `${base}-${safeSku}-${z}` : `${base}-${z}`;
+  return combined.slice(0, 120);
+}
+
+export interface ZohoCatalogSyncStats {
+  catalogUpserted: number;
+  catalogModified: number;
+  catalogRemoved: number;
+}
 
 @Injectable()
 export class ProductsService {
@@ -21,12 +56,101 @@ export class ProductsService {
     return this.productModel.find().sort({ createdAt: -1 }).exec();
   }
 
-  async findOne(id: string): Promise<ProductDocument> {
-    const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException(`Product with id ${id} not found`);
+  /**
+   * Lookup by Mongo `_id`, Zoho `zoho_item_id`, or `slug`.
+   */
+  async findOne(idOrSlug: string): Promise<ProductDocument> {
+    if (isMongoObjectIdString(idOrSlug)) {
+      const product = await this.productModel.findById(idOrSlug).exec();
+      if (!product) {
+        throw new NotFoundException(`Product with id ${idOrSlug} not found`);
+      }
+      return product;
     }
-    return product;
+    const trimmed = idOrSlug.trim();
+    if (/^\d{5,}$/.test(trimmed)) {
+      const byZoho = await this.productModel
+        .findOne({ zoho_item_id: trimmed })
+        .exec();
+      if (byZoho) {
+        return byZoho;
+      }
+    }
+    return this.findBySlug(idOrSlug);
+  }
+
+  /**
+   * Upsert storefront `products` from a Zoho sync snapshot and remove rows tied to
+   * Zoho ids that no longer exist in that snapshot. Rows without `zoho_item_id`
+   * (e.g. hand-seeded catalog) are left unchanged.
+   */
+  async syncCatalogFromZohoItems(
+    items: ZohoInventoryItemNormalized[],
+  ): Promise<ZohoCatalogSyncStats> {
+    const byId = new Map<string, ZohoInventoryItemNormalized>();
+    for (const item of items) {
+      const id = item.zohoItemId?.trim();
+      if (id) {
+        byId.set(id, item);
+      }
+    }
+    const uniqueIds = [...byId.keys()];
+    if (!uniqueIds.length) {
+      return { catalogUpserted: 0, catalogModified: 0, catalogRemoved: 0 };
+    }
+
+    const bulk = [...byId.values()].map((item) => {
+      const zoho_item_id = item.zohoItemId.trim();
+      const slug = slugifyZohoStorefrontProduct(item.name, zoho_item_id, item.sku);
+      const brand =
+        item.category === 'Uncategorized'
+          ? 'Zoho'
+          : item.category.split(/[\/|]/)[0]?.trim() || 'Zoho';
+      return {
+        updateOne: {
+          filter: { zoho_item_id },
+          update: {
+            $set: {
+              zoho_item_id,
+              name: item.name,
+              sku: item.sku,
+              category: item.category,
+              subcategory: item.subcategory,
+              price: item.price,
+              stock: item.stock,
+              description: item.description,
+              brand,
+            },
+            $setOnInsert: {
+              slug,
+              originalPrice: null,
+              discount: null,
+              images: [],
+              rating: 0,
+              reviewsCount: 0,
+              specs: {},
+              tags: [],
+              featured: false,
+              trending: false,
+              dealOfDay: false,
+              isNewLaunch: false,
+            },
+          },
+          upsert: true,
+        },
+      };
+    });
+
+    const write = await this.productModel.bulkWrite(bulk, { ordered: false });
+    const catalogUpserted = write.upsertedCount;
+    const catalogModified = write.modifiedCount;
+
+    const removeRes = await this.productModel.deleteMany({
+      zoho_item_id: { $exists: true, $ne: null, $nin: uniqueIds },
+    });
+    const catalogRemoved = removeRes.deletedCount ?? 0;
+
+    return { catalogUpserted, catalogModified, catalogRemoved };
   }
 
   async findBySlug(slug: string): Promise<ProductDocument> {
@@ -37,20 +161,22 @@ export class ProductsService {
     return product;
   }
 
-  async update(id: string, dto: UpdateProductDto): Promise<ProductDocument> {
+  async update(idOrSlug: string, dto: UpdateProductDto): Promise<ProductDocument> {
+    const existing = await this.findOne(idOrSlug);
     const product = await this.productModel
-      .findByIdAndUpdate(id, { $set: dto }, { new: true })
+      .findByIdAndUpdate(existing._id, { $set: dto }, { new: true })
       .exec();
     if (!product) {
-      throw new NotFoundException(`Product with id ${id} not found`);
+      throw new NotFoundException(`Product with id ${idOrSlug} not found`);
     }
     return product;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.productModel.findByIdAndDelete(id).exec();
+  async remove(idOrSlug: string): Promise<void> {
+    const existing = await this.findOne(idOrSlug);
+    const result = await this.productModel.findByIdAndDelete(existing._id).exec();
     if (!result) {
-      throw new NotFoundException(`Product with id ${id} not found`);
+      throw new NotFoundException(`Product with id ${idOrSlug} not found`);
     }
   }
 }

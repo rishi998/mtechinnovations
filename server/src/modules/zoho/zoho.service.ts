@@ -382,7 +382,43 @@ export class ZohoService {
         : String(raw.sku);
     const price = this.coerceNumber(raw.rate, 0);
     const stock = this.coerceNumber(raw.stock_on_hand, 0);
-    return { zohoItemId, name, sku, price, stock };
+
+    const groupName =
+      typeof raw.group_name === 'string' && raw.group_name.trim()
+        ? raw.group_name.trim()
+        : null;
+    const categoryName =
+      typeof raw.category_name === 'string' && raw.category_name.trim()
+        ? raw.category_name.trim()
+        : null;
+    const category = groupName ?? categoryName ?? 'Uncategorized';
+
+    const itemType =
+      typeof raw.item_type === 'string' && raw.item_type.trim()
+        ? raw.item_type.trim()
+        : '';
+    const productType =
+      typeof raw.product_type === 'string' && raw.product_type.trim()
+        ? raw.product_type.trim()
+        : '';
+    const subcategory =
+      [itemType, productType].filter(Boolean).join(' · ') || 'General';
+
+    const description =
+      typeof raw.description === 'string' && raw.description.trim()
+        ? raw.description.trim()
+        : '';
+
+    return {
+      zohoItemId,
+      name,
+      sku,
+      price,
+      stock,
+      category,
+      subcategory,
+      description,
+    };
   }
 
   private coerceNumber(value: unknown, fallback: number): number {

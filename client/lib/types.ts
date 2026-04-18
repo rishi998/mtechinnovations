@@ -69,6 +69,9 @@ export interface Address {
   isDefault: boolean
 }
 
+export type OrderZohoSyncStatus = 'pending' | 'synced' | 'failed'
+export type OrderPaymentStatus = 'pending' | 'success' | 'failed'
+
 export interface Order {
   id: string
   orderId: string
@@ -83,6 +86,10 @@ export interface Order {
   shippingAddress: Address
   paymentMethod: string
   trackingId?: string
+  paymentStatus?: OrderPaymentStatus
+  zohoSyncStatus?: OrderZohoSyncStatus
+  zohoSalesOrderId?: string | null
+  zohoInvoiceId?: string | null
 }
 
 export interface Review {

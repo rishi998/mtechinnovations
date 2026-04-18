@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserDocument } from '../users/schemas/user.schema';
@@ -19,5 +19,12 @@ export class OrdersPaymentController {
       String(user._id),
       dto.orderId,
     );
+  }
+
+  /** Re-run Zoho sales order + invoice after payment succeeded (e.g. Zoho was misconfigured). */
+  @Post(':id/sync-zoho')
+  @UseGuards(JwtAuthGuard)
+  syncZoho(@CurrentUser() user: UserDocument, @Param('id') id: string) {
+    return this.razorpayPayment.syncZohoForPaidOrder(id, String(user._id));
   }
 }

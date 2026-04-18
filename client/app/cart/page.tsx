@@ -3,16 +3,42 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react'
 import { useCart } from '@/lib/context/CartContext'
+import { useAuth } from '@/lib/context/AuthContext'
+import { getCart } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { formatPrice } from '@/lib/utils'
+import { productPath } from '@/lib/paths'
+import { firstProductImageUrl } from '@/lib/api/catalog'
 
 export default function CartPage() {
+  const router = useRouter()
+  const { isAuthenticated } = useAuth()
   const { cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useCart()
   const [couponCode, setCouponCode] = useState('')
   const [discount, setDiscount] = useState(0)
+  const [checkoutError, setCheckoutError] = useState('')
+
+  const proceedToCheckout = async () => {
+    setCheckoutError('')
+    if (!isAuthenticated) {
+      router.push('/checkout')
+      return
+    }
+    try {
+      const items = await getCart()
+      if (!items.length) {
+        setCheckoutError('Your cart is empty in our system. Add items again.')
+        return
+      }
+      router.push('/checkout')
+    } catch {
+      setCheckoutError('Could not verify your cart. Please try again.')
+    }
+  }
 
   const shipping = cartTotal > 500 ? 0 : 50
   const tax = Math.round(cartTotal * 0.18)
@@ -60,7 +86,7 @@ export default function CartPage() {
                   {/* Image */}
                   <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
                     <Image
-                      src={item.product.images[0]}
+                      src={firstProductImageUrl(item.product.images)}
                       alt={item.product.name}
                       fill
                       className="object-cover"
@@ -72,7 +98,7 @@ export default function CartPage() {
                     <div className="flex justify-between mb-2 gap-2">
                       <div className="min-w-0">
                         <Link
-                          href={`/product/${item.product.slug}`}
+                          href={productPath(item.product.slug, item.product.id)}
                           className="font-medium text-gray-900 hover:text-primary-600 line-clamp-2 text-sm sm:text-base"
                         >
                           {item.product.name}
@@ -176,12 +202,13 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Checkout Button */}
-              <Link href="/checkout">
-                <Button size="lg" className="w-full mb-3">
-                  Proceed to Checkout
-                </Button>
-              </Link>
+              {/* Checkout Button — logged-in users must have server cart (`cart_items`) */}
+              {checkoutError && (
+                <p className="mb-3 text-sm text-red-600 bg-red-50 p-3 rounded-lg">{checkoutError}</p>
+              )}
+              <Button size="lg" className="w-full mb-3" type="button" onClick={() => void proceedToCheckout()}>
+                Proceed to Checkout
+              </Button>
 
               <Link href="/">
                 <Button variant="outline" size="lg" className="w-full">

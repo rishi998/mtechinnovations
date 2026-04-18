@@ -4,8 +4,9 @@ import { HydratedDocument } from 'mongoose';
 export type ZohoSyncedProductDocument = HydratedDocument<ZohoSyncedProduct>;
 
 /**
- * Local cache of Zoho Inventory items (separate from legacy catalog `Product` in src/products).
+ * Local cache of Zoho Inventory items (Mongo collection: `zoho_inventory_products`).
  * Upsert key: zoho_item_id (maps from Zoho `item_id`).
+ * Same Zoho `/items` feed as GET /api/zoho/debug/items; sync persists here + storefront `products`.
  */
 @Schema({
   timestamps: true,
@@ -24,6 +25,17 @@ export class ZohoSyncedProduct {
 
   @Prop({ required: true, default: 0 })
   stock: number;
+
+  /** Zoho item group / category label */
+  @Prop({ required: true, trim: true, default: 'Uncategorized' })
+  category: string;
+
+  /** Zoho item_type / product_type (sub-bucket) */
+  @Prop({ required: true, trim: true, default: 'General' })
+  subcategory: string;
+
+  @Prop({ type: String, default: '' })
+  description: string;
 
   @Prop({ required: true, unique: true, index: true })
   zoho_item_id: string;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -12,8 +12,9 @@ import { useAuth } from '@/lib/context/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { formatPrice, generateId } from '@/lib/utils'
-import { createOrder } from '@/lib/api'
+import { createOrder, getCart } from '@/lib/api'
 import type { CartItem } from '@/lib/types'
+import { checkoutPayPath } from '@/lib/paths'
 
 const addressSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -57,42 +58,106 @@ export default function CheckoutPage() {
   const tax = Math.round(effectiveTotal * 0.18)
   const total = effectiveTotal + shipping + tax
 
-  if (effectiveCart.length === 0) {
+  /** Logged-in users must have server-side cart rows (collection `cart_items`). */
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let cancelled = false
+    void getCart()
+      .then((items) => {
+        if (cancelled) return
+        if (items.length === 0) {
+          router.replace('/cart')
+        }
+      })
+      .catch(() => {
+        if (!cancelled) router.replace('/cart')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, router])
+
+  if (!isAuthenticated && effectiveCart.length === 0) {
     router.push('/cart')
     return null
   }
 
-  const onSubmitAddress = (data: AddressForm) => {
+  const onSubmitAddress = async (data: AddressForm) => {
+    setOrderError('')
+    if (isAuthenticated) {
+      let items: CartItem[]
+      try {
+        items = await getCart()
+      } catch {
+        setOrderError('Could not load your cart. Please try again.')
+        return
+      }
+      if (!items.length) {
+        setOrderError('Your cart is empty. Add items before continuing to payment.')
+        router.push('/cart')
+        return
+      }
+      setCheckoutCart(items)
+    } else {
+      setCheckoutCart(cart)
+    }
     setShippingAddress(data)
-    setCheckoutCart(cart)
     setStep(2)
+  }
+
+  /** Logged-in: create server order and open Razorpay on `/checkout/pay/?orderId=…` (static export). */
+  const createOrderAndRedirectToPayment = async () => {
+    if (!shippingAddress) return
+    setOrderError('')
+    let items: CartItem[]
+    try {
+      items = await getCart()
+    } catch {
+      setOrderError('Could not verify your cart. Please try again.')
+      return
+    }
+    if (!items.length) {
+      setOrderError('Your cart is empty. Add products before paying.')
+      router.push('/cart')
+      return
+    }
+    setIsProcessing(true)
+    try {
+      const order = await createOrder({
+        shippingAddress: {
+          name: shippingAddress.name,
+          phone: shippingAddress.phone,
+          addressLine1: shippingAddress.addressLine1,
+          addressLine2: shippingAddress.addressLine2,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          pincode: shippingAddress.pincode,
+        },
+        paymentMethod,
+      })
+      clearCart()
+      void refreshCart()
+      router.push(checkoutPayPath(order.id))
+    } catch (err) {
+      setOrderError(
+        err instanceof Error ? err.message : 'Failed to start payment. Please try again.',
+      )
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const handlePlaceOrder = async () => {
     if (!shippingAddress) return
+    if (isAuthenticated) {
+      await createOrderAndRedirectToPayment()
+      return
+    }
+
     setOrderError('')
     setIsProcessing(true)
 
     try {
-      if (isAuthenticated) {
-        const order = await createOrder({
-          shippingAddress: {
-            name: shippingAddress.name,
-            phone: shippingAddress.phone,
-            addressLine1: shippingAddress.addressLine1,
-            addressLine2: shippingAddress.addressLine2,
-            city: shippingAddress.city,
-            state: shippingAddress.state,
-            pincode: shippingAddress.pincode,
-          },
-          paymentMethod,
-        })
-        clearCart()
-        void refreshCart()
-        router.push(`/checkout/${order.id}`)
-        return
-      }
-
       // Guest: mock order (no server order)
       await new Promise((resolve) => setTimeout(resolve, 1000))
       const orderId = 'ORD' + generateId().toUpperCase().substring(0, 10)
@@ -280,12 +345,26 @@ export default function CheckoutPage() {
                   </button>
                 </div>
 
+                {orderError && (
+                  <p className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    {orderError}
+                  </p>
+                )}
                 <div className="flex gap-3">
                   <Button onClick={() => setStep(1)} variant="outline" className="flex-1">
                     Back
                   </Button>
-                  <Button onClick={() => setStep(3)} className="flex-1">
-                    Continue to Review
+                  <Button
+                    onClick={() =>
+                      isAuthenticated
+                        ? void createOrderAndRedirectToPayment()
+                        : setStep(3)
+                    }
+                    isLoading={isProcessing}
+                    disabled={isProcessing}
+                    className="flex-1"
+                  >
+                    {isAuthenticated ? 'Continue to secure payment' : 'Continue to Review'}
                   </Button>
                 </div>
               </div>

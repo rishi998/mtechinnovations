@@ -29,6 +29,30 @@ const Razorpay = require('razorpay') as new (args: {
   orders: { create: (body: Record<string, unknown>) => Promise<{ id: string; amount: number }> };
 };
 
+/**
+ * Supports both Razorpay dashboard naming (KEY_ID / KEY_SECRET) and
+ * common .env aliases (API_KEY / API_SECRET).
+ */
+function resolveRazorpayCredentials(config: ConfigService): {
+  keyId: string;
+  keySecret: string;
+} {
+  const keyId =
+    config.get<string>('RAZORPAY_KEY_ID')?.trim() ||
+    config.get<string>('RAZORPAY_API_KEY')?.trim() ||
+    '';
+  const keySecret =
+    config.get<string>('RAZORPAY_KEY_SECRET')?.trim() ||
+    config.get<string>('RAZORPAY_API_SECRET')?.trim() ||
+    '';
+  if (!keyId || !keySecret) {
+    throw new Error(
+      'Razorpay credentials missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET, or RAZORPAY_API_KEY and RAZORPAY_API_SECRET.',
+    );
+  }
+  return { keyId, keySecret };
+}
+
 function extractZohoSalesOrderId(data: Record<string, unknown>): string | null {
   const pick = (node: unknown): string | null => {
     if (node && typeof node === 'object' && node !== null) {
@@ -62,10 +86,29 @@ function extractZohoInvoiceId(data: Record<string, unknown>): string | null {
   return null;
 }
 
+/** Amount to record against the invoice (Zoho’s balance after tax; matches what customer should pay in Zoho). */
+function extractZohoInvoiceAmountDue(data: Record<string, unknown>): number | null {
+  const inv = data.invoice;
+  if (!inv || typeof inv !== 'object') {
+    return null;
+  }
+  const o = inv as Record<string, unknown>;
+  const pick = (v: unknown): number | null => {
+    if (v == null) {
+      return null;
+    }
+    const n = typeof v === 'string' ? parseFloat(v.trim()) : Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  return pick(o.balance) ?? pick(o.total);
+}
+
 @Injectable()
 export class RazorpayPaymentService {
   private readonly logger = new Logger(RazorpayPaymentService.name);
   private readonly razorpay: InstanceType<typeof Razorpay>;
+  private readonly rzpKeyId: string;
+  private readonly rzpKeySecret: string;
 
   constructor(
     private readonly config: ConfigService,
@@ -75,9 +118,12 @@ export class RazorpayPaymentService {
     @InjectModel(ZohoSyncedProduct.name)
     private readonly syncedProductModel: Model<ZohoSyncedProductDocument>,
   ) {
+    const { keyId, keySecret } = resolveRazorpayCredentials(this.config);
+    this.rzpKeyId = keyId;
+    this.rzpKeySecret = keySecret;
     this.razorpay = new Razorpay({
-      key_id: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
-      key_secret: this.config.getOrThrow<string>('RAZORPAY_KEY_SECRET'),
+      key_id: keyId,
+      key_secret: keySecret,
     });
   }
 
@@ -100,15 +146,31 @@ export class RazorpayPaymentService {
 
     const receipt = order.orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40) || `ord${Date.now()}`;
 
-    const rzpOrder = await this.razorpay.orders.create({
-      amount: amountPaise,
-      currency: 'INR',
-      receipt,
-      notes: {
-        mongo_order_id: String(order._id),
-        user_order_id: order.orderId,
-      },
-    });
+    let rzpOrder: { id: string; amount: number };
+    try {
+      rzpOrder = await this.razorpay.orders.create({
+        amount: amountPaise,
+        currency: 'INR',
+        receipt,
+        notes: {
+          mongo_order_id: String(order._id),
+          user_order_id: order.orderId,
+        },
+      });
+    } catch (err: unknown) {
+      const desc = (() => {
+        if (err && typeof err === 'object' && 'error' in err) {
+          const e = (err as { error?: { description?: string } }).error;
+          if (e?.description) return e.description;
+        }
+        if (err instanceof Error) return err.message;
+        return String(err);
+      })();
+      this.logger.error(`Razorpay orders.create failed: ${desc}`);
+      throw new BadRequestException(
+        'Could not start Razorpay checkout. Confirm API keys match your Razorpay mode (test vs live) and are copied correctly.',
+      );
+    }
 
     await this.ordersService.attachRazorpayOrderId(
       orderMongoId,
@@ -119,7 +181,7 @@ export class RazorpayPaymentService {
     return {
       razorpayOrderId: rzpOrder.id,
       amount: rzpOrder.amount,
-      key: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
+      key: this.rzpKeyId,
     };
   }
 
@@ -181,7 +243,7 @@ export class RazorpayPaymentService {
     paymentId: string,
     signature: string,
   ): void {
-    const secret = this.config.getOrThrow<string>('RAZORPAY_KEY_SECRET');
+    const secret = this.rzpKeySecret;
     const body = `${orderId}|${paymentId}`;
     const expected = createHmac('sha256', secret).update(body).digest('hex');
     const sig = signature.trim();
@@ -189,9 +251,18 @@ export class RazorpayPaymentService {
       const a = Buffer.from(expected, 'hex');
       const b = Buffer.from(sig, 'hex');
       if (a.length !== b.length || !timingSafeEqual(a, b)) {
+        this.logger.warn(
+          `Razorpay signature mismatch for order_id prefix=${orderId.slice(0, 12)}… — ` +
+            'confirm RAZORPAY_KEY_SECRET matches this Key Id in the Razorpay dashboard (test vs live).',
+        );
         throw new UnauthorizedException('Invalid payment signature');
       }
-    } catch {
+    } catch (e) {
+      if (!(e instanceof UnauthorizedException)) {
+        this.logger.warn(
+          `Razorpay signature verify threw for order_id prefix=${orderId.slice(0, 12)}…`,
+        );
+      }
       throw new UnauthorizedException('Invalid payment signature');
     }
   }
@@ -269,8 +340,9 @@ export class RazorpayPaymentService {
           'synced',
         );
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         this.logger.error(
-          `Zoho retry failed for order ${order.orderId}`,
+          `Zoho retry failed for order ${order.orderId}: ${msg}`,
           err instanceof Error ? err.stack : undefined,
         );
         await this.ordersService.updateZohoSyncForOrder(
@@ -302,8 +374,9 @@ export class RazorpayPaymentService {
       zohoSales = zoho.salesOrderId;
       zohoInv = zoho.invoiceId;
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Zoho sync failed after Razorpay success for order ${order.orderId}`,
+        `Zoho sync failed after Razorpay success for order ${order.orderId}: ${msg}`,
         err instanceof Error ? err.stack : undefined,
       );
       syncStatus = 'failed';
@@ -361,10 +434,150 @@ export class RazorpayPaymentService {
     return out;
   }
 
+  private parseNumericZohoItemId(key: string): string | null {
+    const v = this.config.get<string>(key)?.trim();
+    return v && /^\d+$/.test(v) ? v : null;
+  }
+
+  /**
+   * Builds Zoho invoice lines: prefers real SKU → Zoho item mapping; falls back to a
+   * generic Zoho item when needed so any paid order can still get an invoice.
+   */
+  private async resolveZohoLineItemsForPaidOrder(
+    order: OrderDocument,
+  ): Promise<ZohoCreateSalesOrderLineItem[]> {
+    const fallbackId =
+      this.parseNumericZohoItemId('ZOHO_FALLBACK_LINE_ITEM_ID') ??
+      this.parseNumericZohoItemId('ZOHO_SHIPPING_ITEM_ID');
+
+    let lines: ZohoCreateSalesOrderLineItem[] = [];
+    try {
+      lines = await this.buildZohoLineItems(order);
+    } catch (err) {
+      this.logger.warn(
+        `Zoho SKU line mapping failed for order ${order.orderId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      lines = [];
+    }
+
+    const sub = Number(order.subtotal ?? 0);
+    const ship = Number(order.shipping ?? 0);
+    const tot = Number(order.total);
+
+    if (lines.length === 0 && tot > 0.01) {
+      if (!fallbackId) {
+        throw new BadRequestException(
+          'Could not map catalog lines to Zoho items. Create a generic non-stock item in Zoho Inventory and set ZOHO_FALLBACK_LINE_ITEM_ID (item_id) in server .env so invoices can still be generated.',
+        );
+      }
+      if (sub > 0.01) {
+        lines.push({
+          item_id: fallbackId,
+          name: 'Merchandise',
+          quantity: 1,
+          rate: sub,
+          unit: 'qty',
+        });
+      } else {
+        lines.push({
+          item_id: fallbackId,
+          name: 'Order total',
+          quantity: 1,
+          rate: tot,
+          unit: 'qty',
+        });
+      }
+    }
+
+    if (ship > 0.01) {
+      const shipItemId =
+        this.parseNumericZohoItemId('ZOHO_SHIPPING_ITEM_ID') ?? fallbackId;
+      if (!shipItemId) {
+        throw new BadRequestException(
+          'Order includes shipping. Set ZOHO_SHIPPING_ITEM_ID or ZOHO_FALLBACK_LINE_ITEM_ID to a Zoho Inventory item_id used for shipping lines.',
+        );
+      }
+      const singleLineCoversFullOrder =
+        lines.length === 1 &&
+        sub <= 0.01 &&
+        Math.abs((lines[0].rate ?? 0) - tot) < 0.02;
+      if (!singleLineCoversFullOrder) {
+        lines.push({
+          item_id: shipItemId,
+          name: 'Shipping',
+          quantity: 1,
+          rate: ship,
+          unit: 'qty',
+        });
+      }
+    }
+
+    if (lines.length === 0) {
+      throw new BadRequestException(
+        'Nothing to send to Zoho for this order (empty lines and zero total).',
+      );
+    }
+
+    return lines;
+  }
+
+  /**
+   * Re-run Zoho sales order + invoice for a paid order (e.g. after fixing SKUs or .env).
+   */
+  async syncZohoForPaidOrder(
+    orderMongoId: string,
+    userId: string,
+  ): Promise<{
+    orderId: string;
+    zohoSynced: boolean;
+    zohoSalesOrderId: string | null;
+    zohoInvoiceId: string | null;
+  }> {
+    const order = await this.ordersService.findOne(orderMongoId, userId);
+    if ((order.payment_status ?? 'pending') !== 'success') {
+      throw new BadRequestException(
+        'Zoho invoice sync is only available after payment has succeeded.',
+      );
+    }
+    if (order.zoho_sync_status === 'synced' && order.zoho_invoice_id) {
+      return {
+        orderId: order.orderId,
+        zohoSynced: true,
+        zohoSalesOrderId: order.zoho_salesorder_id ?? null,
+        zohoInvoiceId: order.zoho_invoice_id,
+      };
+    }
+    try {
+      const zoho = await this.runZohoSync(order);
+      await this.ordersService.updateZohoSyncForOrder(
+        String(order._id),
+        zoho.salesOrderId,
+        zoho.invoiceId,
+        'synced',
+      );
+      return {
+        orderId: order.orderId,
+        zohoSynced: true,
+        zohoSalesOrderId: zoho.salesOrderId,
+        zohoInvoiceId: zoho.invoiceId,
+      };
+    } catch (err) {
+      await this.ordersService.updateZohoSyncForOrder(
+        String(order._id),
+        order.zoho_salesorder_id ?? null,
+        order.zoho_invoice_id ?? null,
+        'failed',
+      );
+      throw err;
+    }
+  }
+
   private async runZohoSync(
     order: OrderDocument,
   ): Promise<{ salesOrderId: string; invoiceId: string }> {
-    const lineItems = await this.buildZohoLineItems(order);
+    const lineItems = await this.resolveZohoLineItemsForPaidOrder(order);
     const user = await this.usersService.findOne(order.userId.toString());
     const email = user?.email?.trim().toLowerCase();
     if (!email) {
@@ -399,13 +612,50 @@ export class RazorpayPaymentService {
       throw new Error('Zoho invoice response missing invoice_id');
     }
 
-    await this.zoho.recordCustomerPayment({
-      customer_id: customerId,
-      invoice_id: invoiceId,
-      amount: Number(order.total),
-      date: today,
-      payment_mode: 'Razorpay',
-    });
+    const invRecord = invBody as Record<string, unknown>;
+    const amountDue =
+      extractZohoInvoiceAmountDue(invRecord) ?? Number(order.total);
+    if (!Number.isFinite(amountDue) || amountDue < 0) {
+      throw new Error('Could not determine invoice amount due from Zoho response');
+    }
+    const capture = Number(order.total);
+    /** Never apply more than Razorpay captured or more than Zoho’s open balance. */
+    const paymentAmount =
+      capture > 0 ? Math.min(amountDue, capture) : amountDue;
+
+    if (capture > 0 && amountDue + 0.01 < capture) {
+      this.logger.warn(
+        `Zoho invoice due (${amountDue}) is below Razorpay capture (${capture}) for ${order.orderId}. Applied ${paymentAmount}. Align shipping item, tax, and catalog rates with Zoho.`,
+      );
+    }
+    if (capture > 0 && amountDue > capture + 0.02) {
+      this.logger.warn(
+        `Zoho invoice due (${amountDue}) exceeds Razorpay capture (${capture}) for ${order.orderId}. Recording ${paymentAmount}; remaining balance may stay open in Zoho.`,
+      );
+    }
+
+    if (paymentAmount > 0) {
+      try {
+        await this.zoho.recordCustomerPayment({
+          customer_id: customerId,
+          invoice_id: invoiceId,
+          amount: paymentAmount,
+          date: today,
+          payment_mode: 'Razorpay',
+        });
+      } catch (err) {
+        this.logger.error(
+          `Zoho invoice ${invoiceId} was created but recording customer payment failed for order ${order.orderId}: ${
+            err instanceof Error ? err.message : String(err)
+          }. Invoice exists in Zoho; reconcile payment manually if needed.`,
+          err instanceof Error ? err.stack : undefined,
+        );
+      }
+    } else if (capture > 0) {
+      throw new BadRequestException(
+        'Zoho invoice amount is 0 but the customer paid a non-zero total. Set ZOHO_FALLBACK_LINE_ITEM_ID and/or ZOHO_SHIPPING_ITEM_ID so invoice lines match the paid amount.',
+      );
+    }
 
     return { salesOrderId, invoiceId };
   }

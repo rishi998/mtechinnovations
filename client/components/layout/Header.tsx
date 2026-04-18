@@ -1,29 +1,31 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react'
 import { useCart } from '@/lib/context/CartContext'
+import { useCatalog } from '@/lib/context/CatalogContext'
 import { useWishlist } from '@/lib/context/WishlistContext'
 import { useAuth } from '@/lib/context/AuthContext'
 import { Button } from '../ui/Button'
-import { categories } from '@/lib/data/categories'
-import { products } from '@/lib/data/products'
+import type { Product } from '@/lib/types'
 import { debounce } from '@/lib/utils'
+import { productPath } from '@/lib/paths'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchResults, setSearchResults] = useState<Product[]>([])
   const [isScrolled, setIsScrolled] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   
   const { cartCount } = useCart()
+  const { products, categories } = useCatalog()
   const { wishlistCount } = useWishlist()
   const { user, isAuthenticated, logout } = useAuth()
   const pathname = usePathname()
@@ -54,23 +56,29 @@ export function Header() {
     setIsMenuOpen(false)
   }, [pathname])
 
-  // Handle search
-  const handleSearch = debounce((query: string) => {
-    if (query.trim().length < 2) {
-      setSearchResults([])
-      return
-    }
-    
-    const filtered = products
-      .filter((product) =>
-        product.name.toLowerCase().includes(query.toLowerCase()) ||
-        product.category.toLowerCase().includes(query.toLowerCase()) ||
-        product.brand.toLowerCase().includes(query.toLowerCase())
-      )
-      .slice(0, 5)
-    
-    setSearchResults(filtered)
-  }, 300)
+  const productsRef = useRef(products)
+  productsRef.current = products
+
+  const handleSearch = useMemo(
+    () =>
+      debounce((query: string) => {
+        if (query.trim().length < 2) {
+          setSearchResults([])
+          return
+        }
+        const list = productsRef.current
+        const filtered = list
+          .filter(
+            (product) =>
+              product.name.toLowerCase().includes(query.toLowerCase()) ||
+              product.category.toLowerCase().includes(query.toLowerCase()) ||
+              product.brand.toLowerCase().includes(query.toLowerCase()),
+          )
+          .slice(0, 5)
+        setSearchResults(filtered)
+      }, 300),
+    [],
+  )
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -157,12 +165,19 @@ export function Header() {
 
             {/* Search Results Dropdown */}
             {isSearchFocused && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50">
+              <div
+                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50"
+                onMouseDown={(e) => e.preventDefault()}
+              >
                 {searchResults.map((product) => (
                   <Link
                     key={product.id}
-                    href={`/product/${product.slug}`}
+                    href={productPath(product.slug, product.id)}
                     className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      setIsSearchFocused(false)
+                      setSearchResults([])
+                    }}
                   >
                     <div className="w-12 h-12 bg-gray-100 rounded flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -303,13 +318,19 @@ export function Header() {
 
             {/* Mobile Search Results Dropdown */}
             {isMobileSearchFocused && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-72 overflow-y-auto z-50">
+              <div
+                className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-72 overflow-y-auto z-50"
+                onMouseDown={(e) => e.preventDefault()}
+              >
                 {searchResults.map((product) => (
                   <Link
                     key={product.id}
-                    href={`/product/${product.slug}`}
+                    href={productPath(product.slug, product.id)}
                     className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
-                    onClick={() => { setIsMobileSearchFocused(false); setSearchResults([]) }}
+                    onClick={() => {
+                      setIsMobileSearchFocused(false)
+                      setSearchResults([])
+                    }}
                   >
                     <div className="w-10 h-10 bg-gray-100 rounded flex-shrink-0" />
                     <div className="flex-1 min-w-0">

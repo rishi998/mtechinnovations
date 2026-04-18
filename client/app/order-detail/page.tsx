@@ -19,6 +19,8 @@ import type { Order } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { formatPrice, formatDate } from '@/lib/utils'
+import { productPath } from '@/lib/paths'
+import { firstProductImageUrl } from '@/lib/api/catalog'
 
 const trackingSteps = [
   { status: 'pending', label: 'Order Placed', description: 'We have received your order', icon: CheckCircle },
@@ -203,19 +205,20 @@ function OrderDetailContent() {
                 {order.items.map((item, idx) => (
                   <div key={idx} className={`flex gap-4 ${idx > 0 ? 'pt-4' : ''}`}>
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
-                      {item.product.images?.[0] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={item.product.images[0]}
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                        />
-                      )}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={firstProductImageUrl(item.product.images)}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement
+                          el.src = firstProductImageUrl([])
+                        }}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link
-                        href={`/product/${item.product.slug}`}
+                        href={productPath(item.product.slug, item.product.id)}
                         className="font-medium text-gray-900 hover:text-primary-600 line-clamp-2 text-sm sm:text-base"
                       >
                         {item.product.name}

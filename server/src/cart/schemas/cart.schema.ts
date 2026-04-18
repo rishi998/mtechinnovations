@@ -4,7 +4,11 @@ import { CartItem, CartItemSchema } from './cart-item.schema';
 
 export type CartDocument = Cart & Document;
 
-@Schema({ timestamps: true, id: true })
+/**
+ * One document per user; line items are embedded in `items` (refs to Product).
+ * Mongo collection: `cart_items`.
+ */
+@Schema({ timestamps: true, id: true, collection: 'cart_items' })
 export class Cart {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
   userId: Types.ObjectId;

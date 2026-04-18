@@ -3,9 +3,24 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { categories } from '@/lib/data/categories'
+import { useCatalog } from '@/lib/context/CatalogContext'
 
 export function CategoryGrid() {
+  const { categories, loading } = useCatalog()
+  const shown = categories.slice(0, 10)
+
+  if (loading && shown.length === 0) {
+    return (
+      <section className="py-10 sm:py-16">
+        <div className="container-custom text-center text-gray-500 text-sm">
+          Loading categories…
+        </div>
+      </section>
+    )
+  }
+
+  if (shown.length === 0) return null
+
   return (
     <section className="py-10 sm:py-16">
       <div className="container-custom">
@@ -14,12 +29,12 @@ export function CategoryGrid() {
             Shop by Category
           </h2>
           <p className="text-gray-600 text-base sm:text-lg">
-            Explore our wide range of electronics and components
+            From your live Zoho inventory
           </p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {categories.map((category, index) => (
+          {shown.map((category, index) => (
             <motion.div
               key={category.id}
               initial={{ opacity: 0, y: 20 }}
@@ -37,10 +52,11 @@ export function CategoryGrid() {
                     alt={category.name}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-300"
+                    unoptimized
                   />
                 </div>
                 <div className="p-2 sm:p-4 text-center">
-                  <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
+                  <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">
                     {category.name}
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-500">
