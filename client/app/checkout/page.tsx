@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,7 +10,7 @@ import { useCart } from '@/lib/context/CartContext'
 import { useAuth } from '@/lib/context/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { formatPrice, generateId } from '@/lib/utils'
+import { formatPrice } from '@/lib/utils'
 import { createOrder, getCart } from '@/lib/api'
 import type { CartItem } from '@/lib/types'
 import { checkoutPayPath } from '@/lib/paths'
@@ -31,7 +30,7 @@ type AddressForm = z.infer<typeof addressSchema>
 export default function CheckoutPage() {
   const router = useRouter()
   const { cart, cartTotal, clearCart, refreshCart } = useCart()
-  const { isAuthenticated, user, addOrder } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const [step, setStep] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('card')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -58,9 +57,16 @@ export default function CheckoutPage() {
   const tax = Math.round(effectiveTotal * 0.18)
   const total = effectiveTotal + shipping + tax
 
+  useEffect(() => {
+    if (authLoading) return
+    if (!isAuthenticated) {
+      router.replace(`/login?redirect=${encodeURIComponent('/checkout')}`)
+    }
+  }, [authLoading, isAuthenticated, router])
+
   /** Logged-in users must have server-side cart rows (collection `cart_items`). */
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (authLoading || !isAuthenticated) return
     let cancelled = false
     void getCart()
       .then((items) => {
@@ -75,32 +81,35 @@ export default function CheckoutPage() {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router])
 
-  if (!isAuthenticated && effectiveCart.length === 0) {
-    router.push('/cart')
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600 text-sm">Loading…</p>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
     return null
   }
 
   const onSubmitAddress = async (data: AddressForm) => {
     setOrderError('')
-    if (isAuthenticated) {
-      let items: CartItem[]
-      try {
-        items = await getCart()
-      } catch {
-        setOrderError('Could not load your cart. Please try again.')
-        return
-      }
-      if (!items.length) {
-        setOrderError('Your cart is empty. Add items before continuing to payment.')
-        router.push('/cart')
-        return
-      }
-      setCheckoutCart(items)
-    } else {
-      setCheckoutCart(cart)
+    let items: CartItem[]
+    try {
+      items = await getCart()
+    } catch {
+      setOrderError('Could not load your cart. Please try again.')
+      return
     }
+    if (!items.length) {
+      setOrderError('Your cart is empty. Add items before continuing to payment.')
+      router.push('/cart')
+      return
+    }
+    setCheckoutCart(items)
     setShippingAddress(data)
     setStep(2)
   }
@@ -147,60 +156,13 @@ export default function CheckoutPage() {
     }
   }
 
-  const handlePlaceOrder = async () => {
-    if (!shippingAddress) return
-    if (isAuthenticated) {
-      await createOrderAndRedirectToPayment()
-      return
-    }
-
-    setOrderError('')
-    setIsProcessing(true)
-
-    try {
-      // Guest: mock order (no server order)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      const orderId = 'ORD' + generateId().toUpperCase().substring(0, 10)
-      addOrder({
-        orderId,
-        date: new Date(),
-        status: 'processing',
-        items: effectiveCart,
-        subtotal: effectiveTotal,
-        discount: 0,
-        tax,
-        shipping,
-        total,
-        shippingAddress: {
-          id: generateId(),
-          name: shippingAddress.name,
-          phone: shippingAddress.phone,
-          addressLine1: shippingAddress.addressLine1,
-          addressLine2: shippingAddress.addressLine2,
-          city: shippingAddress.city,
-          state: shippingAddress.state,
-          pincode: shippingAddress.pincode,
-          isDefault: false,
-        },
-        paymentMethod,
-        trackingId: 'TRK' + generateId().toUpperCase().substring(0, 10),
-      })
-      clearCart()
-      router.push(`/order-success?orderId=${orderId}`)
-    } catch (err) {
-      setOrderError(err instanceof Error ? err.message : 'Failed to place order. Please try again.')
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container-custom max-w-5xl">
         {/* Progress Steps */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-center">
-            {[1, 2, 3].map((num) => (
+            {[1, 2].map((num) => (
               <div key={num} className="flex items-center">
                 <div
                   className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base ${
@@ -211,7 +173,7 @@ export default function CheckoutPage() {
                 >
                   {step > num ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : num}
                 </div>
-                {num < 3 && (
+                {num < 2 && (
                   <div
                     className={`w-12 sm:w-20 md:w-28 h-1 mx-1 sm:mx-2 ${
                       step > num ? 'bg-primary-600' : 'bg-gray-200'
@@ -221,10 +183,9 @@ export default function CheckoutPage() {
               </div>
             ))}
           </div>
-          <div className="flex justify-between max-w-xs sm:max-w-md mx-auto mt-2 px-2">
+          <div className="flex justify-between max-w-[220px] sm:max-w-sm mx-auto mt-2 px-2">
             <span className="text-xs sm:text-sm font-medium">Address</span>
             <span className="text-xs sm:text-sm font-medium">Payment</span>
-            <span className="text-xs sm:text-sm font-medium">Review</span>
           </div>
         </div>
 
@@ -235,18 +196,6 @@ export default function CheckoutPage() {
             {step === 1 && (
               <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Shipping Address</h2>
-                
-                {!isAuthenticated && (
-                  <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-900">
-                      Have an account?{' '}
-                      <Link href="/login" className="font-medium underline">
-                        Login
-                      </Link>{' '}
-                      for faster checkout
-                    </p>
-                  </div>
-                )}
 
                 <form onSubmit={handleSubmit(onSubmitAddress)} className="space-y-4">
                   <Input
@@ -355,76 +304,12 @@ export default function CheckoutPage() {
                     Back
                   </Button>
                   <Button
-                    onClick={() =>
-                      isAuthenticated
-                        ? void createOrderAndRedirectToPayment()
-                        : setStep(3)
-                    }
+                    onClick={() => void createOrderAndRedirectToPayment()}
                     isLoading={isProcessing}
                     disabled={isProcessing}
                     className="flex-1"
                   >
-                    {isAuthenticated ? 'Continue to secure payment' : 'Continue to Review'}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Review Order */}
-            {step === 3 && (
-              <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Review Your Order</h2>
-
-                {/* Shipping Address Summary */}
-                {shippingAddress && (
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-gray-900 text-sm">Delivering to</h3>
-                      <button onClick={() => setStep(1)} className="text-xs text-primary-600 hover:underline">Edit</button>
-                    </div>
-                    <p className="text-sm text-gray-700">{shippingAddress.name} · {shippingAddress.phone}</p>
-                    <p className="text-sm text-gray-600">{shippingAddress.addressLine1}{shippingAddress.addressLine2 ? `, ${shippingAddress.addressLine2}` : ''}</p>
-                    <p className="text-sm text-gray-600">{shippingAddress.city}, {shippingAddress.state} - {shippingAddress.pincode}</p>
-                  </div>
-                )}
-
-                {/* Payment Method Summary */}
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between items-center mb-1">
-                    <h3 className="font-semibold text-gray-900 text-sm">Payment</h3>
-                    <button onClick={() => setStep(2)} className="text-xs text-primary-600 hover:underline">Edit</button>
-                  </div>
-                  <p className="text-sm text-gray-600 capitalize">{paymentMethod === 'card' ? 'Credit / Debit Card' : paymentMethod === 'upi' ? 'UPI' : 'Net Banking'}</p>
-                </div>
-
-                <div className="space-y-4 mb-6">
-                  {effectiveCart.map((item) => (
-                    <div key={item.product.id} className="flex gap-4 pb-4 border-b">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-lg flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 line-clamp-2 text-sm sm:text-base">{item.product.name}</p>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                      </div>
-                      <p className="font-semibold text-gray-900 flex-shrink-0">
-                        {formatPrice(item.product.price * item.quantity)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {orderError && (
-                  <p className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg">{orderError}</p>
-                )}
-                <div className="flex gap-3">
-                  <Button onClick={() => setStep(2)} variant="outline" className="flex-1">
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handlePlaceOrder}
-                    isLoading={isProcessing}
-                    className="flex-1"
-                  >
-                    Place Order
+                    Continue to secure payment
                   </Button>
                 </div>
               </div>

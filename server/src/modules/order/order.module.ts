@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ZohoModule } from '../zoho/zoho.module';
-import {
-  ZohoSyncedProduct,
-  ZohoSyncedProductSchema,
-} from '../product/product.entity';
+import { Product, ProductSchema } from '../../products/schemas/product.schema';
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import {
@@ -17,7 +14,7 @@ import {
     ZohoModule,
     MongooseModule.forFeature([
       { name: ZohoSalesOrderRecord.name, schema: ZohoSalesOrderRecordSchema },
-      { name: ZohoSyncedProduct.name, schema: ZohoSyncedProductSchema },
+      { name: Product.name, schema: ProductSchema },
     ]),
   ],
   controllers: [OrderController],

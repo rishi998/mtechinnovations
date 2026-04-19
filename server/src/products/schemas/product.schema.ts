@@ -11,8 +11,11 @@ export class Product {
   @Prop({ required: true, unique: true })
   slug: string;
 
-  /** Set when this storefront row is owned by Zoho sync (enables safe prune). */
-  @Prop({ type: String, default: null })
+  /**
+   * Zoho Inventory `item_id` as string (required for sales orders / invoices).
+   * Manual catalog rows may omit until synced.
+   */
+  @Prop({ type: String, default: null, trim: true })
   zoho_item_id: string | null;
 
   @Prop({ type: String, default: null })

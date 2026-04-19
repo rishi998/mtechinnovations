@@ -508,6 +508,34 @@ export class ZohoService {
     );
   }
 
+  /**
+   * Ensures every line has a non-empty numeric string `item_id` (Zoho Inventory).
+   * Call after tax fields are applied and immediately before POST.
+   */
+  private assertLineItemsReadyForZoho(
+    line_items: ZohoCreateSalesOrderLineItem[],
+    operation: 'sales_order' | 'invoice',
+  ): void {
+    this.logger.log(
+      `Zoho line_items (${operation}): ${JSON.stringify(line_items)}`,
+    );
+    if (!line_items?.length) {
+      throw new Error('No valid Zoho line items — cannot create invoice');
+    }
+    for (let i = 0; i < line_items.length; i++) {
+      const li = line_items[i];
+      const id = li.item_id;
+      if (id == null || typeof id !== 'string' || String(id).trim() === '') {
+        throw new Error('Invalid Zoho item_id in line_items');
+      }
+      const s = String(id).trim();
+      if (!/^\d+$/.test(s)) {
+        throw new Error('Invalid Zoho item_id in line_items');
+      }
+      li.item_id = s;
+    }
+  }
+
   private throwIfInventoryMutationFailed(
     data: unknown,
     fallbackMessage: string,
@@ -548,6 +576,8 @@ export class ZohoService {
         payload.line_items.map((li) => ({ ...li })),
         payload.tax_exemption_id,
       );
+
+    this.assertLineItemsReadyForZoho(line_items, 'sales_order');
 
     const body: Record<string, unknown> = {
       customer_id: String(cidRaw).trim(),
@@ -607,6 +637,8 @@ export class ZohoService {
         params.line_items.map((li) => ({ ...li })),
         params.tax_exemption_id,
       );
+
+    this.assertLineItemsReadyForZoho(line_items, 'invoice');
 
     const body: Record<string, unknown> = {
       customer_id: cid,
@@ -856,7 +888,7 @@ export class ZohoService {
             detail = String(d.message ?? d.error ?? '').trim();
           }
           const hint =
-            'Check: refresh token must include scopes for this API (e.g. ZohoInventory.salesorders.CREATE for sales orders). Re-auth via GET /api/zoho/login?type=order or type=full. Also verify ZOHO_ORGANIZATION_ID and India DC (.in) settings.';
+            'Check: refresh token must include scopes for this API (sales orders: ZohoInventory.salesorders.CREATE; invoices: ZohoInventory.invoices.CREATE; recording invoice payments: ZohoInventory.customerpayments.CREATE; taxes: ZohoInventory.settings.READ). Re-auth via GET /api/zoho/login?type=order or type=full after updating scopes. Also verify ZOHO_ORGANIZATION_ID and India DC (.in) settings.';
           const msg = detail
             ? `Zoho Inventory 401: ${detail}. ${hint}`
             : `Zoho Inventory 401 Unauthorized. ${hint}`;

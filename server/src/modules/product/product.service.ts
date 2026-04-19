@@ -107,14 +107,39 @@ export class ProductService implements OnModuleInit {
       }
 
       const byId = new Map<string, (typeof items)[0]>();
+      let skippedNoItemId = 0;
       for (const item of items) {
-        const id = item.zohoItemId?.trim();
-        if (!id) continue;
-        byId.set(id, item);
+        const raw = item.zohoItemId?.trim();
+        if (!raw) {
+          skippedNoItemId += 1;
+          this.logger.warn(
+            `[${requestId}] Skipped Zoho item without item_id: name=${item.name ?? 'unknown'}`,
+          );
+          continue;
+        }
+        const zoho_item_id = String(raw);
+        this.logger.debug(`Synced Zoho item_id: ${zoho_item_id}`);
+        byId.set(zoho_item_id, { ...item, zohoItemId: zoho_item_id });
+      }
+
+      if (skippedNoItemId > 0) {
+        this.logger.warn(
+          `[${requestId}] Skipped ${skippedNoItemId} Zoho row(s) missing item_id`,
+        );
+      }
+
+      this.logger.log(
+        `[${requestId}] ${byId.size} Zoho item row(s) have valid item_id after de-duplication`,
+      );
+      if (byId.size > 0) {
+        const sample = [...byId.keys()].slice(0, 10);
+        this.logger.log(
+          `[${requestId}] Sample Synced Zoho item_id: ${sample.join(', ')}${byId.size > 10 ? ' …' : ''}`,
+        );
       }
 
       const bulk = [...byId.values()].map((item) => {
-        const zoho_item_id = item.zohoItemId.trim();
+        const zoho_item_id = String(item.zohoItemId).trim();
         return {
           updateOne: {
             filter: { zoho_item_id },
@@ -177,6 +202,8 @@ export class ProductService implements OnModuleInit {
       this.logger.log(
         `[${requestId}] storefront catalog upserted=${catalog.catalogUpserted} modified=${catalog.catalogModified} removed=${catalog.catalogRemoved}`,
       );
+
+      await this.storefrontProducts.logProductsWithoutZohoId();
 
       const durationMs = Date.now() - t0;
       this.logger.log(`[${requestId}] Completed sync in ${durationMs} ms`);

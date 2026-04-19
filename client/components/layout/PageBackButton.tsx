@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeft, House } from 'lucide-react'
+import { ArrowLeft, Home } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
@@ -22,7 +22,7 @@ export function PageBackButton() {
             className={cn(navGhostSm, 'text-primary-600 cursor-default')}
             aria-current="page"
           >
-            <House className="w-4 h-4 shrink-0" />
+            <Home className="w-4 h-4 shrink-0" />
             Home
           </span>
         ) : (
@@ -34,7 +34,7 @@ export function PageBackButton() {
             )}
             aria-label="Go to home"
           >
-            <House className="w-4 h-4 shrink-0" />
+            <Home className="w-4 h-4 shrink-0" />
             Home
           </Link>
         )}

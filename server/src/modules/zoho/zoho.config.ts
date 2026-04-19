@@ -14,6 +14,8 @@ export const ZOHO_SCOPES = {
   ITEMS_CREATE: 'ZohoInventory.items.CREATE',
   SALESORDERS_CREATE: 'ZohoInventory.salesorders.CREATE',
   INVOICES_CREATE: 'ZohoInventory.invoices.CREATE',
+  /** Required for POST /customerpayments (record payment against invoice after Razorpay). */
+  CUSTOMER_PAYMENTS_CREATE: 'ZohoInventory.customerpayments.CREATE',
   CONTACTS_READ: 'ZohoInventory.contacts.READ',
   CONTACTS_CREATE: 'ZohoInventory.contacts.CREATE',
   /** Required for GET /settings/taxes (list taxes for ZOHO_SALES_ORDER_LINE_TAX_ID). */
@@ -37,6 +39,7 @@ export const ZOHO_SCOPE_PRESETS: Record<
     ZOHO_SCOPES.CONTACTS_CREATE,
     ZOHO_SCOPES.SALESORDERS_CREATE,
     ZOHO_SCOPES.INVOICES_CREATE,
+    ZOHO_SCOPES.CUSTOMER_PAYMENTS_CREATE,
     ZOHO_SCOPES.SETTINGS_READ,
   ],
   full: [
@@ -46,6 +49,7 @@ export const ZOHO_SCOPE_PRESETS: Record<
     ZOHO_SCOPES.CONTACTS_CREATE,
     ZOHO_SCOPES.SALESORDERS_CREATE,
     ZOHO_SCOPES.INVOICES_CREATE,
+    ZOHO_SCOPES.CUSTOMER_PAYMENTS_CREATE,
     ZOHO_SCOPES.SETTINGS_READ,
   ],
 };

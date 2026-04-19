@@ -11,10 +11,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { Model } from 'mongoose';
 import { ZohoService } from '../modules/zoho/zoho.service';
-import {
-  ZohoSyncedProduct,
-  ZohoSyncedProductDocument,
-} from '../modules/product/product.entity';
+import { Product, ProductDocument } from '../products/schemas/product.schema';
+import { orderLineStorefrontProductId } from '../orders/utils/order-line-product-id';
 import { OrdersService } from '../orders/orders.service';
 import { OrderDocument } from '../orders/schemas/order.schema';
 import { UsersService } from '../users/users.service';
@@ -115,8 +113,8 @@ export class RazorpayPaymentService {
     private readonly ordersService: OrdersService,
     private readonly usersService: UsersService,
     private readonly zoho: ZohoService,
-    @InjectModel(ZohoSyncedProduct.name)
-    private readonly syncedProductModel: Model<ZohoSyncedProductDocument>,
+    @InjectModel(Product.name)
+    private readonly storefrontProductModel: Model<ProductDocument>,
   ) {
     const { keyId, keySecret } = resolveRazorpayCredentials(this.config);
     this.rzpKeyId = keyId;
@@ -402,29 +400,28 @@ export class RazorpayPaymentService {
   private async buildZohoLineItems(order: OrderDocument): Promise<ZohoCreateSalesOrderLineItem[]> {
     const out: ZohoCreateSalesOrderLineItem[] = [];
     for (const row of order.items) {
-      const p = row.productId as unknown as {
-        sku?: string | null;
-        name?: string;
-      };
-      const sku = p?.sku?.trim();
-      if (!sku) {
+      const pid = orderLineStorefrontProductId(row.productId);
+      const product = await this.storefrontProductModel.findById(pid).exec();
+      if (!product) {
         throw new BadRequestException(
-          'A product in this order has no SKU; map catalog SKUs to Zoho items before checkout.',
+          `Storefront product not found for order line productId=${pid}`,
         );
       }
-      const synced = await this.syncedProductModel.findOne({ sku }).exec();
-      const zohoItemId = synced?.zoho_item_id?.trim();
-      if (!zohoItemId || !/^\d+$/.test(zohoItemId)) {
+      const zohoItemId = product.zoho_item_id?.trim();
+      this.logger.log(
+        `Product zoho_item_id: ${zohoItemId ?? '(missing)'} productId=${pid}`,
+      );
+      if (!zohoItemId) {
+        throw new BadRequestException('Missing zoho_item_id');
+      }
+      if (!/^\d+$/.test(zohoItemId)) {
         throw new BadRequestException(
-          `No Zoho-synced item for SKU "${sku}". Sync Zoho products first.`,
+          `Invalid zoho_item_id for product ${pid}; expected numeric Zoho item id string.`,
         );
       }
-      const name =
-        synced?.name?.trim() ||
-        (typeof p.name === 'string' && p.name.trim()) ||
-        'Item';
+      const name = product.name?.trim() || 'Item';
       out.push({
-        item_id: zohoItemId,
+        item_id: String(zohoItemId).trim(),
         name,
         quantity: row.quantity,
         rate: row.price,
@@ -472,9 +469,12 @@ export class RazorpayPaymentService {
           'Could not map catalog lines to Zoho items. Create a generic non-stock item in Zoho Inventory and set ZOHO_FALLBACK_LINE_ITEM_ID (item_id) in server .env so invoices can still be generated.',
         );
       }
+      this.logger.warn(
+        `Using fallback Zoho item_id=${fallbackId} for order ${order.orderId} (no mapped catalog lines)`,
+      );
       if (sub > 0.01) {
         lines.push({
-          item_id: fallbackId,
+          item_id: String(fallbackId).trim(),
           name: 'Merchandise',
           quantity: 1,
           rate: sub,
@@ -482,7 +482,7 @@ export class RazorpayPaymentService {
         });
       } else {
         lines.push({
-          item_id: fallbackId,
+          item_id: String(fallbackId).trim(),
           name: 'Order total',
           quantity: 1,
           rate: tot,
@@ -499,13 +499,16 @@ export class RazorpayPaymentService {
           'Order includes shipping. Set ZOHO_SHIPPING_ITEM_ID or ZOHO_FALLBACK_LINE_ITEM_ID to a Zoho Inventory item_id used for shipping lines.',
         );
       }
+      this.logger.log(
+        `Using Zoho item_id=${shipItemId} for shipping line (order ${order.orderId})`,
+      );
       const singleLineCoversFullOrder =
         lines.length === 1 &&
         sub <= 0.01 &&
         Math.abs((lines[0].rate ?? 0) - tot) < 0.02;
       if (!singleLineCoversFullOrder) {
         lines.push({
-          item_id: shipItemId,
+          item_id: String(shipItemId).trim(),
           name: 'Shipping',
           quantity: 1,
           rate: ship,

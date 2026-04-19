@@ -42,14 +42,15 @@ export default function ProductPageClient({ slug }: { slug: string }) {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
 
   useEffect(() => {
+    let cancelled = false
     const fromList = catalogProducts.find((p) => p.slug === slug)
+
     if (fromList) {
       setProduct(fromList)
-      return
+    } else {
+      setProduct(null)
     }
-    if (catalogLoading) return
 
-    let cancelled = false
     setFetching(true)
     void getProductBySlugOrId(slug).then((p) => {
       if (cancelled) return
@@ -59,7 +60,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
     return () => {
       cancelled = true
     }
-  }, [slug, catalogProducts, catalogLoading])
+  }, [slug, catalogProducts])
 
   const mainImage = useMemo(() => {
     if (!product?.images?.length) return PLACEHOLDER

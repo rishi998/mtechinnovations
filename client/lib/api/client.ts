@@ -33,7 +33,11 @@ async function request<T>(
   if (token) {
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
   }
-  const res = await fetch(url, { ...init, headers })
+  const res = await fetch(url, {
+    ...init,
+    headers,
+    cache: 'no-store',
+  })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     const raw = (data as { message?: string | string[] }).message

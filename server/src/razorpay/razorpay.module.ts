@@ -3,10 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { OrdersModule } from '../orders/orders.module';
 import { UsersModule } from '../users/users.module';
 import { ZohoModule } from '../modules/zoho/zoho.module';
-import {
-  ZohoSyncedProduct,
-  ZohoSyncedProductSchema,
-} from '../modules/product/product.entity';
+import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { RazorpayPaymentService } from './razorpay-payment.service';
 import { RazorpayController } from './razorpay.controller';
 import { OrdersPaymentController } from './orders-payment.controller';
@@ -17,7 +14,7 @@ import { OrdersPaymentController } from './orders-payment.controller';
     UsersModule,
     ZohoModule,
     MongooseModule.forFeature([
-      { name: ZohoSyncedProduct.name, schema: ZohoSyncedProductSchema },
+      { name: Product.name, schema: ProductSchema },
     ]),
   ],
   controllers: [RazorpayController, OrdersPaymentController],

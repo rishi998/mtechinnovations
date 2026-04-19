@@ -25,7 +25,9 @@ export default function CartPage() {
   const proceedToCheckout = async () => {
     setCheckoutError('')
     if (!isAuthenticated) {
-      router.push('/checkout')
+      router.push(
+        `/login?redirect=${encodeURIComponent('/checkout')}`,
+      )
       return
     }
     try {

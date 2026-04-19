@@ -6,7 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ZohoService } from '../zoho/zoho.service';
-import { ZohoSyncedProduct, ZohoSyncedProductDocument } from '../product/product.entity';
+import { Product, ProductDocument } from '../../products/schemas/product.schema';
 import { CreateZohoOrderDto } from './dto/create-zoho-order.dto';
 import {
   ZohoSalesOrderRecord,
@@ -39,8 +39,8 @@ export class OrderService {
   constructor(
     @InjectModel(ZohoSalesOrderRecord.name)
     private readonly orderModel: Model<ZohoSalesOrderRecordDocument>,
-    @InjectModel(ZohoSyncedProduct.name)
-    private readonly syncedProductModel: Model<ZohoSyncedProductDocument>,
+    @InjectModel(Product.name)
+    private readonly storefrontProductModel: Model<ProductDocument>,
     private readonly zoho: ZohoService,
   ) {}
 
@@ -60,27 +60,28 @@ export class OrderService {
     }[] = [];
 
     for (const row of dto.items) {
-      const product = await this.syncedProductModel
+      const product = await this.storefrontProductModel
         .findById(row.productId)
         .exec();
 
       if (!product) {
         throw new BadRequestException(
-          `Synced product not found for productId=${row.productId}. Use a Zoho-synced product _id from GET /api/zoho/products.`,
+          `Storefront product not found for productId=${row.productId}. Use a product _id from GET /api/products.`,
         );
       }
 
       const zohoItemId = product.zoho_item_id?.trim();
+      this.logger.log(
+        `Product zoho_item_id: ${zohoItemId ?? '(missing)'} productId=${row.productId}`,
+      );
       if (!zohoItemId) {
-        throw new BadRequestException(
-          `Product ${row.productId} has no zoho_item_id; run product sync first.`,
-        );
+        throw new BadRequestException('Missing zoho_item_id');
       }
 
       const price = Number(product.price);
       if (!Number.isFinite(price) || price < 0) {
         throw new BadRequestException(
-          `Invalid price on synced product ${row.productId}.`,
+          `Invalid price on product ${row.productId}.`,
         );
       }
 

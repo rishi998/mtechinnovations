@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import type { ZohoInventoryItemNormalized } from '../modules/zoho/zoho-inventory.types';
@@ -42,10 +42,44 @@ export interface ZohoCatalogSyncStats {
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
   ) {}
+
+  /** Storefront rows with missing / empty `zoho_item_id` (manual catalog or sync gap). */
+  async getProductsWithoutZohoId(): Promise<ProductDocument[]> {
+    return this.productModel
+      .find({
+        $or: [
+          { zoho_item_id: null },
+          { zoho_item_id: { $exists: false } },
+          { zoho_item_id: '' },
+        ],
+      })
+      .exec();
+  }
+
+  /** Logs how many storefront products lack `zoho_item_id`. Returns that count. */
+  async logProductsWithoutZohoId(): Promise<number> {
+    const n = await this.productModel.countDocuments({
+      $or: [
+        { zoho_item_id: null },
+        { zoho_item_id: { $exists: false } },
+        { zoho_item_id: '' },
+      ],
+    });
+    if (n > 0) {
+      this.logger.warn(
+        `Storefront products without zoho_item_id: count=${n} (sync Zoho or set ids before invoicing)`,
+      );
+    } else {
+      this.logger.log('Storefront products without zoho_item_id: count=0');
+    }
+    return n;
+  }
 
   async create(dto: CreateProductDto): Promise<ProductDocument> {
     const product = new this.productModel(dto);
@@ -89,10 +123,15 @@ export class ProductsService {
   ): Promise<ZohoCatalogSyncStats> {
     const byId = new Map<string, ZohoInventoryItemNormalized>();
     for (const item of items) {
-      const id = item.zohoItemId?.trim();
-      if (id) {
-        byId.set(id, item);
+      const raw = item.zohoItemId?.trim();
+      if (!raw) {
+        this.logger.warn(
+          `syncCatalogFromZohoItems: skipped item without Zoho item_id name=${item.name ?? 'unknown'}`,
+        );
+        continue;
       }
+      const id = String(raw);
+      byId.set(id, { ...item, zohoItemId: id });
     }
     const uniqueIds = [...byId.keys()];
     if (!uniqueIds.length) {
@@ -100,7 +139,7 @@ export class ProductsService {
     }
 
     const bulk = [...byId.values()].map((item) => {
-      const zoho_item_id = item.zohoItemId.trim();
+      const zoho_item_id = String(item.zohoItemId).trim();
       const slug = slugifyZohoStorefrontProduct(item.name, zoho_item_id, item.sku);
       const brand =
         item.category === 'Uncategorized'

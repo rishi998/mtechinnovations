@@ -20,7 +20,8 @@ interface CatalogContextType {
   categories: Category[]
   loading: boolean
   error: string | null
-  refresh: () => Promise<void>
+  /** Pass `{ silent: true }` to refresh without toggling `loading` (e.g. tab focus). */
+  refresh: (opts?: { silent?: boolean }) => Promise<void>
 }
 
 const CatalogContext = createContext<CatalogContextType | undefined>(undefined)
@@ -30,24 +31,45 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    setError(null)
-    setLoading(true)
+  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true
+    if (!silent) {
+      setError(null)
+      setLoading(true)
+    }
     try {
       const list = await getProducts()
       setProducts(list)
+      if (silent) setError(null)
     } catch (e) {
       setProducts([])
       setError(
         e instanceof Error ? e.message : 'Could not load products from the server.',
       )
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     void refresh()
+  }, [refresh])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refresh({ silent: true })
+      }
+    }
+    const onFocus = () => {
+      void refresh({ silent: true })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [refresh])
 
   const categories = useMemo(

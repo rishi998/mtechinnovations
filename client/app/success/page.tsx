@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -42,6 +42,53 @@ function SuccessContent() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [zohoSyncing, setZohoSyncing] = useState(false)
   const [zohoSyncError, setZohoSyncError] = useState('')
+  /** One automatic Zoho sync attempt per success URL (no button click). */
+  const zohoAutoAttemptForOrderId = useRef<string | null>(null)
+
+  useEffect(() => {
+    zohoAutoAttemptForOrderId.current = null
+  }, [orderNumber])
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !orderNumber) return
+    if (!order?.id) return
+    if ((order.paymentStatus ?? '') !== 'success') return
+    if (order.zohoSyncStatus === 'synced' && order.zohoInvoiceId) return
+    if (zohoAutoAttemptForOrderId.current === order.id) return
+
+    zohoAutoAttemptForOrderId.current = order.id
+    let cancelled = false
+    setZohoSyncing(true)
+    setZohoSyncError('')
+    void (async () => {
+      try {
+        await syncZohoForPaidOrder(order.id)
+        if (!cancelled) setRefreshKey((k) => k + 1)
+      } catch (e) {
+        if (!cancelled) {
+          setZohoSyncError(
+            e instanceof Error
+              ? e.message
+              : 'Could not sync invoice to Zoho automatically.',
+          )
+        }
+      } finally {
+        if (!cancelled) setZohoSyncing(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    authLoading,
+    isAuthenticated,
+    orderNumber,
+    order?.id,
+    order?.paymentStatus,
+    order?.zohoSyncStatus,
+    order?.zohoInvoiceId,
+  ])
 
   useEffect(() => {
     if (authLoading) return
