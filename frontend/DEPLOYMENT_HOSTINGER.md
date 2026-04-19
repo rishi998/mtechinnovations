@@ -10,7 +10,7 @@ The static site loads CSS and JavaScript from paths such as **`/_next/static/...
 
 1. **You open the site over HTTP(S), not as a file.**  
    Do **not** double‑click `index.html` (that uses the `file://` protocol). The browser will look for `/_next` at the wrong place and **no styles will load**.  
-   - **Local check after `npm run build`:** from the `client` folder run `npm run preview` and open **http://localhost:3000** (serves the `out` folder).
+   - **Local check after `npm run build`:** from the `frontend` folder run `npm run preview` and open **http://localhost:3000** (serves the `out` folder).
 
 2. **The site lives in a subfolder** (e.g. `yoursite.com/store/`).  
    You must set **`NEXT_PUBLIC_BASE_PATH`** to that folder **before** `npm run build`, then upload the new `out` (see “Subfolder” below). Example: `NEXT_PUBLIC_BASE_PATH=/store` (no trailing slash).
@@ -31,22 +31,22 @@ The static site loads CSS and JavaScript from paths such as **`/_next/static/...
 
 ## Step 1: Build the `out` folder locally
 
-From your project root, go to the `client` folder and run:
+From your project root, go to the `frontend` folder and run:
 
 ```bash
-cd client
+cd frontend
 npm install
 npm run build
 ```
 
 - **`npm install`** – installs dependencies (only needed when you haven’t run it yet or after pulling changes).
-- **`npm run build`** – runs `next build`. With `output: 'export'` in `next.config.mjs`, Next.js generates a **static export** into the **`out`** folder.
+- **`npm run build`** – runs `next build`. Set **`NEXT_STATIC_EXPORT=true`** so `next.config.mjs` uses `output: 'export'` and Next.js writes a **static export** into the **`out`** folder.
 
 When the build finishes, you should see:
 
-- **`client/out/`** – this folder contains the full static site (HTML, JS, CSS, images).
+- **`frontend/out/`** – this folder contains the full static site (HTML, JS, CSS, images).
 
-Everything you need to deploy is inside **`client/out/`**.
+Everything you need to deploy is inside **`frontend/out/`**.
 
 ---
 
@@ -84,7 +84,7 @@ out/
 2. Open **Files** → **File Manager**.
 3. Go to **`public_html`** (this is the web root for your domain).
 4. **Optional:** Clear old site files in `public_html` (or use a subfolder; see below).
-5. Upload the **contents** of **`client/out/`** into `public_html`:
+5. Upload the **contents** of **`frontend/out/`** into `public_html`:
    - Upload **all files and folders** inside `out/` (e.g. `_next`, `index.html`, `404.html`, `track`, `cart`, `product`, `images`, `.htaccess`, etc.).
    - Do **not** upload the `out` folder itself; upload what’s **inside** `out/`.
 
@@ -97,9 +97,9 @@ Result:
 
 ### Option B: FTP
 
-1. Connect with an FTP client (FileZilla, WinSCP, etc.) using the Hostinger FTP details.
+1. Connect with an FTP frontend (FileZilla, WinSCP, etc.) using the Hostinger FTP details.
 2. Go to the remote **`public_html`** (or the folder that points to your domain).
-3. Upload the **contents** of **`client/out/`** into `public_html` (same as above: all files and folders inside `out/`, not the `out` folder itself).
+3. Upload the **contents** of **`frontend/out/`** into `public_html` (same as above: all files and folders inside `out/`, not the `out` folder itself).
 
 ---
 
@@ -132,9 +132,9 @@ Result:
 
 | Task              | Command / path                          |
 |-------------------|------------------------------------------|
-| Install deps      | `cd client && npm install`              |
-| Build static site | `cd client && npm run build`            |
-| Build output      | **`client/out/`**                       |
+| Install deps      | `cd frontend && npm install`              |
+| Build static site | `cd frontend && npm run build`            |
+| Build output      | **`frontend/out/`**                       |
 | Upload target     | **Contents of `out/`** → `public_html/` |
 
 ---
@@ -153,17 +153,17 @@ Result:
   - Confirm `public/images/` (e.g. logo) is in `public` before build; it will be in `out/images/` after build. Upload `out/images/` to `public_html/images/`.
 
 - **Build fails**
-  - Run `cd client && rm -rf .next out && npm run build` (on Windows: delete `.next` and `out` manually, then `npm run build`).
+  - Run `cd frontend && rm -rf .next out && npm run build` (on Windows: delete `.next` and `out` manually, then `npm run build`).
   - Ensure Node is v18+ and all dependencies are installed (`npm install`).
 
 ---
 
 ## One-line build (from repo root)
 
-From the **project root** (parent of `client`):
+From the **project root** (parent of `frontend`):
 
 ```bash
-cd client && npm install && npm run build
+cd frontend && npm install && npm run build
 ```
 
-Then upload the **contents** of **`client/out/`** to Hostinger **`public_html`**.
+Then upload the **contents** of **`frontend/out/`** to Hostinger **`public_html`**.

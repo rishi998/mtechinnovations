@@ -14,6 +14,7 @@ import { ProductModule } from './modules/product/product.module';
 import { OrderModule } from './modules/order/order.module';
 import { RazorpayModule } from './razorpay/razorpay.module';
 import { DebugModule } from './debug/debug.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { DebugModule } from './debug/debug.module';
     OrderModule,
     RazorpayModule,
     DebugModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

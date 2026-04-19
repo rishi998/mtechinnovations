@@ -439,12 +439,10 @@ export class ZohoService {
   ): Promise<{ line_items: ZohoCreateSalesOrderLineItem[]; tax_exemption_id?: string }> {
     const items = line_items.map((li) => ({ ...li }));
 
-    const lineTaxRaw =
-      this.config.get<string>('ZOHO_SALES_ORDER_LINE_TAX_ID') ??
-      process.env.ZOHO_SALES_ORDER_LINE_TAX_ID;
-    const exemptionRaw =
-      this.config.get<string>('ZOHO_SALES_ORDER_TAX_EXEMPTION_ID') ??
-      process.env.ZOHO_SALES_ORDER_TAX_EXEMPTION_ID;
+    const lineTaxRaw = this.config.get<string>('ZOHO_SALES_ORDER_LINE_TAX_ID');
+    const exemptionRaw = this.config.get<string>(
+      'ZOHO_SALES_ORDER_TAX_EXEMPTION_ID',
+    );
 
     let lineTaxId = parseZohoEnvId(lineTaxRaw);
     const taxExemptionId = parseZohoEnvId(exemptionRaw);

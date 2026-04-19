@@ -1,0 +1,13 @@
+{
+  "name": "clientecomm",
+  "private": true,
+  "description": "Monorepo root — convenience scripts only; apps live in frontend/ and backend/",
+  "scripts": {
+    "dev:backend": "npm run start:dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build:backend": "npm run build --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
+    "start:backend": "npm run start:prod --prefix backend",
+    "start:frontend": "npm run start --prefix frontend"
+  }
+}

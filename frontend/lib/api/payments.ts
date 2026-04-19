@@ -1,7 +1,7 @@
+import { getPublicApiUrl } from '@/lib/env/publicApi'
 import { getToken } from './client'
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'
+const API_BASE = getPublicApiUrl()
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const token = getToken()

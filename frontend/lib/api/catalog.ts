@@ -1,4 +1,5 @@
 import type { Product, Category } from '@/lib/types'
+import { getPublicApiUrl } from '@/lib/env/publicApi'
 import { api } from './client'
 
 export const PLACEHOLDER_IMAGE =
@@ -95,8 +96,7 @@ export async function getProductBySlugOrId(ref: string): Promise<Product | null>
 
 /** For `generateStaticParams` during `next build` (Node). */
 export async function fetchProductsListForBuild(): Promise<Product[]> {
-  const base =
-    process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'
+  const base = getPublicApiUrl()
   try {
     const res = await fetch(`${base.replace(/\/$/, '')}/products`, {
       cache: 'no-store',

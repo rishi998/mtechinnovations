@@ -1,0 +1,36 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Deploy: connect repo → New Blueprint Instance → select this file.
+# After the backend deploys, set CORS_ORIGIN to your frontend URL and
+# NEXT_PUBLIC_API_URL on the frontend to https://<backend-service>.onrender.com/api
+
+services:
+  - type: web
+    name: clientecomm-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # Must match your frontend web URL (update if you rename services or add a custom domain).
+      - key: CORS_ORIGIN
+        value: https://clientecomm-frontend.onrender.com
+
+  - type: web
+    name: clientecomm-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Must match this backend service URL (update if you rename the backend service).
+      - key: NEXT_PUBLIC_API_URL
+        value: https://clientecomm-backend.onrender.com/api

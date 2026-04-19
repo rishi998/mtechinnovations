@@ -6,7 +6,7 @@ Base URL (when server runs locally): **`http://localhost:3001/api`**
 
 ## 1. Setup
 
-1. **Start the server** (from `server/`):
+1. **Start the server** (from `backend/`):
    ```bash
    npm run start:dev
    ```
