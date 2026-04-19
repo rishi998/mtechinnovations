@@ -5,13 +5,13 @@ import { brands } from '@/lib/data/brands'
 
 export function FeaturedBrands() {
   return (
-    <section className="py-10 sm:py-16 bg-gray-50">
+    <section className="py-10 sm:py-16 bg-ds-primary">
       <div className="container-custom">
         <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ds-text-primary mb-3">
             Shop by Brand
           </h2>
-          <p className="text-gray-600 text-base sm:text-lg">
+          <p className="text-ds-text-secondary text-base sm:text-lg">
             We partner with the best brands in electronics
           </p>
         </div>
@@ -24,15 +24,15 @@ export function FeaturedBrands() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-4 sm:p-8 flex items-center justify-center"
+              className="border border-ds-border bg-ds-surface rounded-xl shadow-sm hover:shadow-md transition-shadow p-4 sm:p-8 flex items-center justify-center"
             >
               <div className="text-center">
-                <div className="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
-                  <span className="text-xl sm:text-2xl font-bold text-gray-400">
+                <div className="w-14 h-14 sm:w-20 sm:h-20 bg-ds-surface rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
+                  <span className="text-xl sm:text-2xl font-bold text-ds-text-secondary">
                     {brand.name.charAt(0)}
                   </span>
                 </div>
-                <p className="font-medium text-gray-900 text-sm sm:text-base">{brand.name}</p>
+                <p className="font-medium text-ds-text-primary text-sm sm:text-base">{brand.name}</p>
               </div>
             </motion.div>
           ))}

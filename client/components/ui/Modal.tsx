@@ -32,7 +32,7 @@ export function Modal({
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     },
-    [onClose]
+    [onClose],
   )
 
   useEffect(() => {
@@ -54,40 +54,36 @@ export function Modal({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
-      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Panel */}
       <div
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-xl overflow-hidden',
+          'relative w-full overflow-hidden rounded-2xl border border-ds-border bg-ds-surface shadow-[0_24px_80px_rgba(0,0,0,0.5)]',
           sizeClasses[size],
-          'max-h-[90vh] overflow-y-auto'
+          'max-h-[90vh] overflow-y-auto',
         )}
       >
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center justify-between border-b border-ds-border p-5">
             {title && (
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+              <h2 className="text-lg font-semibold text-ds-text-primary">{title}</h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="ml-auto p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="ml-auto rounded-lg p-1.5 text-ds-text-secondary transition-colors hover:bg-ds-primary hover:text-ds-text-primary"
                 aria-label="Close modal"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             )}
           </div>
         )}
-        <div className={title || showCloseButton ? 'p-5' : ''}>
-          {children}
-        </div>
+        <div className={title || showCloseButton ? 'p-5' : ''}>{children}</div>
       </div>
     </div>
   )

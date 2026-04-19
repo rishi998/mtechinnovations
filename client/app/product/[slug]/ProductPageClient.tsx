@@ -76,7 +76,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
 
   if (catalogLoading && !product && !fetching) {
     return (
-      <div className="container-custom py-16 text-center text-gray-500">
+      <div className="container-custom py-16 text-center text-ds-text-secondary">
         Loading product…
       </div>
     )
@@ -85,8 +85,8 @@ export default function ProductPageClient({ slug }: { slug: string }) {
   if (!product && !fetching) {
     return (
       <div className="container-custom py-16 text-center">
-        <p className="text-gray-700 mb-4">Product not found.</p>
-        <Link href="/" className="text-primary-600 font-medium hover:underline">
+        <p className="text-ds-text-secondary mb-4">Product not found.</p>
+        <Link href="/" className="text-ds-accent font-medium hover:underline">
           Back to home
         </Link>
       </div>
@@ -95,7 +95,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
 
   if (!product) {
     return (
-      <div className="container-custom py-16 text-center text-gray-500">
+      <div className="container-custom py-16 text-center text-ds-text-secondary">
         Loading product…
       </div>
     )
@@ -121,26 +121,26 @@ export default function ProductPageClient({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="py-8 bg-gray-50">
+    <div className="py-8 bg-ds-primary">
       <div className="container-custom">
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6 flex-wrap">
-          <Link href="/" className="hover:text-primary-600">
+        <nav className="flex items-center gap-2 text-sm text-ds-text-secondary mb-6 flex-wrap">
+          <Link href="/" className="hover:text-ds-accent">
             Home
           </Link>
           <span>/</span>
-          <Link href={categoryHref} className="hover:text-primary-600">
+          <Link href={categoryHref} className="hover:text-ds-accent">
             {product.category}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 truncate max-w-[200px] sm:max-w-none">
+          <span className="text-ds-text-primary truncate max-w-[200px] sm:max-w-none">
             {product.name}
           </span>
         </nav>
 
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 lg:p-8 mb-8">
+        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-4 sm:p-6 lg:p-8 mb-8">
           <div className="grid lg:grid-cols-2 gap-8">
             <div>
-              <div className="aspect-square bg-gray-100 rounded-xl mb-4 overflow-hidden relative">
+              <div className="aspect-square bg-ds-surface rounded-xl mb-4 overflow-hidden relative">
                 <Image
                   src={mainImage}
                   alt={product.name}
@@ -162,10 +162,10 @@ export default function ProductPageClient({ slug }: { slug: string }) {
                       key={index}
                       type="button"
                       onClick={() => setSelectedImage(index)}
-                      className={`aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 ${
+                      className={`aspect-square bg-ds-surface rounded-lg overflow-hidden border-2 ${
                         selectedImage === index
-                          ? 'border-primary-600'
-                          : 'border-transparent hover:border-gray-300'
+                          ? 'border-ds-accent'
+                          : 'border-transparent hover:border-ds-border'
                       }`}
                     >
                       <Image
@@ -183,8 +183,8 @@ export default function ProductPageClient({ slug }: { slug: string }) {
             </div>
 
             <div>
-              <p className="text-sm text-gray-500 uppercase mb-2">{product.brand}</p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+              <p className="text-sm text-ds-text-secondary uppercase mb-2">{product.brand}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-4">
                 {product.name}
               </h1>
 
@@ -196,22 +196,22 @@ export default function ProductPageClient({ slug }: { slug: string }) {
                       className={`w-5 h-5 ${
                         i < Math.floor(product.rating)
                           ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
+                          : 'text-ds-text-secondary'
                       }`}
                     />
                   ))}
                 </div>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-ds-text-secondary">
                   {product.rating} ({product.reviewsCount} reviews)
                 </span>
               </div>
 
               <div className="flex items-baseline gap-3 mb-6">
-                <span className="text-3xl sm:text-4xl font-bold text-primary-600">
+                <span className="text-3xl sm:text-4xl font-bold text-ds-accent">
                   {formatPrice(product.price)}
                 </span>
                 {product.originalPrice != null && product.originalPrice > 0 && (
-                  <span className="text-lg sm:text-xl text-gray-400 line-through">
+                  <span className="text-lg sm:text-xl text-ds-text-secondary line-through">
                     {formatPrice(product.originalPrice)}
                   </span>
                 )}
@@ -231,19 +231,19 @@ export default function ProductPageClient({ slug }: { slug: string }) {
                 )}
               </div>
 
-              <p className="text-gray-700 mb-6 leading-relaxed">
+              <p className="text-ds-text-secondary mb-6 leading-relaxed">
                 {product.description?.trim()
                   ? product.description
                   : `${product.name} — ${product.subcategory}. Stock: ${product.stock}.`}
               </p>
 
               <div className="flex items-center gap-4 mb-6">
-                <span className="text-sm font-medium text-gray-700">Quantity:</span>
-                <div className="flex items-center border border-gray-300 rounded-lg">
+                <span className="text-sm font-medium text-ds-text-secondary">Quantity:</span>
+                <div className="flex items-center border border-ds-border rounded-lg">
                   <button
                     type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-4 py-2.5 hover:bg-gray-100 active:bg-gray-200"
+                    className="px-4 py-2.5 hover:bg-ds-primary active:bg-ds-surface"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
@@ -255,7 +255,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
                     onClick={() =>
                       setQuantity(Math.min(product.stock || 1, quantity + 1))
                     }
-                    className="px-4 py-2.5 hover:bg-gray-100 active:bg-gray-200"
+                    className="px-4 py-2.5 hover:bg-ds-primary active:bg-ds-surface"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -290,24 +290,24 @@ export default function ProductPageClient({ slug }: { slug: string }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t">
                 <div className="flex items-start gap-3">
-                  <Truck className="w-5 h-5 text-primary-600 flex-shrink-0 mt-1" />
+                  <Truck className="w-5 h-5 text-ds-accent flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-medium text-sm">Free Shipping</p>
-                    <p className="text-xs text-gray-600">On orders over ₹500</p>
+                    <p className="text-xs text-ds-text-secondary">On orders over ₹500</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-primary-600 flex-shrink-0 mt-1" />
+                  <Shield className="w-5 h-5 text-ds-accent flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-medium text-sm">Warranty</p>
-                    <p className="text-xs text-gray-600">As per manufacturer</p>
+                    <p className="text-xs text-ds-text-secondary">As per manufacturer</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <RotateCcw className="w-5 h-5 text-primary-600 flex-shrink-0 mt-1" />
+                  <RotateCcw className="w-5 h-5 text-ds-accent flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-medium text-sm">Easy Returns</p>
-                    <p className="text-xs text-gray-600">7 days return policy</p>
+                    <p className="text-xs text-ds-text-secondary">7 days return policy</p>
                   </div>
                 </div>
               </div>
@@ -315,15 +315,15 @@ export default function ProductPageClient({ slug }: { slug: string }) {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 lg:p-8 mb-8">
+        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-4 sm:p-6 lg:p-8 mb-8">
           <div className="flex border-b mb-6 overflow-x-auto scrollbar-hide -mx-1 px-1">
             <button
               type="button"
               onClick={() => setActiveTab('description')}
               className={`px-4 sm:px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
                 activeTab === 'description'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-ds-accent text-ds-accent'
+                  : 'border-transparent text-ds-text-secondary hover:text-ds-text-primary'
               }`}
             >
               Description
@@ -333,8 +333,8 @@ export default function ProductPageClient({ slug }: { slug: string }) {
               onClick={() => setActiveTab('specs')}
               className={`px-4 sm:px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
                 activeTab === 'specs'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-ds-accent text-ds-accent'
+                  : 'border-transparent text-ds-text-secondary hover:text-ds-text-primary'
               }`}
             >
               Specifications
@@ -344,8 +344,8 @@ export default function ProductPageClient({ slug }: { slug: string }) {
               onClick={() => setActiveTab('shipping')}
               className={`px-4 sm:px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
                 activeTab === 'shipping'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-ds-accent text-ds-accent'
+                  : 'border-transparent text-ds-text-secondary hover:text-ds-text-primary'
               }`}
             >
               Shipping & Returns
@@ -355,7 +355,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
           <div>
             {activeTab === 'description' && (
               <div className="prose max-w-none">
-                <p className="text-gray-700 leading-relaxed">
+                <p className="text-ds-text-secondary leading-relaxed">
                   {product.description?.trim()
                     ? product.description
                     : `Category: ${product.category}. Type: ${product.subcategory}.`}
@@ -363,7 +363,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
                 {product.tags.length > 0 && (
                   <ul className="mt-4 space-y-2">
                     {product.tags.map((tag) => (
-                      <li key={tag} className="text-gray-600">
+                      <li key={tag} className="text-ds-text-secondary">
                         • {tag}
                       </li>
                     ))}
@@ -375,14 +375,14 @@ export default function ProductPageClient({ slug }: { slug: string }) {
             {activeTab === 'specs' && (
               <div className="grid md:grid-cols-2 gap-4">
                 {specEntries.length === 0 ? (
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-ds-text-secondary text-sm">
                     No specifications listed for this item.
                   </p>
                 ) : (
                   specEntries.map(([key, value]) => (
                     <div key={key} className="flex items-center py-3 border-b">
-                      <span className="font-medium text-gray-700 w-1/2">{key}:</span>
-                      <span className="text-gray-900 w-1/2">{value}</span>
+                      <span className="font-medium text-ds-text-secondary w-1/2">{key}:</span>
+                      <span className="text-ds-text-primary w-1/2">{value}</span>
                     </div>
                   ))
                 )}
@@ -392,16 +392,16 @@ export default function ProductPageClient({ slug }: { slug: string }) {
             {activeTab === 'shipping' && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Shipping</h3>
-                  <p className="text-gray-700">
+                  <h3 className="font-semibold text-ds-text-primary mb-2">Shipping</h3>
+                  <p className="text-ds-text-secondary">
                     • Free shipping on orders over ₹500
                     <br />
                     • Standard delivery: 3–5 business days
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Returns</h3>
-                  <p className="text-gray-700">
+                  <h3 className="font-semibold text-ds-text-primary mb-2">Returns</h3>
+                  <p className="text-ds-text-secondary">
                     • 7-day return policy from delivery date
                     <br />• Items must be in original condition
                   </p>
@@ -413,7 +413,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
 
         {relatedProducts.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">You May Also Like</h2>
+            <h2 className="text-2xl font-bold text-ds-text-primary mb-6">You May Also Like</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((relatedProduct) => (
                 <ProductCard key={relatedProduct.id} product={relatedProduct} />

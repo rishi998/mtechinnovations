@@ -1,9 +1,23 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  ReactNode,
+} from 'react'
 import { User, Order, Address } from '../types'
 import { generateId } from '../utils'
-import { apiLogin, apiRegister, getProfile, apiLogout, getToken } from '../api'
+import {
+  apiLogin,
+  apiRegister,
+  getProfile,
+  putUserAddresses,
+  apiLogout,
+  getToken,
+} from '../api'
 
 interface AuthContextType {
   user: User | null
@@ -17,10 +31,10 @@ interface AuthContextType {
     phone?: string,
   ) => Promise<{ ok: true } | { ok: false; message: string }>
   logout: () => void
-  updateUser: (userData: Partial<User>) => void
-  addAddress: (address: Omit<Address, 'id'>) => void
-  updateAddress: (addressId: string, address: Partial<Address>) => void
-  deleteAddress: (addressId: string) => void
+  updateUser: (userData: Partial<User>) => Promise<void>
+  addAddress: (address: Omit<Address, 'id'>) => Promise<void>
+  updateAddress: (addressId: string, address: Partial<Address>) => Promise<void>
+  deleteAddress: (addressId: string) => Promise<void>
   addOrder: (order: Omit<Order, 'id'>) => void
   refreshUser: () => Promise<void>
 }
@@ -31,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const token = getToken()
     if (!token) {
       setUser(null)
@@ -46,11 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    refreshUser()
-  }, [])
+    void refreshUser()
+  }, [refreshUser])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -84,35 +98,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (!user) return
+    if (userData.addresses !== undefined) {
+      const updated = await putUserAddresses(userData.addresses)
+      setUser(updated)
+      return
+    }
     setUser((prev) => (prev ? { ...prev, ...userData } : null))
   }
 
-  const addAddress = (address: Omit<Address, 'id'>) => {
+  const addAddress = async (address: Omit<Address, 'id'>) => {
     if (!user) return
-    const newAddress: Address = {
-      ...address,
-      id: generateId(),
-    }
-    updateUser({
-      addresses: [...user.addresses, newAddress],
-    })
+    const existing = user.addresses ?? []
+    const id = generateId()
+    const isFirst = existing.length === 0
+    const isDefault = address.isDefault ?? isFirst
+    const newAddr: Address = { ...address, id, isDefault }
+    const next: Address[] = isDefault
+      ? [...existing.map((a) => ({ ...a, isDefault: false })), newAddr]
+      : [...existing, { ...newAddr, isDefault: false }]
+    const updated = await putUserAddresses(next)
+    setUser(updated)
   }
 
-  const updateAddress = (addressId: string, address: Partial<Address>) => {
+  const updateAddress = async (addressId: string, address: Partial<Address>) => {
     if (!user) return
-    const updatedAddresses = user.addresses.map((addr) =>
-      addr.id === addressId ? { ...addr, ...address } : addr
+    let next = (user.addresses ?? []).map((addr) =>
+      addr.id === addressId ? { ...addr, ...address } : addr,
     )
-    updateUser({ addresses: updatedAddresses })
+    if (address.isDefault === true) {
+      next = next.map((a) => ({ ...a, isDefault: a.id === addressId }))
+    }
+    const updated = await putUserAddresses(next)
+    setUser(updated)
   }
 
-  const deleteAddress = (addressId: string) => {
+  const deleteAddress = async (addressId: string) => {
     if (!user) return
-    updateUser({
-      addresses: user.addresses.filter((addr) => addr.id !== addressId),
-    })
+    const filtered = (user.addresses ?? []).filter((a) => a.id !== addressId)
+    let next = filtered
+    if (filtered.length > 0 && !filtered.some((a) => a.isDefault)) {
+      next = filtered.map((a, i) => ({ ...a, isDefault: i === 0 }))
+    }
+    const updated = await putUserAddresses(next)
+    setUser(updated)
   }
 
   const addOrder = (order: Omit<Order, 'id'>) => {
@@ -121,9 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...order,
       id: generateId(),
     }
-    updateUser({
-      orders: [...user.orders, newOrder],
-    })
+    setUser((prev) =>
+      prev ? { ...prev, orders: [...prev.orders, newOrder] } : null,
+    )
   }
 
   return (

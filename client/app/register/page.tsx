@@ -69,16 +69,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-ds-primary flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Sign up to start shopping</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-2">Create Account</h1>
+          <p className="text-ds-text-secondary">Sign up to start shopping</p>
         </div>
 
         {/* Register Form */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8">
+        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
@@ -128,15 +128,15 @@ export default function RegisterPage() {
               <input
                 type="checkbox"
                 required
-                className="w-4 h-4 mt-0.5 text-primary-600 rounded"
+                className="w-4 h-4 mt-0.5 text-ds-accent rounded"
               />
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ds-text-secondary">
                 I agree to the{' '}
-                <Link href="/terms" className="text-primary-600 hover:text-primary-700">
+                <Link href="/terms" className="text-ds-accent hover:brightness-110">
                   Terms & Conditions
                 </Link>{' '}
                 and{' '}
-                <Link href="/privacy" className="text-primary-600 hover:text-primary-700">
+                <Link href="/privacy" className="text-ds-accent hover:brightness-110">
                   Privacy Policy
                 </Link>
               </p>
@@ -150,10 +150,10 @@ export default function RegisterPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-ds-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or continue with</span>
+              <span className="px-4 border border-ds-border bg-ds-surface text-ds-text-secondary">Or continue with</span>
             </div>
           </div>
 
@@ -170,9 +170,9 @@ export default function RegisterPage() {
           </div>
 
           {/* Login Link */}
-          <p className="text-center text-sm text-gray-600 mt-6">
+          <p className="text-center text-sm text-ds-text-secondary mt-6">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+            <Link href="/login" className="text-ds-accent hover:brightness-110 font-medium">
               Login
             </Link>
           </p>

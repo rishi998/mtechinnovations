@@ -58,9 +58,9 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-16">
+      <div className="min-h-screen bg-ds-primary py-16">
         <div className="container-custom text-center">
-          <p className="text-gray-600">Loading orders...</p>
+          <p className="text-ds-text-secondary">Loading orders...</p>
         </div>
       </div>
     )
@@ -68,12 +68,12 @@ export default function OrdersPage() {
 
   if (orders.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-16">
+      <div className="min-h-screen bg-ds-primary py-16">
         <div className="container-custom text-center">
           <div className="max-w-md mx-auto">
-            <Package className="w-24 h-24 text-gray-300 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">No Orders Yet</h1>
-            <p className="text-gray-600 mb-6">
+            <Package className="w-24 h-24 text-ds-text-secondary mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-ds-text-primary mb-2">No Orders Yet</h1>
+            <p className="text-ds-text-secondary mb-6">
               You haven&apos;t placed any orders yet. Start shopping!
             </p>
             <Link href="/">
@@ -90,10 +90,10 @@ export default function OrdersPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-ds-primary py-8">
       <div className="container-custom">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
-        <p className="text-gray-600 mb-8">{orders.length} orders placed</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-2">My Orders</h1>
+        <p className="text-ds-text-secondary mb-8">{orders.length} orders placed</p>
 
         <div className="space-y-4">
           {sortedOrders.map((order) => (
@@ -101,19 +101,19 @@ export default function OrdersPage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-gray-900">Order #{order.orderId}</h3>
+                    <h3 className="font-semibold text-ds-text-primary">Order #{order.orderId}</h3>
                     <Badge variant={getStatusVariant(order.status)} size="sm">
                       {order.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className="text-sm text-ds-text-secondary mb-2">
                     Placed on {formatDate(order.date)}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-ds-text-secondary">
                     {order.items.length} item{order.items.length > 1 ? 's' : ''} • Total: {formatPrice(order.total)}
                   </p>
                   {order.trackingId && (
-                    <p className="text-sm text-primary-600 mt-1">
+                    <p className="text-sm text-ds-accent mt-1">
                       Tracking ID: {order.trackingId}
                     </p>
                   )}
@@ -123,12 +123,12 @@ export default function OrdersPage() {
                   {order.items.slice(0, 3).map((item, idx) => (
                     <div
                       key={idx}
-                      className="w-14 h-14 bg-gray-100 rounded-lg flex-shrink-0"
+                      className="w-14 h-14 bg-ds-surface rounded-lg flex-shrink-0"
                       title={item.product.name}
                     />
                   ))}
                   {order.items.length > 3 && (
-                    <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-medium text-gray-600">
+                    <div className="w-14 h-14 bg-ds-surface rounded-lg flex items-center justify-center text-sm font-medium text-ds-text-secondary">
                       +{order.items.length - 3}
                     </div>
                   )}

@@ -76,14 +76,14 @@ export function FilterSidebar({
   }
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm p-6 ${!isOpen && 'hidden'}`}>
+    <div className={`border border-ds-border bg-ds-surface rounded-xl shadow-sm p-6 ${!isOpen && 'hidden'}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+        <h3 className="text-lg font-semibold text-ds-text-primary">Filters</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={handleClearFilters}
-            className="text-sm text-primary-600 hover:text-primary-700"
+            className="text-sm text-ds-accent hover:brightness-110"
           >
             Clear All
           </button>
@@ -97,7 +97,7 @@ export function FilterSidebar({
 
       {/* Price Range */}
       <div className="mb-6 pb-6 border-b">
-        <h4 className="font-medium text-gray-900 mb-3">Price Range</h4>
+        <h4 className="font-medium text-ds-text-primary mb-3">Price Range</h4>
         <div className="space-y-2">
           <input
             type="range"
@@ -108,7 +108,7 @@ export function FilterSidebar({
             onChange={handlePriceChange}
             className="w-full"
           />
-          <div className="flex items-center justify-between text-sm text-gray-600">
+          <div className="flex items-center justify-between text-sm text-ds-text-secondary">
             <span>₹0</span>
             <span>₹{priceRange[1]}</span>
           </div>
@@ -117,7 +117,7 @@ export function FilterSidebar({
 
       {/* Categories */}
       <div className="mb-6 pb-6 border-b">
-        <h4 className="font-medium text-gray-900 mb-3">Categories</h4>
+        <h4 className="font-medium text-ds-text-primary mb-3">Categories</h4>
         <div className="space-y-2 max-h-48 overflow-y-auto">
           {categories.slice(0, 8).map((category) => (
             <label key={category.id} className="flex items-center gap-2 cursor-pointer">
@@ -125,10 +125,10 @@ export function FilterSidebar({
                 type="checkbox"
                 checked={selectedCategories.includes(category.name)}
                 onChange={() => handleCategoryToggle(category.name)}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                className="w-4 h-4 text-ds-accent rounded focus:ring-ds-accent"
               />
-              <span className="text-sm text-gray-700">{category.name}</span>
-              <span className="text-xs text-gray-400 ml-auto">
+              <span className="text-sm text-ds-text-secondary">{category.name}</span>
+              <span className="text-xs text-ds-text-secondary ml-auto">
                 ({category.productCount})
               </span>
             </label>
@@ -138,7 +138,7 @@ export function FilterSidebar({
 
       {/* Brands */}
       <div className="mb-6 pb-6 border-b">
-        <h4 className="font-medium text-gray-900 mb-3">Brands</h4>
+        <h4 className="font-medium text-ds-text-primary mb-3">Brands</h4>
         <div className="space-y-2 max-h-48 overflow-y-auto">
           {brands.map((brand) => (
             <label key={brand.id} className="flex items-center gap-2 cursor-pointer">
@@ -146,9 +146,9 @@ export function FilterSidebar({
                 type="checkbox"
                 checked={selectedBrands.includes(brand.name)}
                 onChange={() => handleBrandToggle(brand.name)}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                className="w-4 h-4 text-ds-accent rounded focus:ring-ds-accent"
               />
-              <span className="text-sm text-gray-700">{brand.name}</span>
+              <span className="text-sm text-ds-text-secondary">{brand.name}</span>
             </label>
           ))}
         </div>
@@ -156,7 +156,7 @@ export function FilterSidebar({
 
       {/* Rating */}
       <div className="mb-6 pb-6 border-b">
-        <h4 className="font-medium text-gray-900 mb-3">Minimum Rating</h4>
+        <h4 className="font-medium text-ds-text-primary mb-3">Minimum Rating</h4>
         <div className="space-y-2">
           {[4, 3, 2, 1].map((rating) => (
             <label key={rating} className="flex items-center gap-2 cursor-pointer">
@@ -165,9 +165,9 @@ export function FilterSidebar({
                 name="rating"
                 checked={minRating === rating}
                 onChange={() => handleRatingChange(rating)}
-                className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                className="w-4 h-4 text-ds-accent focus:ring-ds-accent"
               />
-              <span className="text-sm text-gray-700">{rating}★ & above</span>
+              <span className="text-sm text-ds-text-secondary">{rating}★ & above</span>
             </label>
           ))}
         </div>
@@ -175,15 +175,15 @@ export function FilterSidebar({
 
       {/* Availability */}
       <div>
-        <h4 className="font-medium text-gray-900 mb-3">Availability</h4>
+        <h4 className="font-medium text-ds-text-primary mb-3">Availability</h4>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             checked={inStockOnly}
             onChange={handleStockToggle}
-            className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+            className="w-4 h-4 text-ds-accent rounded focus:ring-ds-accent"
           />
-          <span className="text-sm text-gray-700">In Stock Only</span>
+          <span className="text-sm text-ds-text-secondary">In Stock Only</span>
         </label>
       </div>
     </div>

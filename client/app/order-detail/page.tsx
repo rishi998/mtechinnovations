@@ -70,10 +70,10 @@ function OrderDetailContent() {
   if (!isAuthenticated) return null
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-ds-primary flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading order details...</p>
+          <div className="w-12 h-12 border-4 border-ds-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-ds-text-secondary">Loading order details...</p>
         </div>
       </div>
     )
@@ -81,12 +81,12 @@ function OrderDetailContent() {
 
   if (!orderId || !order) {
     return (
-      <div className="min-h-screen bg-gray-50 py-16">
+      <div className="min-h-screen bg-ds-primary py-16">
         <div className="container-custom text-center">
           <div className="max-w-md mx-auto">
-            <AlertCircle className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Not Found</h1>
-            <p className="text-gray-600 mb-6">
+            <AlertCircle className="w-20 h-20 text-ds-text-secondary mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-ds-text-primary mb-2">Order Not Found</h1>
+            <p className="text-ds-text-secondary mb-6">
               We couldn&apos;t find an order with ID &quot;{orderId}&quot;. Please check your orders list.
             </p>
             <Link href="/orders">
@@ -103,32 +103,32 @@ function OrderDetailContent() {
     : statusOrder.indexOf(order.status)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-ds-primary py-8">
       <div className="container-custom max-w-4xl">
         {/* Back Link */}
         <Link
           href="/orders"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary-600 mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-ds-text-secondary hover:text-ds-accent mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Orders
         </Link>
 
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 mb-6">
+        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Order #{order.orderId}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-ds-text-primary">Order #{order.orderId}</h1>
                 <Badge variant={getStatusVariant(order.status)} size="sm" className="capitalize">
                   {order.status}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-ds-text-secondary mt-1">
                 Placed on {formatDate(order.date)} · {order.items.length} item{order.items.length > 1 ? 's' : ''}
               </p>
               {order.trackingId && (
-                <p className="text-sm text-primary-600 mt-1">
+                <p className="text-sm text-ds-accent mt-1">
                   Tracking ID: <span className="font-medium">{order.trackingId}</span>
                 </p>
               )}
@@ -144,12 +144,12 @@ function OrderDetailContent() {
 
         {/* Tracking Timeline */}
         {order.status !== 'cancelled' && (
-          <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 mb-6">
-            <h2 className="font-bold text-gray-900 mb-5">Order Status</h2>
+          <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-6 mb-6">
+            <h2 className="font-bold text-ds-text-primary mb-5">Order Status</h2>
             <div className="relative">
-              <div className="absolute top-4 left-4 right-4 h-0.5 bg-gray-200 hidden sm:block" />
+              <div className="absolute top-4 left-4 right-4 h-0.5 bg-ds-surface hidden sm:block" />
               <div
-                className="absolute top-4 left-4 h-0.5 bg-primary-600 hidden sm:block transition-all"
+                className="absolute top-4 left-4 h-0.5 bg-ds-accent hidden sm:block transition-all"
                 style={{ width: currentStepIndex >= 0 ? `${(currentStepIndex / (trackingSteps.length - 1)) * 100}%` : '0%' }}
               />
 
@@ -161,16 +161,16 @@ function OrderDetailContent() {
                   return (
                     <div key={step.status} className="flex sm:flex-col items-center sm:items-center gap-3 sm:gap-2">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 flex-shrink-0 ${
-                        isCompleted ? 'bg-primary-600' : 'bg-gray-200'
+                        isCompleted ? 'bg-ds-accent' : 'bg-ds-surface'
                       }`}>
-                        <step.icon className={`w-4 h-4 ${isCompleted ? 'text-white' : 'text-gray-400'}`} />
+                        <step.icon className={`w-4 h-4 ${isCompleted ? 'text-white' : 'text-ds-text-secondary'}`} />
                       </div>
                       <div className="sm:text-center">
-                        <p className={`text-sm font-medium ${isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
+                        <p className={`text-sm font-medium ${isCompleted ? 'text-ds-text-primary' : 'text-ds-text-secondary'}`}>
                           {step.label}
-                          {isCurrent && <span className="ml-1 text-xs text-primary-600 font-semibold sm:hidden">(Now)</span>}
+                          {isCurrent && <span className="ml-1 text-xs text-ds-accent font-semibold sm:hidden">(Now)</span>}
                         </p>
-                        <p className={`text-xs mt-0.5 hidden sm:block ${isCompleted ? 'text-gray-600' : 'text-gray-400'}`}>
+                        <p className={`text-xs mt-0.5 hidden sm:block ${isCompleted ? 'text-ds-text-secondary' : 'text-ds-text-secondary'}`}>
                           {step.description}
                         </p>
                       </div>
@@ -199,12 +199,12 @@ function OrderDetailContent() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Order Items */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-              <h2 className="font-bold text-gray-900 mb-4">Order Items</h2>
-              <div className="space-y-4 divide-y divide-gray-100">
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-6">
+              <h2 className="font-bold text-ds-text-primary mb-4">Order Items</h2>
+              <div className="space-y-4 divide-y divide-ds-border">
                 {order.items.map((item, idx) => (
                   <div key={idx} className={`flex gap-4 ${idx > 0 ? 'pt-4' : ''}`}>
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-ds-surface rounded-xl flex-shrink-0 overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={firstProductImageUrl(item.product.images)}
@@ -219,18 +219,18 @@ function OrderDetailContent() {
                     <div className="flex-1 min-w-0">
                       <Link
                         href={productPath(item.product.slug, item.product.id)}
-                        className="font-medium text-gray-900 hover:text-primary-600 line-clamp-2 text-sm sm:text-base"
+                        className="font-medium text-ds-text-primary hover:text-ds-accent line-clamp-2 text-sm sm:text-base"
                       >
                         {item.product.name}
                       </Link>
-                      <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{item.product.brand}</p>
-                      <p className="text-xs sm:text-sm text-gray-600 mt-1">Qty: {item.quantity}</p>
+                      <p className="text-xs sm:text-sm text-ds-text-secondary mt-0.5">{item.product.brand}</p>
+                      <p className="text-xs sm:text-sm text-ds-text-secondary mt-1">Qty: {item.quantity}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                      <p className="font-semibold text-ds-text-primary text-sm sm:text-base">
                         {formatPrice(item.product.price * item.quantity)}
                       </p>
-                      <p className="text-xs text-gray-500">{formatPrice(item.product.price)} each</p>
+                      <p className="text-xs text-ds-text-secondary">{formatPrice(item.product.price)} each</p>
                     </div>
                   </div>
                 ))}
@@ -239,14 +239,14 @@ function OrderDetailContent() {
 
             {/* Shipping Address */}
             {order.shippingAddress && order.shippingAddress.name && (
-              <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-                <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-gray-500" />
+              <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-6">
+                <h2 className="font-bold text-ds-text-primary mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-ds-text-secondary" />
                   Shipping Address
                 </h2>
-                <div className="text-sm text-gray-700 space-y-1">
+                <div className="text-sm text-ds-text-secondary space-y-1">
                   <p className="font-semibold">{order.shippingAddress.name}</p>
-                  <p className="text-gray-500">{order.shippingAddress.phone}</p>
+                  <p className="text-ds-text-secondary">{order.shippingAddress.phone}</p>
                   <p>{order.shippingAddress.addressLine1}</p>
                   {order.shippingAddress.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
                   <p>{order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}</p>
@@ -257,10 +257,10 @@ function OrderDetailContent() {
 
           {/* Order Summary */}
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-              <h2 className="font-bold text-gray-900 mb-4">Order Summary</h2>
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-6">
+              <h2 className="font-bold text-ds-text-primary mb-4">Order Summary</h2>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-ds-text-secondary">
                   <span>Subtotal</span>
                   <span>{formatPrice(order.subtotal)}</span>
                 </div>
@@ -270,16 +270,16 @@ function OrderDetailContent() {
                     <span>-{formatPrice(order.discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-ds-text-secondary">
                   <span>Shipping</span>
                   <span>{order.shipping === 0 ? 'FREE' : formatPrice(order.shipping)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-ds-text-secondary">
                   <span>Tax</span>
                   <span>{formatPrice(order.tax)}</span>
                 </div>
                 <div className="border-t pt-3">
-                  <div className="flex justify-between font-bold text-gray-900 text-base">
+                  <div className="flex justify-between font-bold text-ds-text-primary text-base">
                     <span>Total</span>
                     <span>{formatPrice(order.total)}</span>
                   </div>
@@ -287,12 +287,12 @@ function OrderDetailContent() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-              <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-gray-500" />
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-6">
+              <h2 className="font-bold text-ds-text-primary mb-4 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-ds-text-secondary" />
                 Payment
               </h2>
-              <p className="text-sm text-gray-700 capitalize">
+              <p className="text-sm text-ds-text-secondary capitalize">
                 {order.paymentMethod === 'card'
                   ? 'Credit / Debit Card'
                   : order.paymentMethod === 'upi'
@@ -301,15 +301,15 @@ function OrderDetailContent() {
                   ? 'Net Banking'
                   : order.paymentMethod}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Payment successful</p>
+              <p className="text-xs text-ds-text-secondary mt-1">Payment successful</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-              <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-gray-500" />
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-6">
+              <h2 className="font-bold text-ds-text-primary mb-3 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-ds-text-secondary" />
                 Need Help?
               </h2>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-ds-text-secondary mb-3">
                 Issues with your order? Contact our support team.
               </p>
               <Link href="/contact">
@@ -328,10 +328,10 @@ function OrderDetailContent() {
 export default function OrderDetailPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-ds-primary flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading order details...</p>
+          <div className="w-12 h-12 border-4 border-ds-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-ds-text-secondary">Loading order details...</p>
         </div>
       </div>
     }>

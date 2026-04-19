@@ -4,6 +4,21 @@ This guide explains how to build the **`out`** folder (static export) and deploy
 
 ---
 
+## White page / no CSS / everything looks like plain HTML?
+
+The static site loads CSS and JavaScript from paths such as **`/_next/static/...`**. That only works if:
+
+1. **You open the site over HTTP(S), not as a file.**  
+   Do **not** double‑click `index.html` (that uses the `file://` protocol). The browser will look for `/_next` at the wrong place and **no styles will load**.  
+   - **Local check after `npm run build`:** from the `client` folder run `npm run preview` and open **http://localhost:3000** (serves the `out` folder).
+
+2. **The site lives in a subfolder** (e.g. `yoursite.com/store/`).  
+   You must set **`NEXT_PUBLIC_BASE_PATH`** to that folder **before** `npm run build`, then upload the new `out` (see “Subfolder” below). Example: `NEXT_PUBLIC_BASE_PATH=/store` (no trailing slash).
+
+3. **`_next` was not uploaded** or was renamed. The **`out/_next`** folder must exist next to `index.html` on the server.
+
+---
+
 ## Prerequisites
 
 - **Node.js** (v18 or v20) installed on your computer  
@@ -92,7 +107,10 @@ Result:
 
 - **Subfolder (e.g. `yoursite.com/store/`):**  
   Upload the contents of `out/` into e.g. **`public_html/store/`**.  
-  You must set **`basePath: '/store'`** in `next.config.mjs` and **rebuild** so links and assets use `/store/`. Then upload the new `out/` contents into `public_html/store/`.
+  Before **`npm run build`**, set the base path (PowerShell example):  
+  `$env:NEXT_PUBLIC_BASE_PATH="/store"; npm run build`  
+  Or on macOS/Linux: `NEXT_PUBLIC_BASE_PATH=/store npm run build`  
+  Use the folder name only (leading slash, **no** trailing slash). This sets `basePath` in `next.config.mjs` so CSS/JS load from `/store/_next/...`. Then upload the new `out/` into `public_html/store/`.
 
 - **Subdomain (e.g. `shop.yoursite.com`):**  
   In Hostinger, point the subdomain’s document root to a folder (e.g. `public_html/shop`). Upload the contents of `out/` there. No `basePath` needed if the subdomain root is that folder.

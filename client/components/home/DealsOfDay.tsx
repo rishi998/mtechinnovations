@@ -63,7 +63,7 @@ export function DealsOfDay() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {dealProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-xl p-2 shadow-lg">
+            <div key={product.id} className="border border-ds-border bg-ds-surface rounded-xl p-2 shadow-lg">
               <ProductCard product={product} />
             </div>
           ))}

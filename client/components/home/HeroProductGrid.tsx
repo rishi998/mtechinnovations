@@ -17,8 +17,8 @@ export function HeroProductGrid() {
 
   if (loading && products.length === 0) {
     return (
-      <section className="container-custom py-6 sm:py-8 bg-white border-b border-gray-100">
-        <p className="text-sm text-gray-500">Loading products…</p>
+      <section className="container-custom py-6 sm:py-8 border border-ds-border bg-ds-surface border-b border-ds-border">
+        <p className="text-sm text-ds-text-secondary">Loading products…</p>
       </section>
     )
   }
@@ -26,13 +26,13 @@ export function HeroProductGrid() {
   if (bestsellers.length === 0) return null
 
   return (
-    <section className="container-custom py-6 sm:py-8 bg-white border-b border-gray-100">
+    <section className="container-custom py-6 sm:py-8 border border-ds-border bg-ds-surface border-b border-ds-border">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+          <h2 className="text-lg sm:text-xl font-bold text-ds-text-primary">
             Bestsellers & Featured
           </h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-ds-text-secondary mt-0.5">
             Synced from your inventory
           </p>
         </div>

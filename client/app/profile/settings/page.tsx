@@ -94,29 +94,29 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-ds-primary py-8">
       <div className="container-custom max-w-3xl">
         {/* Header */}
-        <Link href="/profile" className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6">
+        <Link href="/profile" className="inline-flex items-center gap-2 text-ds-accent hover:brightness-110 mb-6">
           <ArrowLeft className="w-5 h-5" />
           Back to Profile
         </Link>
 
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-            <Settings className="w-6 h-6 text-primary-600" />
+          <div className="w-12 h-12 bg-ds-surface rounded-lg flex items-center justify-center">
+            <Settings className="w-6 h-6 text-ds-accent" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
-            <p className="text-gray-600">Manage your account security and preferences</p>
+            <h1 className="text-2xl font-bold text-ds-text-primary">Account Settings</h1>
+            <p className="text-ds-text-secondary">Manage your account security and preferences</p>
           </div>
         </div>
 
         {/* Change Password Section */}
         <Card className="mb-8 p-8">
           <div className="flex items-center gap-3 mb-6">
-            <Lock className="w-5 h-5 text-primary-600" />
-            <h2 className="text-xl font-bold text-gray-900">Change Password</h2>
+            <Lock className="w-5 h-5 text-ds-accent" />
+            <h2 className="text-xl font-bold text-ds-text-primary">Change Password</h2>
           </div>
 
           {passwordMessage && (
@@ -128,7 +128,7 @@ export default function SettingsPage() {
           <form onSubmit={handleSubmit(onPasswordSubmit)} className="space-y-6">
             {/* Current Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+              <label className="block text-sm font-medium text-ds-text-secondary mb-2">Current Password</label>
               <div className="relative">
                 <Input
                   {...register('currentPassword')}
@@ -139,7 +139,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ds-text-secondary hover:text-ds-text-secondary"
                 >
                   <Eye className="w-5 h-5" />
                 </button>
@@ -151,7 +151,7 @@ export default function SettingsPage() {
 
             {/* New Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+              <label className="block text-sm font-medium text-ds-text-secondary mb-2">New Password</label>
               <Input
                 {...register('newPassword')}
                 type="password"
@@ -165,7 +165,7 @@ export default function SettingsPage() {
 
             {/* Confirm New Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+              <label className="block text-sm font-medium text-ds-text-secondary mb-2">Confirm New Password</label>
               <Input
                 {...register('confirmPassword')}
                 type="password"
@@ -186,107 +186,107 @@ export default function SettingsPage() {
         {/* Notification Preferences */}
         <Card className="p-8">
           <div className="flex items-center gap-3 mb-6">
-            <Bell className="w-5 h-5 text-primary-600" />
-            <h2 className="text-xl font-bold text-gray-900">Notification Preferences</h2>
+            <Bell className="w-5 h-5 text-ds-accent" />
+            <h2 className="text-xl font-bold text-ds-text-primary">Notification Preferences</h2>
           </div>
 
-          <p className="text-gray-600 text-sm mb-6">
+          <p className="text-ds-text-secondary text-sm mb-6">
             Choose how you&apos;d like to receive updates about your orders and our latest offers
           </p>
 
           <div className="space-y-4">
             {/* Email Notifications */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-ds-primary rounded-lg">
               <div>
-                <h3 className="font-medium text-gray-900">Email Notifications</h3>
-                <p className="text-sm text-gray-600">Receive notifications via email</p>
+                <h3 className="font-medium text-ds-text-primary">Email Notifications</h3>
+                <p className="text-sm text-ds-text-secondary">Receive notifications via email</p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={preferences.emailNotifications}
                   onChange={() => handlePreferenceChange('emailNotifications')}
-                  className="w-5 h-5 text-primary-600 rounded"
+                  className="w-5 h-5 text-ds-accent rounded"
                 />
               </label>
             </div>
 
             {/* SMS Notifications */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-ds-primary rounded-lg">
               <div>
-                <h3 className="font-medium text-gray-900">SMS Notifications</h3>
-                <p className="text-sm text-gray-600">Receive updates via SMS</p>
+                <h3 className="font-medium text-ds-text-primary">SMS Notifications</h3>
+                <p className="text-sm text-ds-text-secondary">Receive updates via SMS</p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={preferences.smsNotifications}
                   onChange={() => handlePreferenceChange('smsNotifications')}
-                  className="w-5 h-5 text-primary-600 rounded"
+                  className="w-5 h-5 text-ds-accent rounded"
                 />
               </label>
             </div>
 
             {/* Push Notifications */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-ds-primary rounded-lg">
               <div>
-                <h3 className="font-medium text-gray-900">Push Notifications</h3>
-                <p className="text-sm text-gray-600">Receive browser push notifications</p>
+                <h3 className="font-medium text-ds-text-primary">Push Notifications</h3>
+                <p className="text-sm text-ds-text-secondary">Receive browser push notifications</p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={preferences.pushNotifications}
                   onChange={() => handlePreferenceChange('pushNotifications')}
-                  className="w-5 h-5 text-primary-600 rounded"
+                  className="w-5 h-5 text-ds-accent rounded"
                 />
               </label>
             </div>
 
             {/* Order Updates */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-ds-primary rounded-lg">
               <div>
-                <h3 className="font-medium text-gray-900">Order Status Updates</h3>
-                <p className="text-sm text-gray-600">Get updates on your order status</p>
+                <h3 className="font-medium text-ds-text-primary">Order Status Updates</h3>
+                <p className="text-sm text-ds-text-secondary">Get updates on your order status</p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={preferences.orderUpdates}
                   onChange={() => handlePreferenceChange('orderUpdates')}
-                  className="w-5 h-5 text-primary-600 rounded"
+                  className="w-5 h-5 text-ds-accent rounded"
                 />
               </label>
             </div>
 
             {/* Promotional Emails */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-ds-primary rounded-lg">
               <div>
-                <h3 className="font-medium text-gray-900">Promotional Emails</h3>
-                <p className="text-sm text-gray-600">Receive deals and special offers</p>
+                <h3 className="font-medium text-ds-text-primary">Promotional Emails</h3>
+                <p className="text-sm text-ds-text-secondary">Receive deals and special offers</p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={preferences.promotionalEmails}
                   onChange={() => handlePreferenceChange('promotionalEmails')}
-                  className="w-5 h-5 text-primary-600 rounded"
+                  className="w-5 h-5 text-ds-accent rounded"
                 />
               </label>
             </div>
 
             {/* Product Recommendations */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-ds-primary rounded-lg">
               <div>
-                <h3 className="font-medium text-gray-900">Product Recommendations</h3>
-                <p className="text-sm text-gray-600">Personalized product suggestions</p>
+                <h3 className="font-medium text-ds-text-primary">Product Recommendations</h3>
+                <p className="text-sm text-ds-text-secondary">Personalized product suggestions</p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={preferences.productRecommendations}
                   onChange={() => handlePreferenceChange('productRecommendations')}
-                  className="w-5 h-5 text-primary-600 rounded"
+                  className="w-5 h-5 text-ds-accent rounded"
                 />
               </label>
             </div>

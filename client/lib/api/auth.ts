@@ -1,5 +1,5 @@
 import { api, setToken, removeToken } from './client'
-import type { User } from '@/lib/types'
+import type { Address, User } from '@/lib/types'
 
 interface ServerUser {
   _id: string
@@ -57,6 +57,12 @@ export async function register(
 
 export async function getProfile(): Promise<User> {
   const u = await api.get<ServerUser>('/auth/profile')
+  return toClientUser(u)
+}
+
+/** Replace the user’s saved shipping addresses on the server (full list). */
+export async function putUserAddresses(addresses: Address[]): Promise<User> {
+  const u = await api.put<ServerUser>('/auth/addresses', { addresses })
   return toClientUser(u)
 }
 

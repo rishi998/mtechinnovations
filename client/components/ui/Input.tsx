@@ -11,14 +11,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, helperText, type = 'text', id, ...props }, ref) => {
     const generatedId = useId()
     const inputId = id || `input-${generatedId.replace(/:/g, '')}`
-    
+
     return (
       <div className="w-full">
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700 mb-1.5"
-          >
+          <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-ds-text-secondary">
             {label}
           </label>
         )}
@@ -27,22 +24,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           type={type}
           id={inputId}
           className={cn(
-            'w-full px-4 py-2.5 border rounded-lg transition-all outline-none',
+            'w-full rounded-lg border bg-ds-surface px-4 py-2.5 text-ds-text-primary outline-none transition-all placeholder:text-ds-text-secondary',
             error
-              ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-transparent'
-              : 'border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-            'disabled:bg-gray-100 disabled:cursor-not-allowed',
-            className
+              ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:ring-offset-0'
+              : 'border-ds-border focus:border-ds-accent focus:ring-2 focus:ring-ds-accent/25',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            className,
           )}
           {...props}
         />
-        {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-1.5 text-sm text-red-400">{error}</p>}
         {helperText && !error && (
-          <p className="mt-1.5 text-sm text-gray-500">{helperText}</p>
+          <p className="mt-1.5 text-sm text-ds-text-secondary">{helperText}</p>
         )}
       </div>
     )
-  }
+  },
 )
 
 Input.displayName = 'Input'

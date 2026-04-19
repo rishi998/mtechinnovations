@@ -11,9 +11,9 @@ function PayByQuery() {
 
   if (!orderId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 px-4">
-        <p className="text-gray-700">No order selected.</p>
-        <Link href="/checkout" className="text-primary-600 font-medium hover:underline">
+      <div className="min-h-screen bg-ds-primary flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-ds-text-secondary">No order selected.</p>
+        <Link href="/checkout" className="text-ds-accent font-medium hover:underline">
           Back to checkout
         </Link>
       </div>
@@ -25,9 +25,9 @@ function PayByQuery() {
 
 function PayFallback() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-3 px-4">
-      <div className="h-10 w-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
-      <p className="text-sm text-gray-600">Loading checkout…</p>
+    <div className="min-h-screen bg-ds-primary flex flex-col items-center justify-center gap-3 px-4">
+      <div className="h-10 w-10 border-4 border-ds-accent border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-ds-text-secondary">Loading checkout…</p>
     </div>
   )
 }

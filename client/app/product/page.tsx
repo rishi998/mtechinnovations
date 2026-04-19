@@ -12,8 +12,8 @@ function ProductByQuery() {
   if (!slug) {
     return (
       <div className="container-custom py-16 text-center">
-        <p className="text-gray-700 mb-4">No product selected.</p>
-        <Link href="/" className="text-primary-600 font-medium hover:underline">
+        <p className="text-ds-text-secondary mb-4">No product selected.</p>
+        <Link href="/" className="text-ds-accent font-medium hover:underline">
           Back to home
         </Link>
       </div>
@@ -27,7 +27,7 @@ export default function ProductQueryPage() {
   return (
     <Suspense
       fallback={
-        <div className="container-custom py-16 text-center text-gray-500">
+        <div className="container-custom py-16 text-center text-ds-text-secondary">
           Loading product…
         </div>
       }

@@ -63,8 +63,8 @@ export default function EditProfilePage() {
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 500))
-      
-      updateUser({
+
+      await updateUser({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -72,7 +72,7 @@ export default function EditProfilePage() {
 
       setMessage('Profile updated successfully!')
       setTimeout(() => {
-        router.push('/profile')
+        router.push('/profile/account')
       }, 1500)
     } catch (err) {
       setMessage('Failed to update profile. Please try again.')
@@ -86,22 +86,25 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-ds-primary py-8">
       <div className="container-custom max-w-2xl">
         {/* Header */}
-        <Link href="/profile" className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6">
+        <Link
+          href="/profile/account"
+          className="inline-flex items-center gap-2 text-ds-accent hover:brightness-110 mb-6"
+        >
           <ArrowLeft className="w-5 h-5" />
-          Back to Profile
+          Back to account
         </Link>
 
         <Card className="p-4 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-ds-surface rounded-lg flex items-center justify-center flex-shrink-0">
+              <User className="w-5 h-5 sm:w-6 sm:h-6 text-ds-accent" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Edit Personal Information</h1>
-              <p className="text-sm sm:text-base text-gray-600">Update your profile details</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-ds-text-primary">Edit Personal Information</h1>
+              <p className="text-sm sm:text-base text-ds-text-secondary">Update your profile details</p>
             </div>
           </div>
 
@@ -114,7 +117,7 @@ export default function EditProfilePage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+              <label className="block text-sm font-medium text-ds-text-secondary mb-2">Full Name</label>
               <Input
                 {...register('name')}
                 placeholder="Enter your full name"
@@ -125,7 +128,7 @@ export default function EditProfilePage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+              <label className="block text-sm font-medium text-ds-text-secondary mb-2">Email Address</label>
               <Input
                 {...register('email')}
                 type="email"
@@ -137,7 +140,7 @@ export default function EditProfilePage() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+              <label className="block text-sm font-medium text-ds-text-secondary mb-2">Phone Number</label>
               <Input
                 {...register('phone')}
                 type="tel"
@@ -157,7 +160,7 @@ export default function EditProfilePage() {
                 <Save className="w-5 h-5" />
                 Save Changes
               </Button>
-              <Link href="/profile">
+              <Link href="/profile/account">
                 <Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
               </Link>
             </div>
@@ -166,8 +169,8 @@ export default function EditProfilePage() {
 
         {/* Additional Info */}
         <Card className="p-6 mt-8 bg-blue-50 border-blue-200">
-          <h3 className="font-semibold text-gray-900 mb-2">Note</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="font-semibold text-ds-text-primary mb-2">Note</h3>
+          <p className="text-sm text-ds-text-secondary">
             Your email address is used to log into your account. Changing your email may require re-verification for security purposes.
           </p>
         </Card>

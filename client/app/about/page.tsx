@@ -2,12 +2,12 @@ import { Users, Target, Award, Heart } from 'lucide-react'
 
 export default function AboutPage() {
   return (
-    <div className="bg-gray-50">
+    <div className="bg-ds-primary">
       {/* Hero */}
       <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-12 sm:py-16 lg:py-20">
         <div className="container-custom text-center">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">About ElectroStore</h1>
-          <p className="text-base sm:text-xl text-primary-100 max-w-2xl mx-auto px-4">
+          <p className="text-base sm:text-xl text-ds-text-primary max-w-2xl mx-auto px-4">
             Your trusted partner for electronics, robotics, and DIY projects since 2020
           </p>
         </div>
@@ -16,9 +16,9 @@ export default function AboutPage() {
       {/* Story */}
       <section className="py-10 sm:py-16">
         <div className="container-custom max-w-4xl">
-          <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
-            <div className="prose max-w-none text-gray-700 space-y-4">
+          <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-8">
+            <h2 className="text-3xl font-bold text-ds-text-primary mb-6">Our Story</h2>
+            <div className="prose max-w-none text-ds-text-secondary space-y-4">
               <p>
                 ElectroStore was founded in 2020 with a simple mission: to make electronics components and 
                 robotics supplies accessible to everyone—from hobbyists and students to professional engineers 
@@ -40,16 +40,16 @@ export default function AboutPage() {
       </section>
 
       {/* Values */}
-      <section className="py-10 sm:py-16 bg-white">
+      <section className="py-10 sm:py-16 border border-ds-border bg-ds-surface">
         <div className="container-custom">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 sm:mb-12">Our Values</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-ds-text-primary text-center mb-8 sm:mb-12">Our Values</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Target className="w-8 h-8 text-primary-600" />
+              <div className="w-16 h-16 bg-ds-surface rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="w-8 h-8 text-ds-accent" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Quality First</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold text-ds-text-primary mb-2">Quality First</h3>
+              <p className="text-ds-text-secondary">
                 We source only authentic products from trusted manufacturers
               </p>
             </div>
@@ -57,8 +57,8 @@ export default function AboutPage() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Customer Focus</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold text-ds-text-primary mb-2">Customer Focus</h3>
+              <p className="text-ds-text-secondary">
                 Your satisfaction is our top priority, always
               </p>
             </div>
@@ -66,8 +66,8 @@ export default function AboutPage() {
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-yellow-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Innovation</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold text-ds-text-primary mb-2">Innovation</h3>
+              <p className="text-ds-text-secondary">
                 Supporting makers and innovators with the best tools
               </p>
             </div>
@@ -75,8 +75,8 @@ export default function AboutPage() {
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Heart className="w-8 h-8 text-red-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Passion</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold text-ds-text-primary mb-2">Passion</h3>
+              <p className="text-ds-text-secondary">
                 We love what we do and it shows in our service
               </p>
             </div>
@@ -88,21 +88,21 @@ export default function AboutPage() {
       <section className="py-10 sm:py-16">
         <div className="container-custom">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 text-center">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="text-4xl font-bold text-primary-600 mb-2">10,000+</div>
-              <div className="text-gray-600">Happy Customers</div>
+            <div className="border border-ds-border bg-ds-surface rounded-xl shadow-sm p-6">
+              <div className="text-4xl font-bold text-ds-accent mb-2">10,000+</div>
+              <div className="text-ds-text-secondary">Happy Customers</div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="text-4xl font-bold text-primary-600 mb-2">5,000+</div>
-              <div className="text-gray-600">Products</div>
+            <div className="border border-ds-border bg-ds-surface rounded-xl shadow-sm p-6">
+              <div className="text-4xl font-bold text-ds-accent mb-2">5,000+</div>
+              <div className="text-ds-text-secondary">Products</div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="text-4xl font-bold text-primary-600 mb-2">50+</div>
-              <div className="text-gray-600">Brands</div>
+            <div className="border border-ds-border bg-ds-surface rounded-xl shadow-sm p-6">
+              <div className="text-4xl font-bold text-ds-accent mb-2">50+</div>
+              <div className="text-ds-text-secondary">Brands</div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="text-4xl font-bold text-primary-600 mb-2">24/7</div>
-              <div className="text-gray-600">Support</div>
+            <div className="border border-ds-border bg-ds-surface rounded-xl shadow-sm p-6">
+              <div className="text-4xl font-bold text-ds-accent mb-2">24/7</div>
+              <div className="text-ds-text-secondary">Support</div>
             </div>
           </div>
         </div>

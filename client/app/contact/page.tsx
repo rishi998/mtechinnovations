@@ -18,11 +18,11 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="bg-gray-50 py-10 sm:py-16">
+    <div className="bg-ds-primary py-10 sm:py-16">
       <div className="container-custom">
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
-          <p className="text-base sm:text-xl text-gray-600">
+          <h1 className="text-3xl sm:text-4xl font-bold text-ds-text-primary mb-4">Get in Touch</h1>
+          <p className="text-base sm:text-xl text-ds-text-secondary">
             Have questions? We&apos;d love to hear from you
           </p>
         </div>
@@ -30,16 +30,16 @@ export default function ContactPage() {
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Contact Info */}
           <div>
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8 mb-6 sm:mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-8 mb-6 sm:mb-8">
+              <h2 className="text-2xl font-bold text-ds-text-primary mb-6">Contact Information</h2>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-6 h-6 text-primary-600" />
+                  <div className="w-12 h-12 bg-ds-surface rounded-lg flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-6 h-6 text-ds-accent" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Address</h3>
-                    <p className="text-gray-600">
+                    <h3 className="font-semibold text-ds-text-primary mb-1">Address</h3>
+                    <p className="text-ds-text-secondary">
                       123 Electronics Street<br />
                       Mumbai, Maharashtra 400001<br />
                       India
@@ -52,8 +52,8 @@ export default function ContactPage() {
                     <Phone className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Phone</h3>
-                    <p className="text-gray-600">
+                    <h3 className="font-semibold text-ds-text-primary mb-1">Phone</h3>
+                    <p className="text-ds-text-secondary">
                       +91 123 456 7890<br />
                       +91 098 765 4321
                     </p>
@@ -65,8 +65,8 @@ export default function ContactPage() {
                     <Mail className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                    <p className="text-gray-600">
+                    <h3 className="font-semibold text-ds-text-primary mb-1">Email</h3>
+                    <p className="text-ds-text-secondary">
                       info@electrostore.com<br />
                       support@electrostore.com
                     </p>
@@ -78,8 +78,8 @@ export default function ContactPage() {
                     <Clock className="w-6 h-6 text-orange-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Business Hours</h3>
-                    <p className="text-gray-600">
+                    <h3 className="font-semibold text-ds-text-primary mb-1">Business Hours</h3>
+                    <p className="text-ds-text-secondary">
                       Monday - Saturday: 9:00 AM - 8:00 PM<br />
                       Sunday: 10:00 AM - 6:00 PM
                     </p>
@@ -91,8 +91,8 @@ export default function ContactPage() {
 
           {/* Contact Form */}
           <div>
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-8">
+              <h2 className="text-2xl font-bold text-ds-text-primary mb-6">Send us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
                   label="Your Name"

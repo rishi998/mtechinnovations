@@ -10,14 +10,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const generatedId = useId()
     const textareaId = id ?? generatedId
-    
+
     return (
       <div className="w-full">
         {label && (
-          <label
-            htmlFor={textareaId}
-            className="block text-sm font-medium text-gray-700 mb-1.5"
-          >
+          <label htmlFor={textareaId} className="mb-1.5 block text-sm font-medium text-ds-text-secondary">
             {label}
           </label>
         )}
@@ -25,19 +22,19 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={textareaId}
           className={cn(
-            'w-full px-4 py-2.5 border rounded-lg transition-all outline-none resize-none',
+            'w-full resize-none rounded-lg border bg-ds-surface px-4 py-2.5 text-ds-text-primary outline-none transition-all placeholder:text-ds-text-secondary',
             error
-              ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-transparent'
-              : 'border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-            'disabled:bg-gray-100 disabled:cursor-not-allowed',
-            className
+              ? 'border-red-500 focus:ring-2 focus:ring-red-500'
+              : 'border-ds-border focus:border-ds-accent focus:ring-2 focus:ring-ds-accent/25',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            className,
           )}
           {...props}
         />
-        {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-1.5 text-sm text-red-400">{error}</p>}
       </div>
     )
-  }
+  },
 )
 
 Textarea.displayName = 'Textarea'

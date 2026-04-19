@@ -65,29 +65,29 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
   const title = category?.name ?? (loading ? 'Loading…' : 'Category')
 
   return (
-    <div className="py-8 bg-gray-50 min-h-screen">
+    <div className="py-8 bg-ds-primary min-h-screen">
       <div className="container-custom">
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6 flex-wrap">
-          <Link href="/" className="hover:text-primary-600">
+        <nav className="flex items-center gap-2 text-sm text-ds-text-secondary mb-6 flex-wrap">
+          <Link href="/" className="hover:text-ds-accent">
             Home
           </Link>
           <span>/</span>
-          <Link href="/categories" className="hover:text-primary-600">
+          <Link href="/categories" className="hover:text-ds-accent">
             Categories
           </Link>
           {category && (
             <>
               <span>/</span>
-              <span className="text-gray-900 font-medium">{category.name}</span>
+              <span className="text-ds-text-primary font-medium">{category.name}</span>
             </>
           )}
         </nav>
 
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ds-text-primary mb-2">
             {title}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-ds-text-secondary">
             {loading && products.length === 0
               ? 'Loading products…'
               : `${filteredProducts.length} products found`}
@@ -112,8 +112,8 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg ${
                   viewMode === 'grid'
-                    ? 'bg-primary-100 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-ds-surface text-ds-accent'
+                    : 'text-ds-text-secondary hover:bg-ds-primary'
                 }`}
               >
                 <Grid className="w-5 h-5" />
@@ -123,8 +123,8 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-lg ${
                   viewMode === 'list'
-                    ? 'bg-primary-100 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-ds-surface text-ds-accent'
+                    : 'text-ds-text-secondary hover:bg-ds-primary'
                 }`}
               >
                 <List className="w-5 h-5" />
@@ -171,7 +171,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
               </div>
             ) : (
               <div className="text-center py-16">
-                <p className="text-gray-500 text-lg">
+                <p className="text-ds-text-secondary text-lg">
                   No products found matching your filters.
                 </p>
                 <Button

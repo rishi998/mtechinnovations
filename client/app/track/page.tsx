@@ -77,12 +77,12 @@ export default function TrackOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 sm:py-12">
+    <div className="min-h-screen bg-ds-primary py-8 sm:py-12">
       <div className="container-custom max-w-3xl">
         {/* Back Link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary-600 mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-ds-text-secondary hover:text-ds-accent mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Home
@@ -90,17 +90,17 @@ export default function TrackOrderPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
-            <Truck className="w-8 h-8 text-primary-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-ds-surface rounded-full mb-4">
+            <Truck className="w-8 h-8 text-ds-accent" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Track Your Order</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-2">Track Your Order</h1>
+          <p className="text-ds-text-secondary">
             Enter your Order ID or Tracking ID to check the status of your order
           </p>
         </div>
 
         {/* Search Form */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
+        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
           <form onSubmit={handleTrack} className="space-y-4">
             <Input
               label="Order ID or Tracking ID"
@@ -120,11 +120,11 @@ export default function TrackOrderPage() {
 
         {/* Tracking Result */}
         {trackedOrder && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
+          <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-6 border-b">
               <div>
-                <h2 className="font-bold text-gray-900 text-lg">Order #{trackedOrder.orderId}</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="font-bold text-ds-text-primary text-lg">Order #{trackedOrder.orderId}</h2>
+                <p className="text-sm text-ds-text-secondary">
                   Placed on {new Date(trackedOrder.date).toLocaleDateString('en-IN', {
                     day: 'numeric', month: 'long', year: 'numeric'
                   })}
@@ -136,26 +136,26 @@ export default function TrackOrderPage() {
                   trackedOrder.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
                   trackedOrder.status === 'processing' ? 'bg-yellow-100 text-yellow-700' :
                   trackedOrder.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                  'bg-gray-100 text-gray-700'
+                  'bg-ds-surface text-ds-text-secondary'
                 }`}>
                   {trackedOrder.status}
                 </span>
                 {trackedOrder.trackingId && (
-                  <p className="text-xs text-gray-500 mt-1">Tracking: {trackedOrder.trackingId}</p>
+                  <p className="text-xs text-ds-text-secondary mt-1">Tracking: {trackedOrder.trackingId}</p>
                 )}
               </div>
             </div>
 
             {/* Order Items */}
             <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Items Ordered</h3>
+              <h3 className="font-semibold text-ds-text-primary mb-3">Items Ordered</h3>
               <div className="space-y-3">
                 {trackedOrder.items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0" />
+                    <div className="w-12 h-12 bg-ds-surface rounded-lg flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.product.name}</p>
-                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                      <p className="text-sm font-medium text-ds-text-primary truncate">{item.product.name}</p>
+                      <p className="text-xs text-ds-text-secondary">Qty: {item.quantity}</p>
                     </div>
                   </div>
                 ))}
@@ -165,7 +165,7 @@ export default function TrackOrderPage() {
             {/* Timeline */}
             {trackedOrder.status !== 'cancelled' && (
               <div>
-                <h3 className="font-semibold text-gray-900 mb-4">Tracking Timeline</h3>
+                <h3 className="font-semibold text-ds-text-primary mb-4">Tracking Timeline</h3>
                 <div className="relative">
                   {trackingSteps.map((step, index) => {
                     const currentStep = getStatusStep(trackedOrder.status)
@@ -177,22 +177,22 @@ export default function TrackOrderPage() {
                         {/* Timeline line */}
                         <div className="flex flex-col items-center">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            isCompleted ? 'bg-primary-600' : 'bg-gray-200'
+                            isCompleted ? 'bg-ds-accent' : 'bg-ds-surface'
                           }`}>
-                            <step.icon className={`w-4 h-4 ${isCompleted ? 'text-white' : 'text-gray-400'}`} />
+                            <step.icon className={`w-4 h-4 ${isCompleted ? 'text-white' : 'text-ds-text-secondary'}`} />
                           </div>
                           {index < trackingSteps.length - 1 && (
-                            <div className={`w-0.5 flex-1 mt-1 ${isCompleted ? 'bg-primary-600' : 'bg-gray-200'}`} style={{ minHeight: '24px' }} />
+                            <div className={`w-0.5 flex-1 mt-1 ${isCompleted ? 'bg-ds-accent' : 'bg-ds-surface'}`} style={{ minHeight: '24px' }} />
                           )}
                         </div>
 
                         {/* Content */}
                         <div className="pb-1">
-                          <p className={`font-medium text-sm ${isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
+                          <p className={`font-medium text-sm ${isCompleted ? 'text-ds-text-primary' : 'text-ds-text-secondary'}`}>
                             {step.title}
-                            {isCurrent && <span className="ml-2 text-xs text-primary-600 font-semibold">← Current</span>}
+                            {isCurrent && <span className="ml-2 text-xs text-ds-accent font-semibold">← Current</span>}
                           </p>
-                          <p className={`text-xs mt-0.5 ${isCompleted ? 'text-gray-600' : 'text-gray-400'}`}>
+                          <p className={`text-xs mt-0.5 ${isCompleted ? 'text-ds-text-secondary' : 'text-ds-text-secondary'}`}>
                             {step.description}
                           </p>
                         </div>
@@ -214,8 +214,8 @@ export default function TrackOrderPage() {
 
         {/* User Orders Quick Access */}
         {isAuthenticated && ordersList.length > 0 && !trackedOrder && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-            <h2 className="font-bold text-gray-900 mb-4">Your Recent Orders</h2>
+          <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-6 sm:p-8">
+            <h2 className="font-bold text-ds-text-primary mb-4">Your Recent Orders</h2>
             <div className="space-y-3">
               {ordersList.slice(0, 5).map((order) => (
                 <button
@@ -224,18 +224,18 @@ export default function TrackOrderPage() {
                     setTrackingId(order.trackingId ?? order.orderId)
                     setTrackedOrder(order)
                   }}
-                  className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
+                  className="w-full flex items-center justify-between p-3 bg-ds-primary rounded-xl hover:bg-ds-primary transition-colors text-left"
                 >
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">Order #{order.orderId}</p>
-                    <p className="text-xs text-gray-500 capitalize">{order.status} · {order.items.length} item{order.items.length > 1 ? 's' : ''}</p>
+                    <p className="font-medium text-ds-text-primary text-sm">Order #{order.orderId}</p>
+                    <p className="text-xs text-ds-text-secondary capitalize">{order.status} · {order.items.length} item{order.items.length > 1 ? 's' : ''}</p>
                   </div>
-                  <Clock className="w-4 h-4 text-gray-400" />
+                  <Clock className="w-4 h-4 text-ds-text-secondary" />
                 </button>
               ))}
             </div>
             <div className="mt-4 text-center">
-              <Link href="/orders" className="text-sm text-primary-600 hover:underline font-medium">
+              <Link href="/orders" className="text-sm text-ds-accent hover:underline font-medium">
                 View All Orders →
               </Link>
             </div>

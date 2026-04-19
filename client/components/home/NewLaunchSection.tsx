@@ -29,16 +29,16 @@ export function NewLaunchSection() {
   if (newProducts.length === 0) return null
 
   return (
-    <section className="py-10 sm:py-16 bg-gray-50">
+    <section className="py-10 sm:py-16 bg-ds-primary">
       <div className="container-custom">
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div className="flex items-center gap-2 sm:gap-3">
             <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-accent-orange" />
             <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-ds-text-primary">
                 New Launch
               </h2>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-sm text-ds-text-secondary mt-0.5">
                 Latest from inventory
               </p>
             </div>
@@ -47,7 +47,7 @@ export function NewLaunchSection() {
             <button
               type="button"
               onClick={() => scroll('left')}
-              className="p-2 rounded-full border border-gray-200 bg-white hover:bg-gray-50"
+              className="p-2 rounded-full border border-ds-border bg-ds-surface hover:bg-ds-primary"
               aria-label="Scroll left"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -55,7 +55,7 @@ export function NewLaunchSection() {
             <button
               type="button"
               onClick={() => scroll('right')}
-              className="p-2 rounded-full border border-gray-200 bg-white hover:bg-gray-50"
+              className="p-2 rounded-full border border-ds-border bg-ds-surface hover:bg-ds-primary"
               aria-label="Scroll right"
             >
               <ChevronRight className="w-5 h-5" />
@@ -80,7 +80,7 @@ export function NewLaunchSection() {
         <div className="mt-6 text-center sm:hidden">
           <Link
             href="/categories"
-            className="text-sm font-medium text-primary-600 hover:text-primary-700"
+            className="text-sm font-medium text-ds-accent hover:brightness-110"
           >
             View all categories
           </Link>

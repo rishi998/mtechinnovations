@@ -12,7 +12,7 @@ export function CategoryGrid() {
   if (loading && shown.length === 0) {
     return (
       <section className="py-10 sm:py-16">
-        <div className="container-custom text-center text-gray-500 text-sm">
+        <div className="container-custom text-center text-ds-text-secondary text-sm">
           Loading categories…
         </div>
       </section>
@@ -25,10 +25,10 @@ export function CategoryGrid() {
     <section className="py-10 sm:py-16">
       <div className="container-custom">
         <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ds-text-primary mb-3">
             Shop by Category
           </h2>
-          <p className="text-gray-600 text-base sm:text-lg">
+          <p className="text-ds-text-secondary text-base sm:text-lg">
             From your live Zoho inventory
           </p>
         </div>
@@ -44,9 +44,9 @@ export function CategoryGrid() {
             >
               <Link
                 href={`/category/${category.slug}`}
-                className="group block bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden"
+                className="group block border border-ds-border bg-ds-surface rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden"
               >
-                <div className="relative aspect-square overflow-hidden bg-gray-100">
+                <div className="relative aspect-square overflow-hidden bg-ds-surface">
                   <Image
                     src={category.image}
                     alt={category.name}
@@ -56,10 +56,10 @@ export function CategoryGrid() {
                   />
                 </div>
                 <div className="p-2 sm:p-4 text-center">
-                  <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">
+                  <h3 className="font-semibold text-ds-text-primary mb-1 text-sm sm:text-base line-clamp-2">
                     {category.name}
                   </h3>
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-ds-text-secondary">
                     {category.productCount} products
                   </p>
                 </div>

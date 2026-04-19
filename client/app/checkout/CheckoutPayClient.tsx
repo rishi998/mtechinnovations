@@ -211,9 +211,9 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 px-4">
-        <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
-        <p className="text-gray-600 text-center text-sm">Checking session…</p>
+      <div className="min-h-screen bg-ds-primary flex flex-col items-center justify-center gap-4 px-4">
+        <Loader2 className="w-10 h-10 text-ds-accent animate-spin" />
+        <p className="text-ds-text-secondary text-center text-sm">Checking session…</p>
       </div>
     )
   }
@@ -224,9 +224,9 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
 
   if (orderLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 px-4">
-        <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
-        <p className="text-gray-600 text-center text-sm">
+      <div className="min-h-screen bg-ds-primary flex flex-col items-center justify-center gap-4 px-4">
+        <Loader2 className="w-10 h-10 text-ds-accent animate-spin" />
+        <p className="text-ds-text-secondary text-center text-sm">
           Loading order details…
         </p>
       </div>
@@ -234,10 +234,10 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-ds-primary py-10 px-4">
       <div className="container-custom max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Checkout</h1>
-        <p className="text-gray-600 text-sm mb-8">
+        <h1 className="text-2xl font-bold text-ds-text-primary mb-1">Checkout</h1>
+        <p className="text-ds-text-secondary text-sm mb-8">
           Review your order, then pay securely. Payment is only confirmed after
           the server verifies the Razorpay signature.
         </p>
@@ -258,52 +258,52 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
         )}
 
         {payPhase === 'verifying' && order && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-primary-50 text-primary-900 text-sm px-4 py-3 border border-primary-100">
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-ds-surface text-primary-900 text-sm px-4 py-3 border border-primary-100">
             <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
             Verifying payment on the server…
           </div>
         )}
 
         {order && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+          <div className="border border-ds-border bg-ds-surface rounded-xl shadow-sm border border-ds-border p-6 mb-6">
+            <div className="flex items-center gap-2 text-sm text-ds-text-secondary mb-4">
               <Package className="w-4 h-4" />
               <span>
-                Order <span className="font-medium text-gray-800">{order.orderId}</span>
+                Order <span className="font-medium text-ds-text-primary">{order.orderId}</span>
               </span>
             </div>
-            <ul className="space-y-3 border-b border-gray-100 pb-4 mb-4">
+            <ul className="space-y-3 border-b border-ds-border pb-4 mb-4">
               {order.items.map((item) => (
                 <li
                   key={item.product.id + String(item.quantity)}
                   className="flex justify-between text-sm gap-4"
                 >
-                  <span className="text-gray-800 line-clamp-2">
+                  <span className="text-ds-text-primary line-clamp-2">
                     {item.product.name}{' '}
-                    <span className="text-gray-500">× {item.quantity}</span>
+                    <span className="text-ds-text-secondary">× {item.quantity}</span>
                   </span>
-                  <span className="font-medium text-gray-900 flex-shrink-0">
+                  <span className="font-medium text-ds-text-primary flex-shrink-0">
                     {formatPrice(item.product.price * item.quantity)}
                   </span>
                 </li>
               ))}
             </ul>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-ds-text-secondary">
                 <span>Subtotal</span>
                 <span>{formatPrice(order.subtotal)}</span>
               </div>
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-ds-text-secondary">
                 <span>Shipping</span>
                 <span>
                   {order.shipping === 0 ? 'FREE' : formatPrice(order.shipping)}
                 </span>
               </div>
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-ds-text-secondary">
                 <span>Tax</span>
                 <span>{formatPrice(order.tax)}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t">
+              <div className="flex justify-between text-lg font-bold text-ds-text-primary pt-2 border-t">
                 <span>Total</span>
                 <span>{formatPrice(order.total)}</span>
               </div>

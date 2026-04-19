@@ -1,40 +1,22 @@
-import { HeroBanner } from '@/components/home/HeroBanner'
-import { HeroProductGrid } from '@/components/home/HeroProductGrid'
-import { CategoryGrid } from '@/components/home/CategoryGrid'
-import { FeaturedProducts } from '@/components/home/FeaturedProducts'
-import { NewLaunchSection } from '@/components/home/NewLaunchSection'
-import { TrendingProducts } from '@/components/home/TrendingProducts'
-import { DealsOfDay } from '@/components/home/DealsOfDay'
-import { FeaturedBrands } from '@/components/home/FeaturedBrands'
+import { Hero } from '@/components/Hero'
+import { CategoryStrip } from '@/components/CategoryStrip'
+import { ProductGrid } from '@/components/ProductGrid'
+import { PromoBanner } from '@/components/PromoBanner'
+import { TrustStrip } from '@/components/TrustStrip'
+import { Newsletter } from '@/components/Newsletter'
+import { products } from '@/lib/data/products'
 
 export default function HomePage() {
+  const heroProduct = products.find((p) => p.featured) ?? products[0]
+
   return (
-    <div className="bg-white">
-      {/* Hero Banner */}
-      <section className="container-custom py-4 sm:py-8">
-        <HeroBanner />
-      </section>
-
-      {/* Bestsellers / Featured product grid (hero-style) */}
-      <HeroProductGrid />
-
-      {/* Featured Categories */}
-      <CategoryGrid />
-
-      {/* New Launch / Latest Products */}
-      <NewLaunchSection />
-
-      {/* Featured Products */}
-      <FeaturedProducts />
-
-      {/* Deals of the Day */}
-      <DealsOfDay />
-
-      {/* Trending Products */}
-      <TrendingProducts />
-
-      {/* Featured Brands */}
-      <FeaturedBrands />
-    </div>
+    <>
+      <Hero heroProduct={heroProduct} />
+      <CategoryStrip />
+      <ProductGrid />
+      <PromoBanner />
+      <TrustStrip />
+      <Newsletter />
+    </>
   )
 }

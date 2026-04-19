@@ -14,8 +14,8 @@ export function FeaturedProducts() {
 
   if (loading && products.length === 0) {
     return (
-      <section className="py-10 sm:py-16 bg-gray-50">
-        <div className="container-custom text-center text-gray-500 text-sm">
+      <section className="py-10 sm:py-16 bg-ds-primary">
+        <div className="container-custom text-center text-ds-text-secondary text-sm">
           Loading catalog…
         </div>
       </section>
@@ -25,13 +25,13 @@ export function FeaturedProducts() {
   if (featuredProducts.length === 0) return null
 
   return (
-    <section className="py-10 sm:py-16 bg-gray-50">
+    <section className="py-10 sm:py-16 bg-ds-primary">
       <div className="container-custom">
         <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ds-text-primary mb-3">
             Featured Products
           </h2>
-          <p className="text-gray-600 text-base sm:text-lg">
+          <p className="text-ds-text-secondary text-base sm:text-lg">
             From your Zoho inventory — live stock and pricing
           </p>
         </div>

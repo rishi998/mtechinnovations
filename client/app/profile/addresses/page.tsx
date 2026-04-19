@@ -28,18 +28,18 @@ type AddressForm = z.infer<typeof addressSchema>
 
 export default function AddressesPage() {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, addAddress, updateAddress, deleteAddress, updateUser } = useAuth()
   const [showModal, setShowModal] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [addresses, setAddresses] = useState<any[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState('')
+
+  const addresses = user?.addresses ?? []
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login')
-    } else if (user) {
-      setAddresses(user.addresses || [])
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, router])
 
   const {
     register,
@@ -51,29 +51,43 @@ export default function AddressesPage() {
   })
 
   const onSubmit = async (data: AddressForm) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    setSaveError('')
+    try {
+      if (editingId !== null) {
+        await updateAddress(editingId, {
+          name: data.name,
+          phone: data.phone,
+          addressLine1: data.addressLine1,
+          addressLine2: data.addressLine2,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+        })
+      } else {
+        await addAddress({
+          name: data.name,
+          phone: data.phone,
+          addressLine1: data.addressLine1,
+          addressLine2: data.addressLine2,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+          isDefault: addresses.length === 0,
+        })
+      }
 
-    if (editingId !== null) {
-      // Update existing address
-      const updatedAddresses = addresses.map((addr, idx) =>
-        idx === editingId ? { ...data, id: idx } : addr
-      )
-      setAddresses(updatedAddresses)
+      reset()
+      setShowModal(false)
       setEditingId(null)
-    } else {
-      // Add new address
-      const newAddress = { ...data, id: addresses.length }
-      setAddresses([...addresses, newAddress])
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not save address. Try again.')
     }
-
-    reset()
-    setShowModal(false)
   }
 
-  const handleEdit = (index: number) => {
-    setEditingId(index)
-    const address = addresses[index]
+  const handleEdit = (id: string) => {
+    const address = addresses.find((a) => a.id === id)
+    if (!address) return
+    setEditingId(id)
     reset({
       name: address.name,
       phone: address.phone,
@@ -87,16 +101,24 @@ export default function AddressesPage() {
     setShowModal(true)
   }
 
-  const handleDelete = (index: number) => {
-    setAddresses(addresses.filter((_, idx) => idx !== index))
+  const handleDelete = async (id: string) => {
+    setSaveError('')
+    try {
+      await deleteAddress(id)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not delete address.')
+    }
   }
 
-  const handleSetDefault = (index: number) => {
-    const updatedAddresses = addresses.map((addr, idx) => ({
-      ...addr,
-      isDefault: idx === index,
-    }))
-    setAddresses(updatedAddresses)
+  const handleSetDefault = async (id: string) => {
+    if (!user) return
+    setSaveError('')
+    try {
+      const next = user.addresses.map((a) => ({ ...a, isDefault: a.id === id }))
+      await updateUser({ addresses: next })
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not update default.')
+    }
   }
 
   const handleCloseModal = () => {
@@ -105,80 +127,92 @@ export default function AddressesPage() {
     reset()
   }
 
+  const openAddModal = () => {
+    setEditingId(null)
+    reset()
+    setShowModal(true)
+  }
+
   if (!isAuthenticated || !user) {
     return null
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-ds-primary py-8">
       <div className="container-custom max-w-4xl">
-        {/* Header */}
-        <Link href="/profile" className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6">
-          <ArrowLeft className="w-5 h-5" />
+        <Link href="/profile" className="mb-6 inline-flex items-center gap-2 text-ds-accent hover:brightness-110">
+          <ArrowLeft className="h-5 w-5" />
           Back to Profile
         </Link>
 
-        <div className="flex items-center justify-between mb-8">
+        {saveError && (
+          <p className="mb-4 rounded-lg border border-red-800 bg-ds-primary px-4 py-3 text-sm text-red-400">
+            {saveError}
+          </p>
+        )}
+
+        <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-primary-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ds-surface">
+              <MapPin className="h-6 w-6 text-ds-accent" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Saved Addresses</h1>
-              <p className="text-gray-600">Manage your delivery addresses</p>
+              <h1 className="text-2xl font-bold text-ds-text-primary">Saved Addresses</h1>
+              <p className="text-ds-text-secondary">Stored on your account — reused at checkout</p>
             </div>
           </div>
-          <Button onClick={() => setShowModal(true)} className="flex items-center gap-2">
-            <Plus className="w-5 h-5" />
+          <Button onClick={openAddModal} className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
             Add Address
           </Button>
         </div>
 
-        {/* Addresses List */}
         {addresses.length === 0 ? (
           <Card className="p-12 text-center">
-            <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Addresses Yet</h3>
-            <p className="text-gray-600 mb-6">Add your first address to get started with fast checkout</p>
-            <Button onClick={() => setShowModal(true)}>Add Address</Button>
+            <MapPin className="mx-auto mb-4 h-16 w-16 text-ds-text-secondary" />
+            <h3 className="mb-2 text-lg font-semibold text-ds-text-primary">No Addresses Yet</h3>
+            <p className="mb-6 text-ds-text-secondary">Add your first address — it will be saved to your account</p>
+            <Button onClick={openAddModal}>Add Address</Button>
           </Card>
         ) : (
           <div className="grid gap-6">
-            {addresses.map((address, idx) => (
-              <Card key={idx} className="p-6">
-                <div className="flex items-start justify-between mb-4">
+            {addresses.map((address) => (
+              <Card key={address.id} className="p-6">
+                <div className="mb-4 flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{address.name}</h3>
+                    <div className="mb-2 flex items-center gap-3">
+                      <h3 className="text-lg font-semibold text-ds-text-primary">{address.name}</h3>
                       {address.isDefault && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                          <Check className="w-3 h-3" />
+                        <span className="inline-flex items-center gap-1 rounded-full border border-ds-accent bg-ds-primary px-3 py-1 text-xs font-medium text-ds-accent">
+                          <Check className="h-3 w-3" />
                           Default
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 text-sm mb-1">{address.addressLine1}</p>
+                    <p className="mb-1 text-sm text-ds-text-secondary">{address.addressLine1}</p>
                     {address.addressLine2 && (
-                      <p className="text-gray-600 text-sm mb-1">{address.addressLine2}</p>
+                      <p className="mb-1 text-sm text-ds-text-secondary">{address.addressLine2}</p>
                     )}
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-sm text-ds-text-secondary">
                       {address.city}, {address.state} {address.pincode}
                     </p>
-                    <p className="text-gray-600 text-sm">Phone: {address.phone}</p>
+                    <p className="text-sm text-ds-text-secondary">Phone: {address.phone}</p>
                   </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleEdit(idx)}
-                      className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition"
+                      type="button"
+                      onClick={() => handleEdit(address.id)}
+                      className="rounded-lg p-2 text-ds-accent transition hover:bg-ds-primary"
                     >
-                      <Edit2 className="w-5 h-5" />
+                      <Edit2 className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(idx)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      type="button"
+                      onClick={() => void handleDelete(address.id)}
+                      className="rounded-lg p-2 text-red-400 transition hover:bg-ds-primary"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
@@ -187,7 +221,7 @@ export default function AddressesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSetDefault(idx)}
+                    onClick={() => void handleSetDefault(address.id)}
                     className="text-xs"
                   >
                     Set as Default
@@ -198,103 +232,92 @@ export default function AddressesPage() {
           </div>
         )}
 
-        {/* Modal */}
         {showModal && (
           <Modal
             isOpen={showModal}
             onClose={handleCloseModal}
             title={editingId !== null ? 'Edit Address' : 'Add New Address'}
           >
-            <div>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ds-text-secondary">Label / Name</label>
+                <Input
+                  {...register('name')}
+                  placeholder="e.g., Home, Office"
+                  className={errors.name ? 'border-red-500' : ''}
+                />
+                {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
+              </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <Input
-                    {...register('name')}
-                    placeholder="e.g., Home, Office"
-                    className={errors.name ? 'border-red-500' : ''}
-                  />
-                  {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
-                </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ds-text-secondary">Phone</label>
+                <Input
+                  {...register('phone')}
+                  type="tel"
+                  placeholder="10-digit phone number"
+                  className={errors.phone ? 'border-red-500' : ''}
+                />
+                {errors.phone && <p className="mt-1 text-xs text-red-400">{errors.phone.message}</p>}
+              </div>
 
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <Input
-                    {...register('phone')}
-                    type="tel"
-                    placeholder="10-digit phone number"
-                    className={errors.phone ? 'border-red-500' : ''}
-                  />
-                  {errors.phone && <p className="text-red-600 text-xs mt-1">{errors.phone.message}</p>}
-                </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ds-text-secondary">Address Line 1</label>
+                <Input
+                  {...register('addressLine1')}
+                  placeholder="Street address"
+                  className={errors.addressLine1 ? 'border-red-500' : ''}
+                />
+                {errors.addressLine1 && (
+                  <p className="mt-1 text-xs text-red-400">{errors.addressLine1.message}</p>
+                )}
+              </div>
 
-                {/* Address Line 1 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-                  <Input
-                    {...register('addressLine1')}
-                    placeholder="Street address"
-                    className={errors.addressLine1 ? 'border-red-500' : ''}
-                  />
-                  {errors.addressLine1 && <p className="text-red-600 text-xs mt-1">{errors.addressLine1.message}</p>}
-                </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ds-text-secondary">
+                  Address Line 2 (Optional)
+                </label>
+                <Input {...register('addressLine2')} placeholder="Apartment, suite, etc." />
+              </div>
 
-                {/* Address Line 2 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2 (Optional)</label>
-                  <Input
-                    {...register('addressLine2')}
-                    placeholder="Apartment, suite, etc."
-                  />
-                </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ds-text-secondary">City</label>
+                <Input
+                  {...register('city')}
+                  placeholder="City"
+                  className={errors.city ? 'border-red-500' : ''}
+                />
+                {errors.city && <p className="mt-1 text-xs text-red-400">{errors.city.message}</p>}
+              </div>
 
-                {/* City */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <Input
-                    {...register('city')}
-                    placeholder="City"
-                    className={errors.city ? 'border-red-500' : ''}
-                  />
-                  {errors.city && <p className="text-red-600 text-xs mt-1">{errors.city.message}</p>}
-                </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ds-text-secondary">State</label>
+                <Input
+                  {...register('state')}
+                  placeholder="State"
+                  className={errors.state ? 'border-red-500' : ''}
+                />
+                {errors.state && <p className="mt-1 text-xs text-red-400">{errors.state.message}</p>}
+              </div>
 
-                {/* State */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <Input
-                    {...register('state')}
-                    placeholder="State"
-                    className={errors.state ? 'border-red-500' : ''}
-                  />
-                  {errors.state && <p className="text-red-600 text-xs mt-1">{errors.state.message}</p>}
-                </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ds-text-secondary">Pincode</label>
+                <Input
+                  {...register('pincode')}
+                  placeholder="6-digit pincode"
+                  className={errors.pincode ? 'border-red-500' : ''}
+                />
+                {errors.pincode && <p className="mt-1 text-xs text-red-400">{errors.pincode.message}</p>}
+              </div>
 
-                {/* Pincode */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
-                  <Input
-                    {...register('pincode')}
-                    placeholder="6-digit pincode"
-                    className={errors.pincode ? 'border-red-500' : ''}
-                  />
-                  {errors.pincode && <p className="text-red-600 text-xs mt-1">{errors.pincode.message}</p>}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" className="flex-1">
-                    {editingId !== null ? 'Update Address' : 'Add Address'}
-                  </Button>
-                  <Button type="button" variant="outline" className="flex-1" onClick={handleCloseModal}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </div>
+              <div className="flex gap-3 pt-4">
+                <Button type="submit" className="flex-1">
+                  {editingId !== null ? 'Update Address' : 'Add Address'}
+                </Button>
+                <Button type="button" variant="outline" className="flex-1" onClick={handleCloseModal}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
           </Modal>
         )}
       </div>

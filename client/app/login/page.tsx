@@ -58,16 +58,16 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-ds-primary flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Login to your account to continue</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-2">Welcome Back</h1>
+          <p className="text-ds-text-secondary">Login to your account to continue</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8">
+        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
@@ -93,10 +93,10 @@ function LoginForm() {
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 text-primary-600 rounded" />
-                <span className="text-gray-700">Remember me</span>
+                <input type="checkbox" className="w-4 h-4 text-ds-accent rounded" />
+                <span className="text-ds-text-secondary">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-primary-600 hover:text-primary-700 font-medium">
+              <Link href="/forgot-password" className="text-ds-accent hover:brightness-110 font-medium">
                 Forgot Password?
               </Link>
             </div>
@@ -109,10 +109,10 @@ function LoginForm() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-ds-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or continue with</span>
+              <span className="px-4 border border-ds-border bg-ds-surface text-ds-text-secondary">Or continue with</span>
             </div>
           </div>
 
@@ -129,9 +129,9 @@ function LoginForm() {
           </div>
 
           {/* Sign Up Link */}
-          <p className="text-center text-sm text-gray-600 mt-6">
+          <p className="text-center text-sm text-ds-text-secondary mt-6">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+            <Link href="/register" className="text-ds-accent hover:brightness-110 font-medium">
               Sign Up
             </Link>
           </p>
@@ -152,8 +152,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+        <div className="min-h-screen bg-ds-primary flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-ds-accent border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >

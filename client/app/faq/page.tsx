@@ -79,14 +79,14 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="border-b border-gray-200 last:border-0">
+    <div className="border-b border-ds-border last:border-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full py-4 flex items-center justify-between text-left hover:text-primary-600 transition-colors"
+        className="w-full py-4 flex items-center justify-between text-left hover:text-ds-accent transition-colors"
       >
-        <span className="font-medium text-gray-900 pr-4">{question}</span>
+        <span className="font-medium text-ds-text-primary pr-4">{question}</span>
         <ChevronDown
-          className={`w-5 h-5 text-gray-500 flex-shrink-0 transition-transform ${
+          className={`w-5 h-5 text-ds-text-secondary flex-shrink-0 transition-transform ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
@@ -100,7 +100,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <p className="pb-4 text-gray-600">{answer}</p>
+            <p className="pb-4 text-ds-text-secondary">{answer}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -110,21 +110,21 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
 export default function FAQPage() {
   return (
-    <div className="bg-gray-50 py-10 sm:py-16">
+    <div className="bg-ds-primary py-10 sm:py-16">
       <div className="container-custom max-w-4xl">
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ds-text-primary mb-4">
             Frequently Asked Questions
           </h1>
-          <p className="text-base sm:text-xl text-gray-600 px-4">
+          <p className="text-base sm:text-xl text-ds-text-secondary px-4">
             Find answers to common questions about our products and services
           </p>
         </div>
 
         <div className="space-y-6 sm:space-y-8">
           {faqs.map((category, idx) => (
-            <div key={idx} className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
+            <div key={idx} className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-ds-text-primary mb-4 sm:mb-6">
                 {category.category}
               </h2>
               <div>
@@ -137,13 +137,13 @@ export default function FAQPage() {
         </div>
 
         {/* Contact CTA */}
-        <div className="mt-8 sm:mt-12 bg-primary-600 rounded-2xl p-5 sm:p-8 text-center text-white">
+        <div className="mt-8 sm:mt-12 bg-ds-accent rounded-2xl p-5 sm:p-8 text-center text-white">
           <h2 className="text-xl sm:text-2xl font-bold mb-2">Still have questions?</h2>
-          <p className="text-primary-100 mb-4 sm:mb-6 text-sm sm:text-base">
+          <p className="text-ds-text-primary mb-4 sm:mb-6 text-sm sm:text-base">
             Can&apos;t find the answer you&apos;re looking for? Please chat with our team.
           </p>
           <a href="/contact">
-            <button className="px-6 sm:px-8 py-3 bg-white text-primary-600 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+            <button className="px-6 sm:px-8 py-3 border border-ds-border bg-ds-surface text-ds-accent rounded-lg font-medium hover:bg-ds-primary transition-colors">
               Contact Support
             </button>
           </a>

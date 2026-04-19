@@ -154,15 +154,15 @@ function SuccessContent() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-3 px-4">
-        <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
-        <p className="text-sm text-gray-600">Loading confirmation…</p>
+      <div className="min-h-screen bg-ds-primary flex flex-col items-center justify-center gap-3 px-4">
+        <Loader2 className="w-10 h-10 text-ds-accent animate-spin" />
+        <p className="text-sm text-ds-text-secondary">Loading confirmation…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-ds-primary flex items-center justify-center py-12 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -177,42 +177,42 @@ function SuccessContent() {
           >
             <CheckCircle className="w-11 h-11 text-green-600" />
           </motion.div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-2">
             Payment successful
           </h1>
-          <p className="text-gray-600 text-sm sm:text-base">
+          <p className="text-ds-text-secondary text-sm sm:text-base">
             Your payment was verified on the server. Thank you for your order.
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 space-y-4">
-          <div className="flex items-center justify-between gap-4 pb-3 border-b border-gray-100">
-            <span className="text-sm text-gray-600">Order ID</span>
-            <span className="font-semibold text-gray-900 text-right break-all">
+        <div className="border border-ds-border bg-ds-surface rounded-xl shadow-sm border border-ds-border p-6 mb-6 space-y-4">
+          <div className="flex items-center justify-between gap-4 pb-3 border-b border-ds-border">
+            <span className="text-sm text-ds-text-secondary">Order ID</span>
+            <span className="font-semibold text-ds-text-primary text-right break-all">
               {orderNumber ?? '—'}
             </span>
           </div>
 
           {order && (
             <>
-              <div className="flex items-center justify-between gap-4 pb-3 border-b border-gray-100">
-                <span className="text-sm text-gray-600">Payment</span>
+              <div className="flex items-center justify-between gap-4 pb-3 border-b border-ds-border">
+                <span className="text-sm text-ds-text-secondary">Payment</span>
                 <span className="font-medium text-green-700 capitalize">
                   {order.paymentStatus ?? 'success'}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-4 pb-3 border-b border-gray-100">
-                <span className="text-sm text-gray-600">Zoho status</span>
-                <span className="font-medium text-gray-900 text-right">
+              <div className="flex items-center justify-between gap-4 pb-3 border-b border-ds-border">
+                <span className="text-sm text-ds-text-secondary">Zoho status</span>
+                <span className="font-medium text-ds-text-primary text-right">
                   {zohoStatusLabel(order.zohoSyncStatus)}
                 </span>
               </div>
               {(order.zohoSalesOrderId || order.zohoInvoiceId) && (
-                <div className="text-xs text-gray-500 space-y-1">
+                <div className="text-xs text-ds-text-secondary space-y-1">
                   {order.zohoSalesOrderId && (
                     <p>
                       Sales order:{' '}
-                      <span className="font-mono text-gray-700">
+                      <span className="font-mono text-ds-text-secondary">
                         {order.zohoSalesOrderId}
                       </span>
                     </p>
@@ -221,14 +221,14 @@ function SuccessContent() {
                     <p className="flex flex-wrap items-center gap-2">
                       <span>
                         Invoice:{' '}
-                        <span className="font-mono text-gray-700">
+                        <span className="font-mono text-ds-text-secondary">
                           {order.zohoInvoiceId}
                         </span>
                       </span>
                       <button
                         type="button"
                         onClick={() => void copyInvoiceId()}
-                        className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700"
+                        className="inline-flex items-center gap-1 text-ds-accent hover:brightness-110"
                       >
                         <Copy className="w-3.5 h-3.5" />
                         Copy
@@ -264,7 +264,7 @@ function SuccessContent() {
               href={invoiceHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-primary-600 hover:text-primary-700 underline"
+              className="text-sm font-medium text-ds-accent hover:brightness-110 underline"
             >
               Open invoice in Zoho
             </a>
@@ -353,8 +353,8 @@ export default function PaymentSuccessPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
+        <div className="min-h-screen bg-ds-primary flex items-center justify-center">
+          <Loader2 className="w-10 h-10 text-ds-accent animate-spin" />
         </div>
       }
     >

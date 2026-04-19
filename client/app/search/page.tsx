@@ -32,10 +32,10 @@ function SearchContent() {
   }, [searchQuery, products])
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-ds-primary py-8">
       <div className="container-custom">
         <div className="max-w-2xl mx-auto mb-10 sm:mb-12">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-6 text-center">
             Search Products
           </h1>
           <div className="relative">
@@ -45,16 +45,16 @@ function SearchContent() {
               placeholder="Search for products, categories, brands..."
               className="pl-12"
             />
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ds-text-secondary" />
           </div>
           {loading && products.length === 0 && (
-            <p className="text-center text-sm text-gray-500 mt-4">Loading catalog…</p>
+            <p className="text-center text-sm text-ds-text-secondary mt-4">Loading catalog…</p>
           )}
         </div>
 
         {searchQuery.trim() ? (
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-ds-text-primary mb-6">
               {searchResults.length > 0
                 ? `Found ${searchResults.length} result${searchResults.length > 1 ? 's' : ''} for "${searchQuery}"`
                 : `No results found for "${searchQuery}"`}
@@ -68,16 +68,16 @@ function SearchContent() {
               </div>
             ) : (
               <div className="text-center py-16">
-                <SearchIcon className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2 text-lg">No products found</p>
-                <p className="text-gray-500 text-sm">
+                <SearchIcon className="w-16 h-16 text-ds-border mx-auto mb-4" />
+                <p className="text-ds-text-secondary mb-2 text-lg">No products found</p>
+                <p className="text-ds-text-secondary text-sm">
                   Try different keywords or browse categories
                 </p>
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-ds-text-secondary">
             <SearchIcon className="w-16 h-16 mx-auto mb-4 opacity-30" />
             <p>Start typing to search for products</p>
           </div>
@@ -91,11 +91,11 @@ export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 py-8">
+        <div className="min-h-screen bg-ds-primary py-8">
           <div className="container-custom">
             <div className="max-w-2xl mx-auto mb-12">
-              <div className="h-8 bg-gray-200 rounded animate-pulse mb-6 w-48 mx-auto" />
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+              <div className="h-8 bg-ds-surface rounded animate-pulse mb-6 w-48 mx-auto" />
+              <div className="h-12 bg-ds-surface rounded-lg animate-pulse" />
             </div>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { getCart, addToCart as apiAddToCart, updateCartItem as apiUpdateCartItem
 
 interface CartContextType {
   cart: CartItem[]
-  addToCart: (product: Product, quantity?: number) => void
+  addToCart: (product: Product, quantity?: number) => Promise<void>
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void

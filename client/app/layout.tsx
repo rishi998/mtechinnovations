@@ -5,9 +5,7 @@ import { CartProvider } from '@/lib/context/CartContext'
 import { CatalogProvider } from '@/lib/context/CatalogContext'
 import { WishlistProvider } from '@/lib/context/WishlistContext'
 import { AuthProvider } from '@/lib/context/AuthContext'
-import { Header } from '@/components/layout/Header'
-import { Footer } from '@/components/layout/Footer'
-import { PageBackButton } from '@/components/layout/PageBackButton'
+import { AppShell } from '@/components/layout/AppShell'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -29,10 +27,7 @@ export default function RootLayout({
           <CatalogProvider>
             <CartProvider>
               <WishlistProvider>
-                <Header />
-                <PageBackButton />
-                <main className="min-h-screen">{children}</main>
-                <Footer />
+                <AppShell>{children}</AppShell>
               </WishlistProvider>
             </CartProvider>
           </CatalogProvider>

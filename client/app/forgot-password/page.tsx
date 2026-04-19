@@ -37,12 +37,12 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-ds-primary flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         {/* Back Link */}
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-primary-600 mb-8 transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-ds-text-secondary hover:text-ds-accent mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Login
@@ -52,17 +52,17 @@ export default function ForgotPasswordPage() {
           <>
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
-                <Mail className="w-8 h-8 text-primary-600" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-ds-surface rounded-full mb-4">
+                <Mail className="w-8 h-8 text-ds-accent" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Forgot Password?</h1>
-              <p className="text-gray-600">
+              <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-2">Forgot Password?</h1>
+              <p className="text-ds-text-secondary">
                 No worries! Enter your email address and we&apos;ll send you a link to reset your password.
               </p>
             </div>
 
             {/* Form */}
-            <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8">
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-5 sm:p-8">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input
                   label="Email Address"
@@ -77,9 +77,9 @@ export default function ForgotPasswordPage() {
                 </Button>
               </form>
 
-              <p className="text-center text-sm text-gray-600 mt-6">
+              <p className="text-center text-sm text-ds-text-secondary mt-6">
                 Remember your password?{' '}
-                <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                <Link href="/login" className="text-ds-accent hover:brightness-110 font-medium">
                   Login
                 </Link>
               </p>
@@ -91,14 +91,14 @@ export default function ForgotPasswordPage() {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Check your email</h1>
-            <p className="text-gray-600 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-2">Check your email</h1>
+            <p className="text-ds-text-secondary mb-2">
               We&apos;ve sent a password reset link to
             </p>
-            <p className="font-semibold text-gray-900 mb-6">{submittedEmail}</p>
+            <p className="font-semibold text-ds-text-primary mb-6">{submittedEmail}</p>
 
-            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-              <p className="text-sm text-gray-700 mb-4">
+            <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-6 mb-6">
+              <p className="text-sm text-ds-text-secondary mb-4">
                 Didn&apos;t receive the email? Check your spam folder or try again.
               </p>
               <Button
@@ -110,8 +110,8 @@ export default function ForgotPasswordPage() {
               </Button>
             </div>
 
-            <p className="text-sm text-gray-600">
-              <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+            <p className="text-sm text-ds-text-secondary">
+              <Link href="/login" className="text-ds-accent hover:brightness-110 font-medium">
                 Back to Login
               </Link>
             </p>

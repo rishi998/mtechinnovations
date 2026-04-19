@@ -12,7 +12,7 @@ function OrderSuccessContent() {
   const orderId = searchParams.get('orderId')
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-ds-primary flex items-center justify-center py-12 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -29,20 +29,20 @@ function OrderSuccessContent() {
         </motion.div>
 
         {/* Success Message */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Placed Successfully!</h1>
-        <p className="text-gray-600 mb-8">
+        <h1 className="text-3xl font-bold text-ds-text-primary mb-2">Order Placed Successfully!</h1>
+        <p className="text-ds-text-secondary mb-8">
           Thank you for your purchase. Your order has been confirmed and will be processed soon.
         </p>
 
         {/* Order Details */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <div className="border border-ds-border bg-ds-surface rounded-xl shadow-sm p-6 mb-8">
           <div className="flex items-center justify-between mb-4 pb-4 border-b">
-            <span className="text-sm text-gray-600">Order Number</span>
-            <span className="font-semibold text-gray-900">{orderId}</span>
+            <span className="text-sm text-ds-text-secondary">Order Number</span>
+            <span className="font-semibold text-ds-text-primary">{orderId}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Estimated Delivery</span>
-            <span className="font-semibold text-gray-900">3-5 Business Days</span>
+            <span className="text-sm text-ds-text-secondary">Estimated Delivery</span>
+            <span className="font-semibold text-ds-text-primary">3-5 Business Days</span>
           </div>
         </div>
 
@@ -76,8 +76,8 @@ function OrderSuccessContent() {
 export default function OrderSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-ds-primary flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-ds-accent border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <OrderSuccessContent />

@@ -99,12 +99,12 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-40 w-full bg-white transition-shadow ${
+      className={`sticky top-0 z-40 w-full border border-ds-border bg-ds-surface transition-shadow ${
         isScrolled ? 'shadow-md' : 'shadow-sm'
       }`}
     >
       {/* Top Bar - Trust signals (Robu/Robocraze style) */}
-      <div className="bg-primary-600 text-white py-2">
+      <div className="bg-ds-accent text-white py-2">
         <div className="container-custom">
           <div className="flex flex-wrap items-center justify-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
@@ -140,7 +140,7 @@ export function Header() {
                 className="h-9 sm:h-11 w-auto object-contain"
                 priority
               />
-              <span className="hidden sm:block text-xs font-bold text-gray-300">Innovating the future</span>
+              <span className="hidden sm:block text-xs font-bold text-ds-text-secondary">Innovating the future</span>
             </Link>
 
             {/* Search Bar (Desktop) */}
@@ -153,11 +153,11 @@ export function Header() {
                   onChange={handleSearchChange}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                  className="w-full px-4 py-2.5 pr-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 pr-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ds-accent focus:border-transparent"
                 />
                 <button
                   type="submit"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-ds-text-secondary hover:text-white"
                 >
                   <Search className="w-5 h-5" />
                 </button>
@@ -166,27 +166,27 @@ export function Header() {
             {/* Search Results Dropdown */}
             {isSearchFocused && searchResults.length > 0 && (
               <div
-                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50"
+                className="absolute top-full left-0 right-0 mt-2 border border-ds-border bg-ds-surface rounded-lg shadow-lg border border-ds-border max-h-96 overflow-y-auto z-50"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {searchResults.map((product) => (
                   <Link
                     key={product.id}
                     href={productPath(product.slug, product.id)}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 p-3 hover:bg-ds-primary transition-colors"
                     onClick={() => {
                       setIsSearchFocused(false)
                       setSearchResults([])
                     }}
                   >
-                    <div className="w-12 h-12 bg-gray-100 rounded flex-shrink-0" />
+                    <div className="w-12 h-12 bg-ds-surface rounded flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-ds-text-primary truncate">
                         {product.name}
                       </p>
-                      <p className="text-xs text-gray-500">{product.category}</p>
+                      <p className="text-xs text-ds-text-secondary">{product.category}</p>
                     </div>
-                    <p className="text-sm font-semibold text-primary-600">
+                    <p className="text-sm font-semibold text-ds-accent">
                       ₹{product.price}
                     </p>
                   </Link>
@@ -199,7 +199,7 @@ export function Header() {
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Wishlist */}
             <Link href="/wishlist">
-              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2 text-gray-300 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2 text-ds-text-secondary hover:text-white hover:border border-ds-border bg-ds-surface/10">
                 <Heart className="w-5 h-5" />
                 {wishlistCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
@@ -211,10 +211,10 @@ export function Header() {
 
             {/* Cart */}
             <Link href="/cart">
-              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2 text-gray-300 hover:text-white hover:bg-white/10">
+              <Button variant="ghost" size="sm" className="relative p-2 sm:p-2 text-ds-text-secondary hover:text-white hover:border border-ds-border bg-ds-surface/10">
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-ds-surface0 text-white text-xs rounded-full flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
@@ -228,36 +228,36 @@ export function Header() {
                 size="sm"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 aria-expanded={isUserMenuOpen}
-                className="text-gray-300 hover:text-white hover:bg-white/10"
+                className="text-ds-text-secondary hover:text-white hover:border border-ds-border bg-ds-surface/10"
               >
                 <User className="w-5 h-5" />
               </Button>
               
               {isUserMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="absolute right-0 top-full mt-2 w-48 border border-ds-border bg-ds-surface rounded-lg shadow-lg border border-ds-border z-50">
                   {isAuthenticated ? (
                     <>
                       <div className="px-4 py-3 border-b">
-                        <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                        <p className="text-sm font-medium text-ds-text-primary truncate">{user?.name}</p>
+                        <p className="text-xs text-ds-text-secondary truncate">{user?.email}</p>
                       </div>
                       <Link
                         href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-ds-text-secondary hover:bg-ds-primary"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
                         My Profile
                       </Link>
                       <Link
                         href="/orders"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-ds-text-secondary hover:bg-ds-primary"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
                         My Orders
                       </Link>
                       <button
                         onClick={() => { logout(); setIsUserMenuOpen(false) }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-ds-primary"
                       >
                         Logout
                       </button>
@@ -266,14 +266,14 @@ export function Header() {
                     <>
                       <Link
                         href="/login"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-ds-text-secondary hover:bg-ds-primary"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
                         Login
                       </Link>
                       <Link
                         href="/register"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2 text-sm text-ds-text-secondary hover:bg-ds-primary"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
                         Register
@@ -288,7 +288,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-gray-300 hover:text-white hover:bg-white/10"
+              className="lg:hidden text-ds-text-secondary hover:text-white hover:border border-ds-border bg-ds-surface/10"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -307,11 +307,11 @@ export function Header() {
               onChange={handleSearchChange}
               onFocus={() => setIsMobileSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsMobileSearchFocused(false), 200)}
-              className="w-full px-4 py-3 pr-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 text-base"
+              className="w-full px-4 py-3 pr-12 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ds-accent text-base"
             />
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-white"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-ds-text-secondary hover:text-white"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -319,25 +319,25 @@ export function Header() {
             {/* Mobile Search Results Dropdown */}
             {isMobileSearchFocused && searchResults.length > 0 && (
               <div
-                className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-72 overflow-y-auto z-50"
+                className="absolute top-full left-0 right-0 mt-1 border border-ds-border bg-ds-surface rounded-lg shadow-lg border border-ds-border max-h-72 overflow-y-auto z-50"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {searchResults.map((product) => (
                   <Link
                     key={product.id}
                     href={productPath(product.slug, product.id)}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 p-3 hover:bg-ds-primary transition-colors"
                     onClick={() => {
                       setIsMobileSearchFocused(false)
                       setSearchResults([])
                     }}
                   >
-                    <div className="w-10 h-10 bg-gray-100 rounded flex-shrink-0" />
+                    <div className="w-10 h-10 bg-ds-surface rounded flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.category}</p>
+                      <p className="text-sm font-medium text-ds-text-primary truncate">{product.name}</p>
+                      <p className="text-xs text-ds-text-secondary">{product.category}</p>
                     </div>
-                    <p className="text-sm font-semibold text-primary-600 flex-shrink-0">
+                    <p className="text-sm font-semibold text-ds-accent flex-shrink-0">
                       ₹{product.price}
                     </p>
                   </Link>
@@ -349,22 +349,22 @@ export function Header() {
       </div>
 
       {/* Categories Nav - Fast jumps (Development Boards, Sensors, Batteries, Tools) */}
-      <nav className="border-t border-gray-200 bg-white">
+      <nav className="border-t border-ds-border border border-ds-border bg-ds-surface">
         <div className="container-custom">
           <div className="hidden lg:flex items-center gap-5 py-3 overflow-x-auto">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Shop:</span>
+            <span className="text-xs font-semibold text-ds-text-secondary uppercase tracking-wider mr-1">Shop:</span>
             {categories.slice(0, 8).map((category) => (
               <Link
                 key={category.id}
                 href={`/category/${category.slug}`}
-                className="text-sm font-medium text-gray-700 hover:text-primary-600 whitespace-nowrap transition-colors"
+                className="text-sm font-medium text-ds-text-secondary hover:text-ds-accent whitespace-nowrap transition-colors"
               >
                 {category.name}
               </Link>
             ))}
             <Link
               href="/categories"
-              className="text-sm font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap ml-auto"
+              className="text-sm font-medium text-ds-accent hover:brightness-110 whitespace-nowrap ml-auto"
             >
               View All
             </Link>
@@ -374,41 +374,41 @@ export function Header() {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white max-h-[80vh] overflow-y-auto">
+        <div className="lg:hidden border-t border-ds-border border border-ds-border bg-ds-surface max-h-[80vh] overflow-y-auto">
           <div className="container-custom py-4 space-y-4">
 
             {/* Account Section */}
-            <div className="border border-gray-100 rounded-xl overflow-hidden">
+            <div className="border border-ds-border rounded-xl overflow-hidden">
               {isAuthenticated ? (
                 <>
-                  <div className="flex items-center gap-3 px-4 py-3 bg-primary-50">
-                    <div className="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-ds-surface">
+                    <div className="w-9 h-9 bg-ds-accent rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                       {user?.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                      <p className="text-sm font-semibold text-ds-text-primary truncate">{user?.name}</p>
+                      <p className="text-xs text-ds-text-secondary truncate">{user?.email}</p>
                     </div>
                   </div>
                   <Link
                     href="/profile"
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-ds-text-secondary hover:bg-ds-primary border-t border-ds-border"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <User className="w-4 h-4 text-gray-400" />
+                    <User className="w-4 h-4 text-ds-text-secondary" />
                     My Profile
                   </Link>
                   <Link
                     href="/orders"
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-ds-text-secondary hover:bg-ds-primary border-t border-ds-border"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <ShoppingCart className="w-4 h-4 text-gray-400" />
+                    <ShoppingCart className="w-4 h-4 text-ds-text-secondary" />
                     My Orders
                   </Link>
                   <button
                     onClick={() => { logout(); setIsMenuOpen(false) }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-t border-ds-border"
                   >
                     <X className="w-4 h-4" />
                     Logout
@@ -418,14 +418,14 @@ export function Header() {
                 <div className="flex gap-2 p-3">
                   <Link
                     href="/login"
-                    className="flex-1 text-center py-2.5 text-sm font-medium text-primary-600 border border-primary-600 rounded-lg hover:bg-primary-50"
+                    className="flex-1 text-center py-2.5 text-sm font-medium text-ds-accent border border-ds-accent rounded-lg hover:bg-ds-surface"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Login
                   </Link>
                   <Link
                     href="/register"
-                    className="flex-1 text-center py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
+                    className="flex-1 text-center py-2.5 text-sm font-medium text-white bg-ds-accent rounded-lg hover:bg-ds-accent"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Register
@@ -438,27 +438,27 @@ export function Header() {
             <div className="grid grid-cols-2 gap-2">
               <Link
                 href="/cart"
-                className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100"
+                className="flex items-center justify-between px-4 py-3 bg-ds-primary rounded-xl hover:bg-ds-primary"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5 text-primary-600" />
-                  <span className="text-sm font-medium text-gray-800">Cart</span>
+                  <ShoppingCart className="w-5 h-5 text-ds-accent" />
+                  <span className="text-sm font-medium text-ds-text-primary">Cart</span>
                 </div>
                 {cartCount > 0 && (
-                  <span className="w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  <span className="w-5 h-5 bg-ds-accent text-white text-xs rounded-full flex items-center justify-center font-medium">
                     {cartCount}
                   </span>
                 )}
               </Link>
               <Link
                 href="/wishlist"
-                className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100"
+                className="flex items-center justify-between px-4 py-3 bg-ds-primary rounded-xl hover:bg-ds-primary"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <div className="flex items-center gap-2">
                   <Heart className="w-5 h-5 text-red-500" />
-                  <span className="text-sm font-medium text-gray-800">Wishlist</span>
+                  <span className="text-sm font-medium text-ds-text-primary">Wishlist</span>
                 </div>
                 {wishlistCount > 0 && (
                   <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
@@ -470,13 +470,13 @@ export function Header() {
 
             {/* Categories */}
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">Shop by Category</p>
+              <p className="text-xs font-semibold text-ds-text-secondary uppercase tracking-wider px-1 mb-2">Shop by Category</p>
               <div className="grid grid-cols-2 gap-1">
                 {categories.map((category) => (
                   <Link
                     key={category.id}
                     href={`/category/${category.slug}`}
-                    className="flex items-center py-3 px-3 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg"
+                    className="flex items-center py-3 px-3 text-sm font-medium text-ds-text-secondary hover:text-ds-accent hover:bg-ds-primary rounded-lg"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {category.name}

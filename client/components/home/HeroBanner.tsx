@@ -85,7 +85,7 @@ export function HeroBanner() {
                   {slides[currentSlide].description}
                 </p>
                 <Link href={slides[currentSlide].link}>
-                  <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100 text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3">
+                  <Button size="lg" className="border border-ds-border bg-ds-surface text-ds-text-primary hover:bg-ds-primary text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3">
                     Shop Now
                   </Button>
                 </Link>
@@ -111,13 +111,13 @@ export function HeroBanner() {
       {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 border border-ds-border bg-ds-surface/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:border border-ds-border bg-ds-surface/30 transition-colors z-10"
       >
         <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 border border-ds-border bg-ds-surface/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:border border-ds-border bg-ds-surface/30 transition-colors z-10"
       >
         <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>
@@ -129,7 +129,7 @@ export function HeroBanner() {
             key={index}
             onClick={() => setCurrentSlide(index)}
             className={`h-1.5 sm:h-2 rounded-full transition-all ${
-              index === currentSlide ? 'w-6 sm:w-8 bg-white' : 'w-1.5 sm:w-2 bg-white/50'
+              index === currentSlide ? 'w-6 sm:w-8 border border-ds-border bg-ds-surface' : 'w-1.5 sm:w-2 border border-ds-border bg-ds-surface/50'
             }`}
           />
         ))}
