@@ -1,13 +1,17 @@
 {
   "name": "clientecomm",
   "private": true,
-  "description": "Monorepo root — convenience scripts only; apps live in frontend/ and backend/",
+  "description": "Monorepo root — apps live in frontend/ and backend/. Render default `npm run build` requires this `build` script when Root Directory is the repo root.",
   "scripts": {
     "dev:backend": "npm run start:dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "build:backend": "npm run build --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
     "start:backend": "npm run start:prod --prefix backend",
-    "start:frontend": "npm run start --prefix frontend"
+    "start:frontend": "npm run start --prefix frontend",
+    "build": "npm install --prefix backend && npm run build --prefix backend && npm install --prefix frontend && npm run build --prefix frontend"
+  },
+  "engines": {
+    "node": ">=20 <23"
   }
 }
