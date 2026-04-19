@@ -4,15 +4,17 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Grid, List, SlidersHorizontal } from 'lucide-react'
 import { useCatalog } from '@/lib/context/CatalogContext'
-import { slugifyCatalogLabel } from '@/lib/api/catalog'
+import { categories as staticCategories } from '@/lib/data/categories'
+import { productBelongsToCategoryPage } from '@/lib/categoryRouting'
 import { ProductCard } from '@/components/shop/ProductCard'
 import { FilterSidebar } from '@/components/shop/FilterSidebar'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 
 export default function CategoryPageClient({ slug }: { slug: string }) {
-  const { products, categories, loading } = useCatalog()
-  const category = categories.find((c) => c.slug === slug)
+  const { products, loading } = useCatalog()
+  /** Storefront labels from static routes — Zoho group names rarely match these exactly. */
+  const categoryMeta = staticCategories.find((c) => c.slug === slug)
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
@@ -26,9 +28,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
   })
 
   const filteredProducts = useMemo(() => {
-    let filtered = category
-      ? products.filter((p) => p.category === category.name)
-      : products.filter((p) => slugifyCatalogLabel(p.category) === slug)
+    let filtered = products.filter((p) => productBelongsToCategoryPage(p, slug))
 
     filtered = filtered.filter((p) => {
       const priceMatch =
@@ -60,9 +60,10 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
     }
 
     return sorted
-  }, [category, slug, products, filters, sortBy])
+  }, [slug, products, filters, sortBy])
 
-  const title = category?.name ?? (loading ? 'Loading…' : 'Category')
+  const title =
+    categoryMeta?.name ?? (loading && products.length === 0 ? 'Loading…' : slug.replace(/-/g, ' '))
 
   return (
     <div className="py-8 bg-ds-primary min-h-screen">
@@ -75,10 +76,10 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
           <Link href="/categories" className="hover:text-ds-accent">
             Categories
           </Link>
-          {category && (
+          {categoryMeta && (
             <>
               <span>/</span>
-              <span className="text-ds-text-primary font-medium">{category.name}</span>
+              <span className="text-ds-text-primary font-medium">{categoryMeta.name}</span>
             </>
           )}
         </nav>
@@ -172,7 +173,11 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
             ) : (
               <div className="text-center py-16">
                 <p className="text-ds-text-secondary text-lg">
-                  No products found matching your filters.
+                  {products.length === 0 && loading
+                    ? 'Loading products…'
+                    : products.length === 0
+                      ? 'No products loaded yet. Check your catalog sync or API connection.'
+                      : 'No products in this category with the current filters.'}
                 </p>
                 <Button
                   onClick={() =>

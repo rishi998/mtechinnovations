@@ -1,43 +1,41 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import {
-  Heart,
-  ShoppingCart,
-  Star,
-  Truck,
-  Shield,
-  RotateCcw,
-  Share2,
-  Minus,
-  Plus,
-} from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useCatalog } from '@/lib/context/CatalogContext'
-import { getProductBySlugOrId, slugifyCatalogLabel } from '@/lib/api/catalog'
+import { getProductBySlugOrId } from '@/lib/api/catalog'
+import {
+  productBelongsToCategoryPage,
+  storefrontCategorySlugForProduct,
+} from '@/lib/categoryRouting'
+import { categories as staticCategories } from '@/lib/data/categories'
 import type { Product } from '@/lib/types'
 import { useCart } from '@/lib/context/CartContext'
 import { useWishlist } from '@/lib/context/WishlistContext'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { ProductCard } from '@/components/shop/ProductCard'
-import { formatPrice, calculateDiscount } from '@/lib/utils'
-
-const PLACEHOLDER =
-  'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800'
+import { calculateDiscount } from '@/lib/utils'
+import { ProductGallery } from '@/components/product/ProductGallery'
+import { ProductInfo } from '@/components/product/ProductInfo'
+import { ProductDescription } from '@/components/product/ProductDescription'
+import { ProductSpecs } from '@/components/product/ProductSpecs'
+import { ProductShipping } from '@/components/product/ProductShipping'
+import { PDPTrustRow } from '@/components/product/PDPTrustRow'
+import { ProductReviewsMock } from '@/components/product/ProductReviewsMock'
+import { SimilarProducts } from '@/components/product/SimilarProducts'
+import { RecommendedProducts } from '@/components/product/RecommendedProducts'
+import { PdpStickyBar } from '@/components/product/PdpStickyBar'
+import { cn } from '@/lib/utils'
 
 export default function ProductPageClient({ slug }: { slug: string }) {
+  const router = useRouter()
   const { products: catalogProducts, loading: catalogLoading } = useCatalog()
   const [product, setProduct] = useState<Product | null>(null)
   const [fetching, setFetching] = useState(false)
-
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
-  const [activeTab, setActiveTab] = useState<'description' | 'specs' | 'shipping'>(
-    'description',
-  )
+  const [stickyVisible, setStickyVisible] = useState(false)
 
+  const heroSentinelRef = useRef<HTMLDivElement>(null)
   const { addToCart } = useCart()
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
 
@@ -62,17 +60,77 @@ export default function ProductPageClient({ slug }: { slug: string }) {
     }
   }, [slug, catalogProducts])
 
-  const mainImage = useMemo(() => {
-    if (!product?.images?.length) return PLACEHOLDER
-    return product.images[selectedImage] ?? product.images[0] ?? PLACEHOLDER
-  }, [product, selectedImage])
+  useEffect(() => {
+    if (!product?.id) return
+    try {
+      const raw = localStorage.getItem('pdp_recent_ids')
+      const ids: string[] = raw ? JSON.parse(raw) : []
+      const next = [product.id, ...ids.filter((id) => id !== product.id)].slice(0, 24)
+      localStorage.setItem('pdp_recent_ids', JSON.stringify(next))
+    } catch {
+      /* ignore */
+    }
+  }, [product?.id])
 
-  const relatedProducts = useMemo(() => {
+  useEffect(() => {
+    const el = heroSentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        setStickyVisible(!entry.isIntersecting)
+      },
+      { threshold: 0, rootMargin: '-72px 0px 0px 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [product?.id])
+
+  const similarProducts = useMemo(() => {
     if (!product) return []
+    const bucket = storefrontCategorySlugForProduct(product)
+    if (!bucket) {
+      return catalogProducts.filter((p) => p.id !== product.id).slice(0, 8)
+    }
     return catalogProducts
-      .filter((p) => p.category === product.category && p.id !== product.id)
-      .slice(0, 4)
+      .filter((p) => p.id !== product.id && productBelongsToCategoryPage(p, bucket))
+      .slice(0, 8)
   }, [catalogProducts, product])
+
+  const discountPct = useMemo(() => {
+    if (!product?.originalPrice || product.originalPrice <= product.price) return 0
+    return calculateDiscount(product.originalPrice, product.price)
+  }, [product])
+
+  const handleAddToCart = useCallback(() => {
+    if (!product) return
+    void addToCart(product, quantity)
+  }, [addToCart, product, quantity])
+
+  const handleBuyNow = useCallback(async () => {
+    if (!product || product.stock <= 0) return
+    await addToCart(product, quantity)
+    router.push('/checkout/')
+  }, [addToCart, product, quantity, router])
+
+  const handleWishlistToggle = useCallback(() => {
+    if (!product) return
+    if (isInWishlist(product.id)) removeFromWishlist(product.id)
+    else addToWishlist(product)
+  }, [product, addToWishlist, removeFromWishlist, isInWishlist])
+
+  const handleShare = useCallback(async () => {
+    if (!product) return
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, text: product.name, url })
+      } else {
+        await navigator.clipboard.writeText(url)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [product])
 
   if (catalogLoading && !product && !fetching) {
     return (
@@ -85,8 +143,8 @@ export default function ProductPageClient({ slug }: { slug: string }) {
   if (!product && !fetching) {
     return (
       <div className="container-custom py-16 text-center">
-        <p className="text-ds-text-secondary mb-4">Product not found.</p>
-        <Link href="/" className="text-ds-accent font-medium hover:underline">
+        <p className="mb-4 text-ds-text-secondary">Product not found.</p>
+        <Link href="/" className="font-medium text-ds-accent hover:underline">
           Back to home
         </Link>
       </div>
@@ -101,327 +159,96 @@ export default function ProductPageClient({ slug }: { slug: string }) {
     )
   }
 
+  const categoryBucket = storefrontCategorySlugForProduct(product)
+  const categoryMeta = categoryBucket
+    ? staticCategories.find((c) => c.slug === categoryBucket)
+    : null
+  const categoryHref = categoryBucket ? `/category/${categoryBucket}/` : '/categories/'
+  const categoryLabel = categoryMeta?.name ?? product.category
   const inWishlist = isInWishlist(product.id)
-  const discount = product.originalPrice
-    ? calculateDiscount(product.originalPrice, product.price)
-    : 0
-  const categoryHref = `/category/${slugifyCatalogLabel(product.category)}`
-  const specEntries = Object.entries(product.specs ?? {})
-
-  const handleAddToCart = () => {
-    addToCart(product, quantity)
-  }
-
-  const handleWishlistToggle = () => {
-    if (inWishlist) {
-      removeFromWishlist(product.id)
-    } else {
-      addToWishlist(product)
-    }
-  }
+  const similarIds = similarProducts.map((p) => p.id)
 
   return (
-    <div className="py-8 bg-ds-primary">
-      <div className="container-custom">
-        <nav className="flex items-center gap-2 text-sm text-ds-text-secondary mb-6 flex-wrap">
-          <Link href="/" className="hover:text-ds-accent">
+    <div className={cn('bg-ds-primary pb-8', stickyVisible && 'pb-28')}>
+      <div ref={heroSentinelRef} id="pdp-hero" className="container-custom pt-8">
+        <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-ds-text-secondary">
+          <Link href="/" className="transition duration-180 ease-out hover:text-ds-accent">
             Home
           </Link>
-          <span>/</span>
-          <Link href={categoryHref} className="hover:text-ds-accent">
-            {product.category}
+          <span aria-hidden>/</span>
+          <Link href={categoryHref} className="transition duration-180 ease-out hover:text-ds-accent">
+            {categoryLabel}
           </Link>
-          <span>/</span>
-          <span className="text-ds-text-primary truncate max-w-[200px] sm:max-w-none">
-            {product.name}
-          </span>
+          <span aria-hidden>/</span>
+          <span className="max-w-[200px] truncate text-ds-text-primary sm:max-w-none">{product.name}</span>
         </nav>
 
-        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-4 sm:p-6 lg:p-8 mb-8">
-          <div className="grid lg:grid-cols-2 gap-8">
-            <div>
-              <div className="aspect-square bg-ds-surface rounded-xl mb-4 overflow-hidden relative">
-                <Image
-                  src={mainImage}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-                {discount > 0 && (
-                  <Badge variant="danger" className="absolute top-4 left-4">
-                    {discount}% OFF
-                  </Badge>
-                )}
-              </div>
-
-              {product.images.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {product.images.map((image, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => setSelectedImage(index)}
-                      className={`aspect-square bg-ds-surface rounded-lg overflow-hidden border-2 ${
-                        selectedImage === index
-                          ? 'border-ds-accent'
-                          : 'border-transparent hover:border-ds-border'
-                      }`}
-                    >
-                      <Image
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        width={100}
-                        height={100}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm text-ds-text-secondary uppercase mb-2">{product.brand}</p>
-              <h1 className="text-2xl sm:text-3xl font-bold text-ds-text-primary mb-4">
-                {product.name}
-              </h1>
-
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-5 h-5 ${
-                        i < Math.floor(product.rating)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-ds-text-secondary'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm text-ds-text-secondary">
-                  {product.rating} ({product.reviewsCount} reviews)
-                </span>
-              </div>
-
-              <div className="flex items-baseline gap-3 mb-6">
-                <span className="text-3xl sm:text-4xl font-bold text-ds-accent">
-                  {formatPrice(product.price)}
-                </span>
-                {product.originalPrice != null && product.originalPrice > 0 && (
-                  <span className="text-lg sm:text-xl text-ds-text-secondary line-through">
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                )}
-              </div>
-
-              <div className="mb-6">
-                {product.stock > 0 ? (
-                  <Badge variant="success" size="lg">
-                    {product.stock < 10
-                      ? `Only ${product.stock} left in stock`
-                      : 'In Stock'}
-                  </Badge>
-                ) : (
-                  <Badge variant="danger" size="lg">
-                    Out of Stock
-                  </Badge>
-                )}
-              </div>
-
-              <p className="text-ds-text-secondary mb-6 leading-relaxed">
-                {product.description?.trim()
-                  ? product.description
-                  : `${product.name} — ${product.subcategory}. Stock: ${product.stock}.`}
-              </p>
-
-              <div className="flex items-center gap-4 mb-6">
-                <span className="text-sm font-medium text-ds-text-secondary">Quantity:</span>
-                <div className="flex items-center border border-ds-border rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-4 py-2.5 hover:bg-ds-primary active:bg-ds-surface"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="px-5 py-2.5 font-medium border-x min-w-[48px] text-center">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setQuantity(Math.min(product.stock || 1, quantity + 1))
-                    }
-                    className="px-4 py-2.5 hover:bg-ds-primary active:bg-ds-surface"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mb-8">
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                  size="lg"
-                  className="flex-1"
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  <span className="hidden xs:inline">Add to Cart</span>
-                  <span className="xs:hidden">Add</span>
-                </Button>
-                <Button
-                  onClick={handleWishlistToggle}
-                  variant="outline"
-                  size="lg"
-                  className="px-4"
-                >
-                  <Heart
-                    className={`w-5 h-5 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`}
-                  />
-                </Button>
-                <Button variant="outline" size="lg" className="px-4">
-                  <Share2 className="w-5 h-5" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t">
-                <div className="flex items-start gap-3">
-                  <Truck className="w-5 h-5 text-ds-accent flex-shrink-0 mt-1" />
-                  <div>
-                    <p className="font-medium text-sm">Free Shipping</p>
-                    <p className="text-xs text-ds-text-secondary">On orders over ₹500</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-ds-accent flex-shrink-0 mt-1" />
-                  <div>
-                    <p className="font-medium text-sm">Warranty</p>
-                    <p className="text-xs text-ds-text-secondary">As per manufacturer</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <RotateCcw className="w-5 h-5 text-ds-accent flex-shrink-0 mt-1" />
-                  <div>
-                    <p className="font-medium text-sm">Easy Returns</p>
-                    <p className="text-xs text-ds-text-secondary">7 days return policy</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="rounded-2xl border border-ds-border bg-ds-surface p-4 sm:p-6 lg:p-10">
+          <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
+            <ProductGallery
+              product={product}
+              selectedIndex={selectedImage}
+              onSelect={setSelectedImage}
+              discountPercent={discountPct}
+            />
+            <ProductInfo
+              product={product}
+              categoryLabel={categoryLabel}
+              categoryHref={categoryHref}
+              quantity={quantity}
+              onQuantityChange={setQuantity}
+              onAddToCart={handleAddToCart}
+              onBuyNow={handleBuyNow}
+              onWishlistToggle={handleWishlistToggle}
+              inWishlist={inWishlist}
+              onShare={handleShare}
+            />
           </div>
         </div>
-
-        <div className="border border-ds-border bg-ds-surface rounded-2xl shadow-sm p-4 sm:p-6 lg:p-8 mb-8">
-          <div className="flex border-b mb-6 overflow-x-auto scrollbar-hide -mx-1 px-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('description')}
-              className={`px-4 sm:px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-                activeTab === 'description'
-                  ? 'border-ds-accent text-ds-accent'
-                  : 'border-transparent text-ds-text-secondary hover:text-ds-text-primary'
-              }`}
-            >
-              Description
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('specs')}
-              className={`px-4 sm:px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-                activeTab === 'specs'
-                  ? 'border-ds-accent text-ds-accent'
-                  : 'border-transparent text-ds-text-secondary hover:text-ds-text-primary'
-              }`}
-            >
-              Specifications
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('shipping')}
-              className={`px-4 sm:px-6 py-3 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-                activeTab === 'shipping'
-                  ? 'border-ds-accent text-ds-accent'
-                  : 'border-transparent text-ds-text-secondary hover:text-ds-text-primary'
-              }`}
-            >
-              Shipping & Returns
-            </button>
-          </div>
-
-          <div>
-            {activeTab === 'description' && (
-              <div className="prose max-w-none">
-                <p className="text-ds-text-secondary leading-relaxed">
-                  {product.description?.trim()
-                    ? product.description
-                    : `Category: ${product.category}. Type: ${product.subcategory}.`}
-                </p>
-                {product.tags.length > 0 && (
-                  <ul className="mt-4 space-y-2">
-                    {product.tags.map((tag) => (
-                      <li key={tag} className="text-ds-text-secondary">
-                        • {tag}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'specs' && (
-              <div className="grid md:grid-cols-2 gap-4">
-                {specEntries.length === 0 ? (
-                  <p className="text-ds-text-secondary text-sm">
-                    No specifications listed for this item.
-                  </p>
-                ) : (
-                  specEntries.map(([key, value]) => (
-                    <div key={key} className="flex items-center py-3 border-b">
-                      <span className="font-medium text-ds-text-secondary w-1/2">{key}:</span>
-                      <span className="text-ds-text-primary w-1/2">{value}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {activeTab === 'shipping' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-ds-text-primary mb-2">Shipping</h3>
-                  <p className="text-ds-text-secondary">
-                    • Free shipping on orders over ₹500
-                    <br />
-                    • Standard delivery: 3–5 business days
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-ds-text-primary mb-2">Returns</h3>
-                  <p className="text-ds-text-secondary">
-                    • 7-day return policy from delivery date
-                    <br />• Items must be in original condition
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {relatedProducts.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold text-ds-text-primary mb-6">You May Also Like</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <ProductCard key={relatedProduct.id} product={relatedProduct} />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      <PDPTrustRow />
+
+      <ProductDescription product={product} />
+      <ProductSpecs product={product} categoryDisplayName={categoryLabel} />
+      <ProductShipping />
+      <ProductReviewsMock rating={product.rating} reviewsCount={product.reviewsCount} />
+      <SimilarProducts products={similarProducts} />
+      <RecommendedProducts
+        product={product}
+        catalog={catalogProducts}
+        excludeIds={similarIds}
+      />
+
+      <PdpSectionCta />
+
+      <PdpStickyBar
+        product={product}
+        visible={stickyVisible}
+        quantity={quantity}
+        onAddToCart={handleAddToCart}
+      />
     </div>
+  )
+}
+
+function PdpSectionCta() {
+  return (
+    <section className="border-b border-ds-border bg-ds-primary py-12 md:py-16">
+      <div className="container-custom flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
+        <Link
+          href="/categories/"
+          className="inline-flex flex-1 items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent px-8 py-3 text-center text-sm font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface sm:max-w-xs"
+        >
+          Continue Shopping
+        </Link>
+        <Link
+          href="/product/"
+          className="inline-flex flex-1 items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent px-8 py-3 text-center text-sm font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface sm:max-w-xs"
+        >
+          View All Products
+        </Link>
+      </div>
+    </section>
   )
 }

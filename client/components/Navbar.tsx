@@ -14,7 +14,9 @@ const navLinks = [
   { href: '/category/arduino/', label: 'Arduino' },
   { href: '/category/raspberry-pi/', label: 'Raspberry Pi' },
   { href: '/category/sensors/', label: 'Sensors' },
+  { href: '/category/motors-drivers/', label: 'Motors' },
   { href: '/categories/', label: 'Shop All' },
+  { href: '/track/', label: 'Track order' },
 ]
 
 export function Navbar() {
@@ -67,27 +69,27 @@ export function Navbar() {
         scrolled && 'shadow-[0_12px_40px_rgba(0,0,0,0.55)]',
       )}
     >
-      <div className="container-custom flex h-16 items-center justify-between gap-4 md:h-[72px]">
+      <div className="container-custom flex h-[68px] items-center justify-between gap-4 md:h-20">
         <Link href="/" className="relative z-10 flex shrink-0 items-center gap-2">
           <Image
             src="/images/logo.png"
             alt="ElectroStore"
-            width={120}
-            height={38}
-            className="h-8 w-auto object-contain brightness-0 invert md:h-9"
+            width={152}
+            height={48}
+            className="h-10 w-auto object-contain brightness-0 invert md:h-11"
             priority
           />
         </Link>
 
         <nav
-          className="absolute left-1/2 hidden -translate-x-1/2 md:flex md:items-center md:gap-8"
+          className="absolute left-1/2 hidden max-w-[min(100vw-16rem,52rem)] -translate-x-1/2 md:flex md:flex-wrap md:items-center md:justify-center md:gap-x-6 md:gap-y-1 lg:gap-x-8"
           aria-label="Main"
         >
           {navLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm font-medium uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out hover:brightness-110"
+              className="text-sm font-bold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:brightness-110"
             >
               {l.label}
             </Link>
@@ -216,7 +218,7 @@ export function Navbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="text-sm font-semibold uppercase tracking-wide text-ds-text-primary"
+                className="text-sm font-bold uppercase tracking-wide text-ds-accent"
                 onClick={() => setMobileOpen(false)}
               >
                 {l.label}
@@ -235,13 +237,6 @@ export function Navbar() {
               onClick={() => setMobileOpen(false)}
             >
               Account
-            </Link>
-            <Link
-              href="/track/"
-              className="text-sm font-semibold uppercase tracking-wide text-ds-text-secondary"
-              onClick={() => setMobileOpen(false)}
-            >
-              Track order
             </Link>
           </nav>
         </div>
