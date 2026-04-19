@@ -10,7 +10,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <Navbar />
       <PageBackButton />
-      <main className="min-h-screen bg-ds-primary text-ds-text-primary">{children}</main>
+      <main className="min-h-screen bg-ds-primary text-ds-text-primary transition-colors duration-200 ease-out">
+        {children}
+      </main>
       <Footer />
       <CartAddedToast />
     </>

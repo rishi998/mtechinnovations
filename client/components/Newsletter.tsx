@@ -45,7 +45,7 @@ export function Newsletter() {
           />
           <button
             type="submit"
-            className="min-h-12 shrink-0 rounded-lg bg-ds-accent px-8 py-3 text-sm font-semibold uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 active:scale-[0.99]"
+            className="min-h-12 shrink-0 rounded-lg bg-ds-accent px-8 py-3 text-sm font-semibold uppercase tracking-wide text-ds-inverse transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 active:scale-[0.99]"
           >
             Subscribe
           </button>

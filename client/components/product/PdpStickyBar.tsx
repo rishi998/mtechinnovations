@@ -22,7 +22,7 @@ export function PdpStickyBar({ product, visible, quantity, onAddToCart }: PdpSti
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-ds-border bg-ds-surface/95 py-3 shadow-[0_-8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-ds-border bg-ds-surface/95 py-3 shadow-[var(--shadow-sticky-up)] backdrop-blur-md"
       role="region"
       aria-label="Quick add to cart"
     >

@@ -51,7 +51,7 @@ export function CategoryStrip() {
                 href={`/category/${c.slug}/`}
                 className={clsx(
                   'group flex min-w-[160px] shrink-0 flex-col gap-4 rounded-xl border border-ds-border bg-ds-primary p-4 transition duration-250 ease-out',
-                  'hover:scale-[1.02] hover:border-ds-accent hover:shadow-[0_16px_48px_rgba(0,0,0,0.35)]',
+                  'hover:scale-[1.02] hover:border-ds-accent hover:shadow-[var(--shadow-elevated-md)]',
                 )}
               >
                 <div className="relative h-14 w-14 overflow-hidden rounded-lg border border-ds-border bg-ds-surface">

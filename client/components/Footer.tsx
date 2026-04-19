@@ -26,20 +26,20 @@ export function Footer() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-ds-border bg-ds-primary">
+    <footer className="border-t border-ds-inverse/10 bg-ds-ink">
       <div className="container-custom py-14 md:py-16">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
           <div>
             <Link href="/" className="inline-block">
               <Image
                 src="/images/logo.png"
-                alt="ElectroStore"
+                alt="M Tech Innovations"
                 width={120}
                 height={38}
                 className="h-9 w-auto object-contain brightness-0 invert"
               />
             </Link>
-            <p className="mt-4 text-base leading-[1.7] text-ds-text-secondary">
+            <p className="mt-4 text-base leading-[1.7] text-ds-ink-muted">
               Premium electronics for builders—boards, sensors, motors, and power.
             </p>
             <div className="mt-6 flex items-center gap-3">
@@ -47,7 +47,7 @@ export function Footer() {
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-border bg-ds-surface text-ds-text-secondary transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent hover:text-ds-text-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-inverse/15 bg-ds-inverse/5 text-ds-ink-muted transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent-orange hover:text-ds-inverse"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" strokeWidth={1.75} />
@@ -56,7 +56,7 @@ export function Footer() {
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-border bg-ds-surface text-ds-text-secondary transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent hover:text-ds-text-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-inverse/15 bg-ds-inverse/5 text-ds-ink-muted transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent-orange hover:text-ds-inverse"
                 aria-label="Twitter"
               >
                 <Twitter className="h-5 w-5" strokeWidth={1.75} />
@@ -65,7 +65,7 @@ export function Footer() {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-border bg-ds-surface text-ds-text-secondary transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent hover:text-ds-text-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-inverse/15 bg-ds-inverse/5 text-ds-ink-muted transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent-orange hover:text-ds-inverse"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" strokeWidth={1.75} />
@@ -74,7 +74,7 @@ export function Footer() {
                 href="https://youtube.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-border bg-ds-surface text-ds-text-secondary transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent hover:text-ds-text-primary"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-ds-inverse/15 bg-ds-inverse/5 text-ds-ink-muted transition duration-180 ease-out hover:scale-[1.02] hover:border-ds-accent-orange hover:text-ds-inverse"
                 aria-label="YouTube"
               >
                 <Youtube className="h-5 w-5" strokeWidth={1.75} />
@@ -83,13 +83,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-ds-text-primary">Shop</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-ds-inverse">Shop</h3>
             <ul className="mt-4 space-y-3">
               {shop.map((l) => (
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-base leading-[1.7] text-ds-text-secondary transition duration-180 hover:text-ds-text-primary"
+                    className="text-base leading-[1.7] text-ds-ink-muted transition duration-180 hover:text-ds-inverse"
                   >
                     {l.label}
                   </Link>
@@ -99,13 +99,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-ds-text-primary">Support</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-ds-inverse">Support</h3>
             <ul className="mt-4 space-y-3">
               {support.map((l) => (
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-base leading-[1.7] text-ds-text-secondary transition duration-180 hover:text-ds-text-primary"
+                    className="text-base leading-[1.7] text-ds-ink-muted transition duration-180 hover:text-ds-inverse"
                   >
                     {l.label}
                   </Link>
@@ -115,13 +115,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-ds-text-primary">Company</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-ds-inverse">Company</h3>
             <ul className="mt-4 space-y-3">
               {company.map((l) => (
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-base leading-[1.7] text-ds-text-secondary transition duration-180 hover:text-ds-text-primary"
+                    className="text-base leading-[1.7] text-ds-ink-muted transition duration-180 hover:text-ds-inverse"
                   >
                     {l.label}
                   </Link>
@@ -131,8 +131,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-ds-border pt-8 text-center text-sm text-ds-text-secondary">
-          © {year} ElectroStore. All rights reserved.
+        <div className="mt-12 border-t border-ds-inverse/10 pt-8 text-center text-sm text-ds-ink-muted">
+          © {year} M Tech Innovations. All rights reserved.
         </div>
       </div>
     </footer>

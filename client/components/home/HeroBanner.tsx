@@ -73,7 +73,7 @@ export function HeroBanner() {
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="text-white z-10"
+                className="text-ds-inverse z-10"
               >
                 <p className="text-sm sm:text-base lg:text-lg font-medium mb-1 sm:mb-2">
                   {slides[currentSlide].subtitle}
@@ -81,7 +81,7 @@ export function HeroBanner() {
                 <h2 className="text-2xl sm:text-4xl lg:text-6xl font-bold mb-2 sm:mb-4 leading-tight">
                   {slides[currentSlide].title}
                 </h2>
-                <p className="text-sm sm:text-base lg:text-xl mb-4 sm:mb-8 text-white/90 line-clamp-2 sm:line-clamp-none">
+                <p className="text-sm sm:text-base lg:text-xl mb-4 sm:mb-8 text-ds-inverse line-clamp-2 sm:line-clamp-none">
                   {slides[currentSlide].description}
                 </p>
                 <Link href={slides[currentSlide].link}>
@@ -111,13 +111,13 @@ export function HeroBanner() {
       {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 border border-ds-border bg-ds-surface/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:border border-ds-border bg-ds-surface/30 transition-colors z-10"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 border border-ds-border bg-ds-surface/20 backdrop-blur-sm rounded-full flex items-center justify-center text-ds-inverse hover:border-ds-border hover:bg-ds-surface/30 transition-colors z-10"
       >
         <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 border border-ds-border bg-ds-surface/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:border border-ds-border bg-ds-surface/30 transition-colors z-10"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 border border-ds-border bg-ds-surface/20 backdrop-blur-sm rounded-full flex items-center justify-center text-ds-inverse hover:border-ds-border hover:bg-ds-surface/30 transition-colors z-10"
       >
         <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>

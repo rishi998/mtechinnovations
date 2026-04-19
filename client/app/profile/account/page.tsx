@@ -41,7 +41,7 @@ export default function AccountPage() {
           Back to profile
         </Link>
 
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 sm:p-8 mb-6 text-white">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 sm:p-8 mb-6 text-ds-inverse">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="w-16 h-16 sm:w-20 sm:h-20 border border-ds-border bg-ds-surface/20 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0">
               {user.name.charAt(0).toUpperCase()}

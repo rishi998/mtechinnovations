@@ -10,13 +10,47 @@ const config: Config = {
     extend: {
       colors: {
         ds: {
-          primary: '#0A0A0A',
-          surface: '#1A1A1A',
-          border: '#2B2B2B',
-          'text-primary': '#FFFFFF',
-          'text-secondary': '#A8A8A8',
-          accent: '#FF4C00',
-          light: '#F5F5F5',
+          /** Page canvas */
+          primary: 'rgb(var(--color-ds-primary) / <alpha-value>)',
+          /** Alternate sections */
+          secondary: 'rgb(var(--color-ds-secondary) / <alpha-value>)',
+          /** Cards, nav bar, elevated panels */
+          surface: 'rgb(var(--color-ds-surface) / <alpha-value>)',
+          /** Product / category cards */
+          card: 'rgb(var(--color-ds-card) / <alpha-value>)',
+          border: 'rgb(var(--color-ds-border) / <alpha-value>)',
+          /** Headings & primary copy */
+          'text-primary': 'rgb(var(--color-ds-text-primary) / <alpha-value>)',
+          /** Supporting copy */
+          'text-secondary': 'rgb(var(--color-ds-text-secondary) / <alpha-value>)',
+          /** Primary CTA */
+          accent: 'rgb(var(--color-ds-accent) / <alpha-value>)',
+          /** Brand orange — nav highlights & promo strip */
+          'accent-orange': 'rgb(var(--color-ds-accent-orange) / <alpha-value>)',
+          /** Pink / salmon pills */
+          soft: 'rgb(var(--color-ds-soft) / <alpha-value>)',
+          'soft-foreground': 'rgb(var(--color-ds-soft-foreground) / <alpha-value>)',
+          /** Article / learn links */
+          link: 'rgb(var(--color-ds-link) / <alpha-value>)',
+          /** Text on accent buttons / dark chips */
+          inverse: 'rgb(var(--color-ds-inverse) / <alpha-value>)',
+          /** Dark bands — footer, strong CTA break */
+          ink: 'rgb(var(--color-ds-ink) / <alpha-value>)',
+          /** Muted text on dark (footer links) */
+          'ink-muted': 'rgb(var(--color-ds-ink-muted) / <alpha-value>)',
+          /** Subtle fills, icon wells */
+          muted: 'rgb(var(--color-ds-muted) / <alpha-value>)',
+          /** Ripple highlights on dark buttons */
+          light: 'rgb(var(--color-ds-light) / <alpha-value>)',
+          /** Scrim / overlays */
+          overlay: 'rgb(var(--color-ds-overlay) / <alpha-value>)',
+          /** Logo mark background */
+          'logo-bg': 'rgb(var(--color-ds-logo-bg) / <alpha-value>)',
+          /** Dark “Add to cart” style buttons */
+          'cta-solid': 'rgb(var(--color-ds-cta-solid) / <alpha-value>)',
+          /** Footer social icon wells (layout footer) */
+          'footer-icon': 'rgb(var(--color-ds-footer-icon) / <alpha-value>)',
+          'footer-input-border': 'rgb(var(--color-ds-footer-input-border) / <alpha-value>)',
         },
         primary: {
           50: '#f0f9ff',
@@ -67,6 +101,7 @@ const config: Config = {
           'heroEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both',
         'cart-bump': 'cartBump 420ms cubic-bezier(0.22, 1, 0.36, 1) both',
         'btn-success-pop': 'btnSuccessPop 200ms ease-out both',
+        float: 'float 5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -98,6 +133,10 @@ const config: Config = {
           '0%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.05)' },
           '100%': { transform: 'scale(1)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
       },
       transitionDuration: {

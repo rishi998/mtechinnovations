@@ -208,7 +208,7 @@ export default function CheckoutPage() {
                 <div
                   className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base ${
                     step >= num
-                      ? 'bg-ds-accent text-white'
+                      ? 'bg-ds-accent text-ds-inverse'
                       : 'bg-ds-surface text-ds-text-secondary'
                   }`}
                 >

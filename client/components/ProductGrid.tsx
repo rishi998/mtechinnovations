@@ -127,16 +127,18 @@ export function ProductGrid() {
       <section
         ref={ref as React.LegacyRef<HTMLElement>}
         className={cn(
-          'border-b border-ds-border bg-ds-primary py-16 md:py-20 transition duration-600 ease-out',
+          'border-b border-ds-border bg-ds-primary py-20 md:py-24 lg:py-28 transition duration-600 ease-out',
           visible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
         )}
       >
         <div className="container-custom">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-section font-semibold text-ds-text-primary">Featured picks</h2>
-              <p className="mt-2 max-w-2xl text-base leading-[1.7] text-ds-text-secondary">
-                Hand-selected boards and modules with strong ratings and ready stock.
+            <div className="max-w-2xl">
+              <h2 className="text-section font-semibold tracking-tight text-ds-text-primary">
+                Popular right now
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-[1.75] text-ds-text-secondary">
+                Best-selling development boards and modules—ready to ship with live stock and pricing.
               </p>
             </div>
           </div>
@@ -146,11 +148,13 @@ export function ProductGrid() {
             <ProductFilters {...filterProps} onOpenMobileDrawer={() => setFilterDrawerOpen(true)} />
           </div>
 
-          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
             {loading
               ? Array.from({ length: SKELETON_COUNT }).map((_, i) => <ProductCardSkeleton key={i} />)
               : visibleSlice.map((p) => (
-                  <ProductCard key={p.id} product={p} onQuickView={setQuickView} />
+                  <div key={p.id} className="h-full min-h-0">
+                    <ProductCard product={p} onQuickView={setQuickView} />
+                  </div>
                 ))}
           </div>
 
@@ -192,19 +196,21 @@ export function ProductGrid() {
       <section
         ref={recRef as React.LegacyRef<HTMLElement>}
         className={cn(
-          'border-b border-ds-border bg-ds-primary py-14 md:py-16 transition duration-600 ease-out',
+          'border-b border-ds-border bg-ds-primary py-20 md:py-24 transition duration-600 ease-out',
           recVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
         )}
       >
         <div className="container-custom">
-          <h2 className="text-2xl font-semibold text-ds-text-primary md:text-3xl">Recommended for you</h2>
-          <p className="mt-2 max-w-2xl text-base text-ds-text-secondary">
+          <h2 className="text-section font-semibold tracking-tight text-ds-text-primary">
+            Recommended for you
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-[1.75] text-ds-text-secondary">
             Popular in robotics and prototyping—picked from live catalog signals.
           </p>
-          <div className="mt-8 -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 hide-scrollbar md:mx-0 md:px-0">
+          <div className="mt-10 -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 hide-scrollbar md:mx-0 md:px-0">
             {!loading &&
               recommended.map((p) => (
-                <div key={p.id} className="w-[220px] shrink-0 sm:w-[240px]">
+                <div key={p.id} className="flex h-full w-[220px] shrink-0 sm:w-[240px]">
                   <ProductCard variant="compact" product={p} onQuickView={setQuickView} />
                 </div>
               ))}

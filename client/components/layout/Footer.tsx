@@ -7,28 +7,28 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-gray-900 text-ds-text-secondary">
+    <footer className="bg-ds-ink text-ds-ink-muted">
       {/* Trust strip (Robu/Robocraze style) */}
-      <div className="border-b border-gray-800">
+      <div className="border-b border-ds-inverse/10">
         <div className="container-custom py-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
             <div className="flex flex-col items-center gap-2">
               <Truck className="w-8 h-8 text-ds-accent" />
-              <span className="font-semibold text-white">Free Shipping</span>
+              <span className="font-semibold text-ds-inverse">Free Shipping</span>
               <span className="text-sm">On orders over ₹999</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <Shield className="w-8 h-8 text-ds-accent" />
-              <span className="font-semibold text-white">Best Price Guarantee</span>
+              <span className="font-semibold text-ds-inverse">Best Price Guarantee</span>
               <span className="text-sm">Lowest prices assured</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <Award className="w-8 h-8 text-ds-accent" />
-              <span className="font-semibold text-white">300,000+ Orders</span>
+              <span className="font-semibold text-ds-inverse">300,000+ Orders</span>
               <span className="text-sm">Trusted by makers</span>
             </div>
             <div className="flex flex-col items-center gap-2 col-span-2 lg:col-span-1">
-              <span className="text-2xl font-bold text-white">Pan-India</span>
+              <span className="text-2xl font-bold text-ds-inverse">Pan-India</span>
               <span className="text-sm">Delivery to all states</span>
             </div>
           </div>
@@ -49,7 +49,7 @@ export function Footer() {
                 className="h-9 w-auto object-contain"
               />
             </Link>
-            <h4 className="text-sm text-ds-text-secondary">MTech Innovations is a brand owned by Maurya Enterprises</h4>
+            <h4 className="text-sm text-ds-ink-muted">MTech Innovations is a brand owned by Maurya Enterprises</h4>
             <p className="text-sm mb-4 mt-2">
               Your one-stop shop for all electronics, Arduino, Raspberry Pi, sensors,
               motors, and robotics components.
@@ -59,7 +59,7 @@ export function Footer() {
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors"
+                className="w-9 h-9 bg-ds-footer-icon rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors text-ds-inverse"
               >
                 <Facebook className="w-4 h-4" />
               </a>
@@ -67,7 +67,7 @@ export function Footer() {
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors"
+                className="w-9 h-9 bg-ds-footer-icon rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors text-ds-inverse"
               >
                 <Twitter className="w-4 h-4" />
               </a>
@@ -75,7 +75,7 @@ export function Footer() {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors"
+                className="w-9 h-9 bg-ds-footer-icon rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors text-ds-inverse"
               >
                 <Instagram className="w-4 h-4" />
               </a>
@@ -83,7 +83,7 @@ export function Footer() {
                 href="https://youtube.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors"
+                className="w-9 h-9 bg-ds-footer-icon rounded-full flex items-center justify-center hover:bg-ds-accent transition-colors text-ds-inverse"
               >
                 <Youtube className="w-4 h-4" />
               </a>
@@ -92,7 +92,7 @@ export function Footer() {
 
           {/* Categories */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Categories</h4>
+            <h4 className="text-ds-inverse font-semibold mb-4">Categories</h4>
             <ul className="space-y-2 text-sm">
               {categories.slice(0, 6).map((category) => (
                 <li key={category.id}>
@@ -109,7 +109,7 @@ export function Footer() {
 
           {/* Customer Service */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Customer Service</h4>
+            <h4 className="text-ds-inverse font-semibold mb-4">Customer Service</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/about" className="hover:text-ds-accent transition-colors">
@@ -141,7 +141,7 @@ export function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Contact Us</h4>
+            <h4 className="text-ds-inverse font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -164,35 +164,35 @@ export function Footer() {
 
           {/* Customer testimonials placeholder */}
           <div>
-            <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <h4 className="text-ds-inverse font-semibold mb-4 flex items-center gap-2">
               <Quote className="w-4 h-4 text-ds-accent" />
               What customers say
             </h4>
-            <blockquote className="text-sm italic text-ds-text-secondary border-l-2 border-ds-accent pl-4">
+            <blockquote className="text-sm italic text-ds-ink-muted border-l-2 border-ds-accent pl-4">
               &ldquo;Great components, fast delivery. Best place for Arduino and sensors.&rdquo;
             </blockquote>
-            <p className="text-xs text-ds-text-secondary mt-2">— Verified buyer</p>
+            <p className="text-xs text-ds-ink-muted mt-2">— Verified buyer</p>
           </div>
         </div>
       </div>
 
       {/* Newsletter */}
-      <div className="border-t border-gray-800">
+      <div className="border-t border-ds-inverse/10">
         <div className="container-custom py-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h4 className="text-white font-semibold mb-1">Subscribe to our Newsletter</h4>
+              <h4 className="text-ds-inverse font-semibold mb-1">Subscribe to our Newsletter</h4>
               <p className="text-sm">Get the latest updates on new products and offers</p>
             </div>
             <form className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-ds-accent w-full sm:w-64 text-base"
+                className="px-4 py-3 rounded-lg bg-ds-footer-icon border border-ds-footer-input-border focus:outline-none focus:ring-2 focus:ring-ds-accent w-full sm:w-64 text-base text-ds-inverse placeholder:text-ds-ink-muted"
               />
               <button
                 type="submit"
-                className="px-6 py-3 bg-ds-accent text-white rounded-lg font-medium hover:bg-ds-accent transition-colors whitespace-nowrap"
+                className="px-6 py-3 bg-ds-accent text-ds-inverse rounded-lg font-medium hover:brightness-110 transition-colors whitespace-nowrap"
               >
                 Subscribe
               </button>
@@ -202,10 +202,10 @@ export function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-800">
+      <div className="border-t border-ds-inverse/10">
         <div className="container-custom py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
-            <p>© {currentYear} ElectroStore. All rights reserved.</p>
+            <p>© {currentYear} M Tech Innovations. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <Link href="/privacy" className="hover:text-ds-accent transition-colors">
                 Privacy Policy

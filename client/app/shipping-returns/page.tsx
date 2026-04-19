@@ -205,7 +205,7 @@ export default function ShippingReturnsPage() {
                   { step: '5', title: 'Get Refund', desc: 'Refund is processed within 5-7 business days after we receive the product' },
                 ].map((item) => (
                   <div key={item.step} className="flex gap-4">
-                    <div className="w-8 h-8 bg-ds-accent text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                    <div className="w-8 h-8 bg-ds-accent text-ds-inverse rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                       {item.step}
                     </div>
                     <div>
@@ -248,7 +248,7 @@ export default function ShippingReturnsPage() {
         </div>
 
         {/* Contact */}
-        <div className="bg-ds-accent rounded-2xl p-6 sm:p-8 text-white text-center">
+        <div className="bg-ds-accent rounded-2xl p-6 sm:p-8 text-ds-inverse text-center">
           <h2 className="text-xl font-bold mb-2">Need Help?</h2>
           <p className="text-ds-text-primary mb-4 text-sm">
             Have questions about your shipment or return? Our support team is here to help.

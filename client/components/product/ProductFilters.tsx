@@ -130,11 +130,11 @@ export function MobileFiltersDrawer({
     <div className="fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true" aria-label="Filters">
       <button
         type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-250"
+        className="absolute inset-0 bg-ds-overlay/60 backdrop-blur-sm transition-opacity duration-250"
         onClick={onClose}
         aria-label="Close filters"
       />
-      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] motion-safe:animate-slide-up rounded-t-2xl border border-ds-border border-b-0 bg-ds-surface p-5 shadow-[0_-16px_48px_rgba(0,0,0,0.45)]">
+      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] motion-safe:animate-slide-up rounded-t-2xl border border-ds-border border-b-0 bg-ds-surface p-5 shadow-[var(--shadow-sheet-up)]">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-ds-border" />
         <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-ds-text-secondary">
           Sort &amp; filter

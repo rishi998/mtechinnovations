@@ -9,6 +9,7 @@ import { useWishlist } from '@/lib/context/WishlistContext'
 import { useAuth } from '@/lib/context/AuthContext'
 import { clsx } from 'clsx'
 import { CART_ADDED_EVENT } from '@/lib/cartEvents'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 const navLinks = [
   { href: '/category/arduino/', label: 'Arduino' },
@@ -65,54 +66,62 @@ export function Navbar() {
   return (
     <header
       className={clsx(
-        'sticky top-0 z-50 border-b border-ds-border bg-ds-primary transition-[box-shadow] duration-200 ease-out',
-        scrolled && 'shadow-[0_12px_40px_rgba(0,0,0,0.55)]',
+        'sticky top-0 z-50 border-b border-ds-border bg-ds-surface transition-[box-shadow] duration-200 ease-out',
+        scrolled && 'shadow-[var(--shadow-nav)]',
       )}
     >
-      <div className="container-custom flex h-[68px] items-center justify-between gap-4 md:h-20">
-        <Link href="/" className="relative z-10 flex shrink-0 items-center gap-2">
-          <Image
-            src="/images/logo.png"
-            alt="ElectroStore"
-            width={152}
-            height={48}
-            className="h-10 w-auto object-contain brightness-0 invert md:h-11"
-            priority
-          />
+      <div className="container-custom grid min-h-[84px] grid-cols-[minmax(0,auto)_auto] items-center gap-x-3 py-2 md:min-h-[100px] md:grid-cols-[auto,minmax(0,1fr),auto] md:gap-x-4 md:py-3">
+        <Link
+          href="/"
+          className="relative z-10 flex min-w-0 shrink-0 items-center gap-2 justify-self-start"
+          aria-label="Home"
+        >
+          <span className="inline-flex w-fit shrink-0 items-center justify-center rounded-sm bg-ds-logo-bg p-[0.3rem] leading-none">
+            <Image
+              src="/images/logo.png"
+              alt="M TECH Innovations"
+              width={352}
+              height={104}
+              className="block h-14 w-auto max-h-[4rem] object-contain object-center md:h-16 md:max-h-[4.5rem]"
+              priority
+            />
+          </span>
         </Link>
 
         <nav
-          className="absolute left-1/2 hidden max-w-[min(100vw-16rem,52rem)] -translate-x-1/2 md:flex md:flex-wrap md:items-center md:justify-center md:gap-x-6 md:gap-y-1 lg:gap-x-8"
+          className="hidden min-w-0 justify-center px-1 md:flex md:flex-nowrap md:items-center md:gap-x-3 lg:gap-x-5 xl:gap-x-7"
           aria-label="Main"
         >
           {navLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm font-bold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:brightness-110"
+              className="shrink-0 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-ds-accent-orange transition duration-180 ease-out hover:brightness-110 lg:text-base"
             >
               {l.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+        <div className="flex shrink-0 items-center justify-self-end gap-2 sm:gap-3 md:gap-4 md:justify-self-auto">
           <Link
             href="/search/"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 md:h-12 md:w-12"
             aria-label="Search"
           >
-            <Search className="h-5 w-5" strokeWidth={1.75} />
+            <Search className="h-6 w-6 md:h-7 md:w-7" strokeWidth={1.75} />
           </Link>
+
+          <ThemeToggle />
 
           <Link
             href="/wishlist/"
-            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 md:h-12 md:w-12"
             aria-label="Wishlist"
           >
-            <Heart className="h-5 w-5" strokeWidth={1.75} />
+            <Heart className="h-6 w-6 md:h-7 md:w-7" strokeWidth={1.75} />
             {wishlistCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border border-ds-border bg-ds-surface px-1 text-[10px] font-semibold text-ds-text-primary">
+              <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-6 items-center justify-center rounded-full border border-ds-border bg-ds-surface px-1 text-[11px] font-semibold text-ds-text-primary">
                 {wishlistCount > 99 ? '99+' : wishlistCount}
               </span>
             )}
@@ -120,15 +129,15 @@ export function Navbar() {
 
           <Link
             href="/cart/"
-            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 md:h-12 md:w-12"
             aria-label="Cart"
           >
             <ShoppingCart
-              className={clsx('h-5 w-5', cartPulse && 'motion-safe:animate-cart-bump')}
+              className={clsx('h-6 w-6 md:h-7 md:w-7', cartPulse && 'motion-safe:animate-cart-bump')}
               strokeWidth={1.75}
             />
             {cartCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-ds-accent px-1 text-xs font-semibold uppercase text-ds-text-primary">
+              <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-ds-accent px-1 text-xs font-semibold uppercase text-ds-inverse">
                 {cartCount > 99 ? '99+' : cartCount}
               </span>
             )}
@@ -139,13 +148,13 @@ export function Navbar() {
               type="button"
               onClick={() => setUserOpen((v) => !v)}
               aria-expanded={userOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-ds-text-primary transition duration-180 ease-out hover:bg-ds-surface"
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:bg-ds-primary md:h-12 md:w-12"
               aria-label="Account"
             >
-              <User className="h-5 w-5" strokeWidth={1.75} />
+              <User className="h-6 w-6 md:h-7 md:w-7" strokeWidth={1.75} />
             </button>
             {userOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-lg border border-ds-border bg-ds-surface py-1 shadow-[0_16px_48px_rgba(0,0,0,0.45)]">
+              <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-lg border border-ds-border bg-ds-surface py-1 shadow-[var(--shadow-elevated-md)]">
                 {isAuthenticated ? (
                   <>
                     <div className="border-b border-ds-border px-4 py-3">
@@ -172,7 +181,7 @@ export function Navbar() {
                         logout()
                         setUserOpen(false)
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-red-400 transition hover:bg-ds-primary"
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-ds-primary"
                     >
                       Log out
                     </button>
@@ -201,24 +210,24 @@ export function Navbar() {
 
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-ds-text-primary md:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary md:hidden"
             aria-expanded={mobileOpen}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setMobileOpen((v) => !v)}
           >
-            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileOpen ? <X className="h-7 w-7" strokeWidth={1.75} /> : <Menu className="h-7 w-7" strokeWidth={1.75} />}
           </button>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-ds-border bg-ds-primary px-4 py-6 md:hidden">
+        <div className="border-t border-ds-border bg-ds-surface px-4 py-6 md:hidden">
           <nav className="flex flex-col gap-4" aria-label="Mobile">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="text-sm font-bold uppercase tracking-wide text-ds-accent"
+                className="text-base font-bold uppercase tracking-wide text-ds-accent-orange"
                 onClick={() => setMobileOpen(false)}
               >
                 {l.label}
@@ -226,14 +235,14 @@ export function Navbar() {
             ))}
             <Link
               href="/wishlist/"
-              className="text-sm font-semibold uppercase tracking-wide text-ds-text-primary"
+              className="text-base font-semibold uppercase tracking-wide text-ds-text-primary"
               onClick={() => setMobileOpen(false)}
             >
               Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ''}
             </Link>
             <Link
               href="/profile/"
-              className="text-sm font-semibold uppercase tracking-wide text-ds-text-primary"
+              className="text-base font-semibold uppercase tracking-wide text-ds-text-primary"
               onClick={() => setMobileOpen(false)}
             >
               Account

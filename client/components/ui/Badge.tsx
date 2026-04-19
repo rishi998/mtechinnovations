@@ -14,10 +14,10 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variants = {
-    default: 'border border-ds-border bg-ds-primary text-ds-text-secondary',
-    success: 'border border-ds-accent bg-ds-primary text-ds-accent',
+    default: 'border border-ds-border bg-ds-muted text-ds-text-secondary',
+    success: 'border border-ds-accent/25 bg-ds-soft text-ds-accent',
     warning: 'border border-ds-border bg-ds-surface text-ds-text-primary',
-    danger: 'border border-red-700/50 bg-ds-primary text-red-400',
+    danger: 'border border-red-200 bg-red-50 text-red-700',
     info: 'border border-ds-border bg-ds-surface text-ds-text-secondary',
   }
 

@@ -79,7 +79,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-ds-primary py-8">
       <div className="container-custom">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-5 sm:p-8 mb-6 sm:mb-8 text-white">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-5 sm:p-8 mb-6 sm:mb-8 text-ds-inverse">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="w-14 h-14 sm:w-20 sm:h-20 border border-ds-border bg-ds-surface/20 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold flex-shrink-0">
               {user.name.charAt(0).toUpperCase()}

@@ -2,24 +2,134 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Design tokens — single source of truth for theming.
+  Light values match the pre-theming app exactly (same hex as legacy Tailwind `ds` palette).
+  Tailwind `ds.*` colors resolve to rgb(var(--color-ds-*) / <alpha-value>).
+*/
+
 @layer base {
   :root {
+    color-scheme: light;
+
+    /* Semantic aliases (raw CSS / documentation) — light = current production look */
+    --bg-primary: #f4f5f7;
+    --bg-surface: #ffffff;
+    --bg-secondary: #fafafa;
+    --text-primary: #111827;
+    --text-secondary: #525866;
+    --border-color: #e4e7ec;
+    --accent: #e53935;
+    --card-bg: #ffffff;
+
+    /* RGB channels for Tailwind + opacity modifiers */
+    --color-ds-primary: 244 245 247;
+    --color-ds-secondary: 250 250 250;
+    --color-ds-surface: 255 255 255;
+    --color-ds-card: 255 255 255;
+    --color-ds-border: 228 231 236;
+    --color-ds-text-primary: 17 24 39;
+    --color-ds-text-secondary: 82 88 102;
+    --color-ds-accent: 229 57 53;
+    --color-ds-accent-orange: 234 88 12;
+    --color-ds-soft: 255 214 220;
+    --color-ds-soft-foreground: 136 19 55;
+    --color-ds-link: 37 99 235;
+    --color-ds-inverse: 255 255 255;
+    --color-ds-ink: 11 13 18;
+    --color-ds-ink-muted: 168 176 191;
+    --color-ds-muted: 238 241 245;
+    --color-ds-light: 255 255 255;
+    --color-ds-overlay: 0 0 0;
+    --color-ds-logo-bg: 0 0 0;
+    --color-ds-cta-solid: 24 24 27;
+    --color-ds-footer-icon: 31 41 55;
+    --color-ds-footer-input-border: 55 65 81;
+    --color-ds-focus-ring-offset: 255 255 255;
+
+    --shadow-nav: 0 8px 30px rgba(15, 23, 42, 0.08);
+    --shadow-card: 0 8px 30px rgba(15, 23, 42, 0.06);
+    --shadow-card-hover: 0 16px 40px rgba(15, 23, 42, 0.1);
+    --shadow-elevated-md: 0 16px 48px rgba(15, 23, 42, 0.12);
+    --shadow-elevated-lg: 0 24px 80px rgba(0, 0, 0, 0.5);
+    --shadow-sheet-up: 0 -16px 48px rgba(0, 0, 0, 0.45);
+    --shadow-sticky-up: 0 -8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-card-elevated: 0 8px 32px rgba(0, 0, 0, 0.25);
+    --shadow-card-elevated-hover: 0 12px 40px rgba(0, 0, 0, 0.35);
+    --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-product-hover: 0 20px 48px rgba(15, 23, 42, 0.12);
+    --shadow-hero-panel: 0 24px 64px rgba(15, 23, 42, 0.1);
+    --shadow-hero-panel-hover: 0 32px 72px rgba(15, 23, 42, 0.14);
+
     --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  [data-theme='dark'] {
+    color-scheme: dark;
+
     --bg-primary: #0a0a0a;
     --bg-surface: #1a1a1a;
-    --border-color: #2b2b2b;
+    --bg-secondary: #121212;
     --text-primary: #ffffff;
     --text-secondary: #a8a8a8;
+    --border-color: #2b2b2b;
     --accent: #ff4c00;
-    --bg-light: #f5f5f5;
+    --card-bg: #1a1a1a;
+
+    --color-ds-primary: 10 10 10;
+    --color-ds-secondary: 18 18 18;
+    --color-ds-surface: 26 26 26;
+    --color-ds-card: 26 26 26;
+    --color-ds-border: 43 43 43;
+    --color-ds-text-primary: 255 255 255;
+    --color-ds-text-secondary: 168 168 168;
+    --color-ds-accent: 255 76 0;
+    --color-ds-accent-orange: 255 140 66;
+    --color-ds-soft: 80 30 50;
+    --color-ds-soft-foreground: 255 214 220;
+    --color-ds-link: 96 165 250;
+    --color-ds-inverse: 255 255 255;
+    --color-ds-ink: 5 6 10;
+    --color-ds-ink-muted: 168 176 191;
+    --color-ds-muted: 38 40 46;
+    --color-ds-light: 255 255 255;
+    --color-ds-overlay: 0 0 0;
+    --color-ds-logo-bg: 0 0 0;
+    --color-ds-cta-solid: 55 55 60;
+    --color-ds-footer-icon: 38 38 42;
+    --color-ds-footer-input-border: 55 55 60;
+    --color-ds-focus-ring-offset: 26 26 26;
+
+    --shadow-nav: 0 8px 30px rgba(0, 0, 0, 0.45);
+    --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.35);
+    --shadow-card-hover: 0 16px 40px rgba(0, 0, 0, 0.45);
+    --shadow-elevated-md: 0 16px 48px rgba(0, 0, 0, 0.5);
+    --shadow-elevated-lg: 0 24px 80px rgba(0, 0, 0, 0.65);
+    --shadow-sheet-up: 0 -16px 48px rgba(0, 0, 0, 0.55);
+    --shadow-sticky-up: 0 -8px 32px rgba(0, 0, 0, 0.55);
+    --shadow-card-elevated: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-card-elevated-hover: 0 12px 40px rgba(0, 0, 0, 0.55);
+    --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-product-hover: 0 20px 48px rgba(0, 0, 0, 0.55);
+    --shadow-hero-panel: 0 24px 64px rgba(0, 0, 0, 0.45);
+    --shadow-hero-panel-hover: 0 32px 72px rgba(0, 0, 0, 0.55);
   }
 
   html {
     scroll-behavior: smooth;
   }
 
+  html,
   body {
-    @apply bg-ds-primary text-ds-text-primary antialiased;
+    transition:
+      background-color 200ms ease-out,
+      color 200ms ease-out;
+  }
+
+  body {
+    @apply antialiased;
+    background-color: rgb(var(--color-ds-primary));
+    color: rgb(var(--color-ds-text-primary));
   }
 }
 
@@ -29,19 +139,43 @@
   }
 
   .btn-primary {
-    @apply rounded-lg bg-ds-accent px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply rounded-lg px-6 py-2.5 text-sm font-semibold uppercase tracking-wide transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50;
+    background-color: rgb(var(--color-ds-accent));
+    color: rgb(var(--color-ds-inverse));
   }
 
   .btn-secondary {
-    @apply rounded-lg border border-ds-border bg-ds-surface px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out hover:border-ds-accent hover:brightness-110;
+    @apply rounded-lg border px-6 py-2.5 text-sm font-semibold uppercase tracking-wide transition duration-180 ease-out hover:brightness-110;
+    border-color: rgb(var(--color-ds-border));
+    background-color: rgb(var(--color-ds-surface));
+    color: rgb(var(--color-ds-text-primary));
+  }
+
+  .btn-secondary:hover {
+    border-color: rgb(var(--color-ds-accent));
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-ds-border bg-ds-surface px-4 py-2.5 text-ds-text-primary outline-none transition placeholder:text-ds-text-secondary focus:border-ds-accent focus:ring-2 focus:ring-ds-accent/30;
+    @apply w-full rounded-lg border px-4 py-2.5 outline-none transition;
+    border-color: rgb(var(--color-ds-border));
+    background-color: rgb(var(--color-ds-surface));
+    color: rgb(var(--color-ds-text-primary));
+  }
+
+  .input-field::placeholder {
+    color: rgb(var(--color-ds-text-secondary));
+  }
+
+  .input-field:focus {
+    border-color: rgb(var(--color-ds-accent));
+    box-shadow: 0 0 0 2px rgb(var(--color-ds-accent) / 0.25);
   }
 
   .card {
-    @apply rounded-xl border border-ds-border bg-ds-surface p-4 shadow-[0_8px_32px_rgba(0,0,0,0.25)] transition-shadow hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)];
+    @apply rounded-xl border p-4 transition-shadow hover:shadow-[var(--shadow-card-hover)];
+    border-color: rgb(var(--color-ds-border));
+    background-color: rgb(var(--color-ds-card));
+    box-shadow: var(--shadow-card);
   }
 }
 

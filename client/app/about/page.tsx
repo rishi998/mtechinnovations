@@ -4,7 +4,7 @@ export default function AboutPage() {
   return (
     <div className="bg-ds-primary">
       {/* Hero */}
-      <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-12 sm:py-16 lg:py-20">
+      <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-ds-inverse py-12 sm:py-16 lg:py-20">
         <div className="container-custom text-center">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">About ElectroStore</h1>
           <p className="text-base sm:text-xl text-ds-text-primary max-w-2xl mx-auto px-4">

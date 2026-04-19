@@ -1,19 +1,23 @@
 import { Hero } from '@/components/Hero'
-import { CategoryStrip } from '@/components/CategoryStrip'
+import { CategoryGrid } from '@/components/home/CategoryGrid'
 import { ProductGrid } from '@/components/ProductGrid'
+import { UseCaseSection } from '@/components/home/UseCaseSection'
+import { LearningSection } from '@/components/home/LearningSection'
 import { PromoBanner } from '@/components/PromoBanner'
+import { CTASection } from '@/components/home/CTASection'
 import { TrustStrip } from '@/components/TrustStrip'
-import { Newsletter } from '@/components/Newsletter'
 
 export default function HomePage() {
   return (
     <>
       <Hero />
-      <CategoryStrip />
+      <CategoryGrid />
       <ProductGrid />
+      <UseCaseSection />
+      <LearningSection />
       <PromoBanner />
+      <CTASection />
       <TrustStrip />
-      <Newsletter />
     </>
   )
 }

@@ -179,7 +179,7 @@ export default function TrackOrderPage() {
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                             isCompleted ? 'bg-ds-accent' : 'bg-ds-surface'
                           }`}>
-                            <step.icon className={`w-4 h-4 ${isCompleted ? 'text-white' : 'text-ds-text-secondary'}`} />
+                            <step.icon className={`w-4 h-4 ${isCompleted ? 'text-ds-inverse' : 'text-ds-text-secondary'}`} />
                           </div>
                           {index < trackingSteps.length - 1 && (
                             <div className={`w-0.5 flex-1 mt-1 ${isCompleted ? 'bg-ds-accent' : 'bg-ds-surface'}`} style={{ minHeight: '24px' }} />

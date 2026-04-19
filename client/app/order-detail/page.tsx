@@ -163,7 +163,7 @@ function OrderDetailContent() {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 flex-shrink-0 ${
                         isCompleted ? 'bg-ds-accent' : 'bg-ds-surface'
                       }`}>
-                        <step.icon className={`w-4 h-4 ${isCompleted ? 'text-white' : 'text-ds-text-secondary'}`} />
+                        <step.icon className={`w-4 h-4 ${isCompleted ? 'text-ds-inverse' : 'text-ds-text-secondary'}`} />
                       </div>
                       <div className="sm:text-center">
                         <p className={`text-sm font-medium ${isCompleted ? 'text-ds-text-primary' : 'text-ds-text-secondary'}`}>

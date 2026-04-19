@@ -32,7 +32,7 @@ export function CartAddedToast() {
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           className="pointer-events-none fixed bottom-6 left-1/2 z-[80] w-[min(92vw,380px)] -translate-x-1/2"
         >
-          <div className="pointer-events-auto flex items-start gap-3 rounded-xl border border-ds-border bg-ds-surface px-4 py-3 shadow-[0_16px_48px_rgba(0,0,0,0.45)]">
+          <div className="pointer-events-auto flex items-start gap-3 rounded-xl border border-ds-border bg-ds-surface px-4 py-3 shadow-[var(--shadow-elevated-md)]">
             <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-ds-border bg-ds-primary">
               <ShoppingBag className="h-4 w-4 text-ds-accent" strokeWidth={1.75} />
             </span>

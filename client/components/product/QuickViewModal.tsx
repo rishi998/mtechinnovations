@@ -81,7 +81,7 @@ export function QuickViewModal({ product, onClose }: QuickViewModalProps) {
         >
           <motion.button
             type="button"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-ds-overlay/60 backdrop-blur-sm"
             aria-label="Close quick view"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -90,7 +90,7 @@ export function QuickViewModal({ product, onClose }: QuickViewModalProps) {
             onClick={onClose}
           />
           <motion.div
-            className="relative grid max-h-[90vh] w-full max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-ds-border bg-ds-surface shadow-[0_24px_80px_rgba(0,0,0,0.5)] md:grid-cols-2"
+            className="relative grid max-h-[90vh] w-full max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-ds-border bg-ds-surface shadow-[var(--shadow-elevated-lg)] md:grid-cols-2"
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}

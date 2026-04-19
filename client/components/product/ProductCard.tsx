@@ -25,11 +25,12 @@ type ProductCardProps = {
   product: Product
   variant?: 'default' | 'compact'
   onQuickView?: (product: Product) => void
+  className?: string
 }
 
 type Ripple = { id: string; x: number; y: number }
 
-export function ProductCard({ product, variant = 'default', onQuickView }: ProductCardProps) {
+export function ProductCard({ product, variant = 'default', onQuickView, className }: ProductCardProps) {
   const router = useRouter()
   const { addToCart } = useCart()
   const [cartPhase, setCartPhase] = useState<'idle' | 'loading' | 'success'>('idle')
@@ -90,13 +91,13 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
   return (
     <div
       className={cn(
-        'group/card relative flex flex-col overflow-hidden rounded-xl border border-ds-border bg-ds-surface',
+        'group/card relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-ds-border bg-ds-card',
         'transition duration-250 ease-out will-change-transform',
-        'hover:-translate-y-0.5 hover:shadow-[0_20px_56px_rgba(0,0,0,0.38)]',
-        'hover:[transform:perspective(960px)_rotateX(0.5deg)_rotateY(-0.5deg)]',
+        'hover:scale-[1.02] hover:shadow-[var(--shadow-product-hover)]',
+        className,
       )}
     >
-      <div className="relative aspect-square w-full overflow-hidden bg-ds-primary">
+      <div className="relative aspect-square w-full overflow-hidden bg-ds-muted">
         <Link
           href={productPath(product.slug, product.id)}
           className="absolute inset-0 z-[1]"
@@ -115,6 +116,11 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
 
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[2] flex justify-between gap-2 p-3">
           <div className="flex max-w-[70%] flex-col gap-1.5">
+            {product.trending && (
+              <span className="inline-flex w-fit rounded-md border border-ds-border bg-ds-surface px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ds-accent">
+                Trending
+              </span>
+            )}
             {ribbons.map((r) => (
               <span
                 key={r}
@@ -134,7 +140,7 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-ds-primary/0 transition duration-250 ease-out group-hover/card:bg-ds-primary/35">
+        <div className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center bg-ds-overlay/0 transition duration-250 ease-out group-hover/card:bg-ds-overlay/10">
           <button
             type="button"
             onClick={handleQuickView}
@@ -149,7 +155,7 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
         </div>
       </div>
 
-      <div className={cn('flex flex-1 flex-col', compact ? 'p-3' : 'p-4')}>
+      <div className={cn('flex flex-1 flex-col', compact ? 'p-3' : 'p-5')}>
         <Link
           href={productPath(product.slug, product.id)}
           className={cn(
@@ -200,16 +206,17 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
           )}
         </div>
 
-        <div className={cn('mt-4 flex flex-wrap items-baseline gap-2', compact && 'mt-3')}>
-          <span className={cn('font-bold text-ds-accent', compact ? 'text-base' : 'text-lg')}>
-            {formatPrice(product.price)}
-          </span>
-          {product.originalPrice != null && product.originalPrice > product.price && (
-            <span className="text-sm text-ds-text-secondary line-through">{formatPrice(product.originalPrice)}</span>
-          )}
-        </div>
+        <div className={cn('mt-auto flex flex-col gap-4', compact && 'gap-3')}>
+          <div className={cn('flex flex-wrap items-baseline gap-2')}>
+            <span className={cn('font-bold text-ds-accent', compact ? 'text-base' : 'text-lg')}>
+              {formatPrice(product.price)}
+            </span>
+            {product.originalPrice != null && product.originalPrice > product.price && (
+              <span className="text-sm text-ds-text-secondary line-through">{formatPrice(product.originalPrice)}</span>
+            )}
+          </div>
 
-        <div className={cn('mt-4 flex flex-col gap-2', compact && 'mt-3')}>
+          <div className={cn('flex flex-col gap-2')}>
           <Link
             href={productPath(product.slug, product.id)}
             className={cn(
@@ -226,7 +233,7 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
             onClick={handleAdd}
             disabled={product.stock <= 0 || cartPhase === 'loading'}
             className={cn(
-              'relative w-full overflow-hidden rounded-lg border border-ds-border bg-ds-primary py-3 text-sm font-semibold uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out',
+              'relative w-full overflow-hidden rounded-lg border border-ds-cta-solid bg-ds-cta-solid py-3 text-sm font-semibold uppercase tracking-wide text-ds-inverse transition duration-180 ease-out',
               'hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50',
               cartPhase === 'success' && 'motion-safe:animate-btn-success-pop border-ds-accent bg-ds-accent',
             )}
@@ -234,7 +241,7 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
             {ripples.map((r) => (
               <span
                 key={r.id}
-                className="pointer-events-none absolute h-3 w-3 rounded-full bg-ds-light motion-safe:animate-ripple"
+                className="pointer-events-none absolute h-3 w-3 rounded-full bg-ds-inverse/35 motion-safe:animate-ripple"
                 style={{ left: r.x, top: r.y }}
               />
             ))}
@@ -267,6 +274,7 @@ export function ProductCard({ product, variant = 'default', onQuickView }: Produ
               )}
             </span>
           </button>
+          </div>
         </div>
       </div>
     </div>

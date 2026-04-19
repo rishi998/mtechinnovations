@@ -44,12 +44,12 @@ export function DealsOfDay() {
   return (
     <section className="py-10 sm:py-16 bg-gradient-to-r from-orange-500 to-red-600">
       <div className="container-custom">
-        <div className="text-center text-white mb-8 sm:mb-12">
+        <div className="text-center text-ds-inverse mb-8 sm:mb-12">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <Clock className="w-6 h-6 sm:w-8 sm:h-8" />
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Deals of the Day</h2>
           </div>
-          <p className="text-white/90 text-sm sm:text-base mb-4">
+          <p className="text-ds-inverse text-sm sm:text-base mb-4">
             Limited-time picks from your live catalog
           </p>
           <div className="flex items-center justify-center gap-3 text-lg font-mono font-bold">
@@ -63,7 +63,7 @@ export function DealsOfDay() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {dealProducts.map((product) => (
-            <div key={product.id} className="border border-ds-border bg-ds-surface rounded-xl p-2 shadow-lg">
+            <div key={product.id} className="border border-ds-border bg-ds-card rounded-xl p-2 shadow-lg">
               <ProductCard product={product} />
             </div>
           ))}

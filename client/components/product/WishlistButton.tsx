@@ -34,7 +34,7 @@ export function WishlistButton({ product, className, label }: WishlistButtonProp
       whileTap={{ scale: 0.9 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'flex h-9 w-9 items-center justify-center rounded-full border border-ds-border bg-ds-surface/95 text-ds-text-secondary shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-sm transition duration-250 ease-out hover:border-ds-accent/60 hover:text-ds-text-primary',
+        'flex h-9 w-9 items-center justify-center rounded-full border border-ds-border bg-ds-surface/95 text-ds-text-secondary shadow-[var(--shadow-floating)] backdrop-blur-sm transition duration-250 ease-out hover:border-ds-accent/60 hover:text-ds-text-primary',
         active && 'border-ds-accent text-ds-accent',
         className,
       )}

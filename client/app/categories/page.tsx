@@ -56,7 +56,7 @@ export default function CategoriesPage() {
               <Card
                 key={cat.id}
                 hover
-                className="flex h-full flex-col overflow-hidden p-0 shadow-[0_8px_32px_rgba(0,0,0,0.25)]"
+                className="flex h-full flex-col overflow-hidden p-0 shadow-[var(--shadow-card-elevated)]"
               >
                 <div className="relative h-40 w-full shrink-0 bg-ds-primary">
                   <Image

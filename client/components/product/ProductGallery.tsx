@@ -99,7 +99,7 @@ export function ProductGallery({
         >
           <button
             type="button"
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm transition-opacity duration-250"
+            className="absolute inset-0 bg-ds-overlay/75 backdrop-blur-sm transition-opacity duration-250"
             onClick={closeZoom}
             aria-label="Close zoom"
           />

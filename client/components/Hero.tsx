@@ -63,9 +63,9 @@ export function Hero() {
 
   return (
     <section className="border-b border-ds-border bg-ds-primary">
-      <div className="container-custom py-12 md:py-16 lg:py-24">
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          <div className="order-2 max-w-xl lg:order-1">
+      <div className="container-custom py-20 md:py-24 lg:py-32">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          <div className="order-2 max-w-md lg:order-1 lg:max-w-lg">
             <div className="motion-safe:animate-hero-enter motion-reduce:translate-y-0 motion-reduce:opacity-100">
               <h1 className="text-hero font-extrabold tracking-[-0.5px] text-ds-text-primary">
                 Precision electronics.
@@ -82,9 +82,9 @@ export function Hero() {
           </div>
 
           <div className="order-1 flex justify-center motion-safe:animate-hero-enter-delayed lg:order-2 lg:justify-end motion-reduce:translate-y-0 motion-reduce:opacity-100">
-            <div className="relative w-full max-w-lg">
+            <div className="relative w-full max-w-lg motion-safe:animate-float motion-reduce:animate-none">
               <div
-                className="relative overflow-hidden rounded-2xl border border-ds-border bg-ds-surface p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+                className="relative overflow-hidden rounded-2xl border border-ds-border bg-ds-surface p-6 shadow-[var(--shadow-hero-panel)] transition duration-300 ease-out hover:shadow-[var(--shadow-hero-panel-hover)]"
                 onMouseEnter={() => setPaused(true)}
                 onMouseLeave={() => setPaused(false)}
                 onFocusCapture={() => setPaused(true)}
@@ -102,7 +102,7 @@ export function Hero() {
                   id={`${id}-carousel`}
                   className="outline-none focus-visible:ring-2 focus-visible:ring-ds-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ds-surface"
                 >
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-ds-primary">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-ds-muted">
                     <div
                       className="flex h-full w-full transition-transform duration-500 ease-out motion-reduce:transition-none"
                       style={{ transform: `translateX(-${index * 100}%)` }}
@@ -125,7 +125,7 @@ export function Hero() {
                             placeholder="blur"
                             blurDataURL={PRODUCT_IMAGE_BLUR}
                           />
-                          <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-ds-primary/90 to-transparent px-4 pb-4 pt-12">
+                          <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-ds-surface/95 to-transparent px-4 pb-4 pt-12">
                             <span className="text-sm font-bold uppercase tracking-wide text-ds-text-primary">
                               {slide.name}
                             </span>
@@ -212,12 +212,12 @@ function RippleCta({ href, children }: { href: string; children: React.ReactNode
     <Link
       href={href}
       onPointerDown={onPointerDown}
-      className="relative inline-flex overflow-hidden rounded-lg bg-ds-accent px-8 py-4 text-sm font-semibold uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 active:scale-[0.99]"
+      className="relative inline-flex overflow-hidden rounded-lg bg-ds-accent px-8 py-4 text-sm font-semibold uppercase tracking-wide text-ds-inverse transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 active:scale-[0.99]"
     >
       {ripples.map((r) => (
         <span
           key={r.id}
-          className="pointer-events-none absolute h-3 w-3 rounded-full bg-ds-light motion-safe:animate-ripple"
+          className="pointer-events-none absolute h-3 w-3 rounded-full bg-ds-inverse/40 motion-safe:animate-ripple"
           style={{ left: r.x, top: r.y }}
         />
       ))}

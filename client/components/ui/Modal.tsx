@@ -55,14 +55,14 @@ export function Modal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-ds-overlay/60 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
       <div
         className={cn(
-          'relative w-full overflow-hidden rounded-2xl border border-ds-border bg-ds-surface shadow-[0_24px_80px_rgba(0,0,0,0.5)]',
+          'relative w-full overflow-hidden rounded-2xl border border-ds-border bg-ds-surface shadow-[var(--shadow-elevated-lg)]',
           sizeClasses[size],
           'max-h-[90vh] overflow-y-auto',
         )}

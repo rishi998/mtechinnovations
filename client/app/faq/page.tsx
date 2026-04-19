@@ -137,7 +137,7 @@ export default function FAQPage() {
         </div>
 
         {/* Contact CTA */}
-        <div className="mt-8 sm:mt-12 bg-ds-accent rounded-2xl p-5 sm:p-8 text-center text-white">
+        <div className="mt-8 sm:mt-12 bg-ds-accent rounded-2xl p-5 sm:p-8 text-center text-ds-inverse">
           <h2 className="text-xl sm:text-2xl font-bold mb-2">Still have questions?</h2>
           <p className="text-ds-text-primary mb-4 sm:mb-6 text-sm sm:text-base">
             Can&apos;t find the answer you&apos;re looking for? Please chat with our team.
