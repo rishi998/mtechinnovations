@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateAddressesDto } from './dto/update-addresses.dto';
 import { UserDocument } from '../users/schemas/user.schema';
 
 @Injectable()
@@ -44,6 +45,25 @@ export class AuthService {
 
   async getProfile(userId: string) {
     const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return this.sanitizeUser(user);
+  }
+
+  async updateAddresses(userId: string, dto: UpdateAddressesDto) {
+    const normalized = dto.addresses.map((a) => ({
+      id: a.id.trim(),
+      name: a.name.trim(),
+      phone: a.phone.trim(),
+      addressLine1: a.addressLine1.trim(),
+      addressLine2: a.addressLine2?.trim() || null,
+      city: a.city.trim(),
+      state: a.state.trim(),
+      pincode: a.pincode.trim(),
+      isDefault: Boolean(a.isDefault),
+    }));
+    const user = await this.usersService.replaceAddresses(userId, normalized);
     if (!user) {
       throw new UnauthorizedException('User not found');
     }

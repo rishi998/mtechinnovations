@@ -36,4 +36,23 @@ export class UsersService {
       .select('+passwordHash')
       .exec();
   }
+
+  async replaceAddresses(
+    userId: string,
+    addresses: Array<{
+      id: string;
+      name: string;
+      phone: string;
+      addressLine1: string;
+      addressLine2?: string | null;
+      city: string;
+      state: string;
+      pincode: string;
+      isDefault: boolean;
+    }>,
+  ): Promise<UserDocument | null> {
+    return this.userModel
+      .findByIdAndUpdate(userId, { $set: { addresses } }, { new: true })
+      .exec();
+  }
 }
