@@ -66,62 +66,60 @@ export function Navbar() {
   return (
     <header
       className={clsx(
-        'sticky top-0 z-50 border-b border-ds-border bg-ds-surface transition-[box-shadow] duration-200 ease-out',
+        'sticky top-0 z-50 border-b border-white/20 bg-[#FF6A00] transition-[box-shadow] duration-200 ease-out',
         scrolled && 'shadow-[var(--shadow-nav)]',
       )}
     >
-      <div className="container-custom grid min-h-[84px] grid-cols-[minmax(0,auto)_auto] items-center gap-x-3 py-2 md:min-h-[100px] md:grid-cols-[auto,minmax(0,1fr),auto] md:gap-x-4 md:py-3">
+      <div className="flex w-full items-center gap-x-2 py-1.5 pl-2 pr-4 sm:gap-x-3 sm:pl-3 sm:pr-6 md:gap-x-4 md:py-2 md:pl-4 lg:pr-8">
         <Link
           href="/"
-          className="relative z-10 flex min-w-0 shrink-0 items-center gap-2 justify-self-start"
+          className="relative z-10 flex min-w-0 shrink-0 items-center gap-2"
           aria-label="Home"
         >
-          <span className="inline-flex w-fit shrink-0 items-center justify-center rounded-sm bg-ds-logo-bg p-[0.3rem] leading-none">
-            <Image
-              src="/images/logo.png"
-              alt="M TECH Innovations"
-              width={352}
-              height={104}
-              className="block h-14 w-auto max-h-[4rem] object-contain object-center md:h-16 md:max-h-[4.5rem]"
-              priority
-            />
-          </span>
+          <Image
+            src="/images/logo.png"
+            alt="M TECH Innovations"
+            width={440}
+            height={130}
+            className="block h-[4.5rem] w-auto max-h-[4.75rem] object-contain object-left md:h-20 md:max-h-[5.25rem]"
+            priority
+          />
         </Link>
 
         <nav
-          className="hidden min-w-0 justify-center px-1 md:flex md:flex-nowrap md:items-center md:gap-x-3 lg:gap-x-5 xl:gap-x-7"
+          className="hidden min-w-0 flex-1 justify-center px-1 md:flex md:flex-nowrap md:items-center md:gap-x-3 lg:gap-x-5 xl:gap-x-7"
           aria-label="Main"
         >
           {navLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="shrink-0 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-ds-accent-orange transition duration-180 ease-out hover:brightness-110 lg:text-base"
+              className="shrink-0 whitespace-nowrap text-sm font-bold uppercase tracking-wide text-black transition duration-180 ease-out hover:text-black/75 lg:text-base"
             >
               {l.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex shrink-0 items-center justify-self-end gap-2 sm:gap-3 md:gap-4 md:justify-self-auto">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 md:ml-0 md:gap-4">
           <Link
             href="/search/"
-            className="flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 md:h-12 md:w-12"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-black transition duration-180 ease-out hover:bg-black/10 hover:scale-[1.02] md:h-12 md:w-12"
             aria-label="Search"
           >
             <Search className="h-6 w-6 md:h-7 md:w-7" strokeWidth={1.75} />
           </Link>
 
-          <ThemeToggle />
+          <ThemeToggle className="text-black hover:bg-black/10" />
 
           <Link
             href="/wishlist/"
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 md:h-12 md:w-12"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-black transition duration-180 ease-out hover:bg-black/10 hover:scale-[1.02] md:h-12 md:w-12"
             aria-label="Wishlist"
           >
             <Heart className="h-6 w-6 md:h-7 md:w-7" strokeWidth={1.75} />
             {wishlistCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-6 items-center justify-center rounded-full border border-ds-border bg-ds-surface px-1 text-[11px] font-semibold text-ds-text-primary">
+              <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-6 items-center justify-center rounded-full border border-black/20 bg-black px-1 text-[11px] font-semibold text-white">
                 {wishlistCount > 99 ? '99+' : wishlistCount}
               </span>
             )}
@@ -129,7 +127,7 @@ export function Navbar() {
 
           <Link
             href="/cart/"
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:scale-[1.02] hover:brightness-110 md:h-12 md:w-12"
+            className="relative flex h-11 w-11 items-center justify-center rounded-xl text-black transition duration-180 ease-out hover:bg-black/10 hover:scale-[1.02] md:h-12 md:w-12"
             aria-label="Cart"
           >
             <ShoppingCart
@@ -137,7 +135,7 @@ export function Navbar() {
               strokeWidth={1.75}
             />
             {cartCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-ds-accent px-1 text-xs font-semibold uppercase text-ds-inverse">
+              <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-black px-1 text-xs font-semibold uppercase text-white">
                 {cartCount > 99 ? '99+' : cartCount}
               </span>
             )}
@@ -148,7 +146,7 @@ export function Navbar() {
               type="button"
               onClick={() => setUserOpen((v) => !v)}
               aria-expanded={userOpen}
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary transition duration-180 ease-out hover:bg-ds-primary md:h-12 md:w-12"
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-black transition duration-180 ease-out hover:bg-black/10 md:h-12 md:w-12"
               aria-label="Account"
             >
               <User className="h-6 w-6 md:h-7 md:w-7" strokeWidth={1.75} />
@@ -210,7 +208,7 @@ export function Navbar() {
 
           <button
             type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-xl text-ds-text-primary md:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-black hover:bg-black/10 md:hidden"
             aria-expanded={mobileOpen}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setMobileOpen((v) => !v)}
@@ -221,13 +219,13 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-ds-border bg-ds-surface px-4 py-6 md:hidden">
+        <div className="border-t border-white/20 bg-[#FF6A00] px-4 py-6 md:hidden">
           <nav className="flex flex-col gap-4" aria-label="Mobile">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="text-base font-bold uppercase tracking-wide text-ds-accent-orange"
+                className="text-base font-bold uppercase tracking-wide text-black"
                 onClick={() => setMobileOpen(false)}
               >
                 {l.label}
@@ -235,14 +233,14 @@ export function Navbar() {
             ))}
             <Link
               href="/wishlist/"
-              className="text-base font-semibold uppercase tracking-wide text-ds-text-primary"
+              className="text-base font-semibold uppercase tracking-wide text-black"
               onClick={() => setMobileOpen(false)}
             >
               Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ''}
             </Link>
             <Link
               href="/profile/"
-              className="text-base font-semibold uppercase tracking-wide text-ds-text-primary"
+              className="text-base font-semibold uppercase tracking-wide text-black"
               onClick={() => setMobileOpen(false)}
             >
               Account

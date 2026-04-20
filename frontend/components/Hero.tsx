@@ -63,7 +63,7 @@ export function Hero() {
 
   return (
     <section className="border-b border-ds-border bg-ds-primary">
-      <div className="container-custom py-20 md:py-24 lg:py-32">
+      <div className="container-custom pb-16 pt-10 md:pb-20 md:pt-12 lg:pb-24 lg:pt-14">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="order-2 max-w-md lg:order-1 lg:max-w-lg">
             <div className="motion-safe:animate-hero-enter motion-reduce:translate-y-0 motion-reduce:opacity-100">

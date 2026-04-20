@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { clsx } from 'clsx'
+import { cn } from '@/lib/utils'
 
 const STORAGE_KEY = 'theme'
 
@@ -26,7 +26,11 @@ function setDomTheme(next: 'light' | 'dark') {
   document.documentElement.setAttribute('data-theme', next)
 }
 
-export function ThemeToggle() {
+type ThemeToggleProps = {
+  className?: string
+}
+
+export function ThemeToggle({ className }: ThemeToggleProps = {}) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [mounted, setMounted] = useState(false)
   const [rotation, setRotation] = useState(0)
@@ -83,10 +87,11 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={label}
       title={label}
-      className={clsx(
+      className={cn(
         'flex h-11 w-11 items-center justify-center rounded-xl text-xl',
         'text-ds-text-primary transition-transform duration-200 ease-out hover:bg-ds-primary hover:scale-[1.02]',
         'md:h-12 md:w-12',
+        className,
       )}
     >
       <span

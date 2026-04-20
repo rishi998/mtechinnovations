@@ -18,10 +18,6 @@ export const metadata: Metadata = {
   description:
     'M Tech Innovations — shop Arduino, Raspberry Pi, sensors, motors, and electronics components. Fast shipping and trusted support.',
   keywords: 'mtech, M Tech Innovations, electronics, arduino, raspberry pi, sensors, motors, robotics',
-  icons: {
-    icon: [{ url: '/images/logo.png', type: 'image/png', sizes: 'any' }],
-    apple: [{ url: '/images/logo.png', type: 'image/png' }],
-  },
 }
 
 export default function RootLayout({
