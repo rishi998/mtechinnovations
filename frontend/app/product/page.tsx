@@ -19,7 +19,6 @@ function ProductByQuery() {
       </div>
     )
   }
-
   return <ProductPageClient slug={slug} />
 }
 
@@ -28,7 +27,7 @@ export default function ProductQueryPage() {
     <Suspense
       fallback={
         <div className="container-custom py-16 text-center text-ds-text-secondary">
-          Loading product…
+          Loading product… 
         </div>
       }
     >
@@ -36,3 +35,4 @@ export default function ProductQueryPage() {
     </Suspense>
   )
 }
+
