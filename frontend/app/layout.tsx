@@ -7,6 +7,7 @@ import { CatalogProvider } from '@/lib/context/CatalogContext'
 import { WishlistProvider } from '@/lib/context/WishlistContext'
 import { AuthProvider } from '@/lib/context/AuthContext'
 import { AppShell } from '@/components/layout/AppShell'
+import { ApiBaseLog } from '@/components/ApiBaseLog'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -43,6 +44,7 @@ export default function RootLayout({
 })();
           `}
         </Script>
+        <ApiBaseLog />
         <AuthProvider>
           <CatalogProvider>
             <CartProvider>

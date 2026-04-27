@@ -96,9 +96,6 @@ export async function getProductBySlugOrId(ref: string): Promise<Product | null>
 
 /** For `generateStaticParams` during `next build` (Node). */
 export async function fetchProductsListForBuild(): Promise<Product[]> {
-  if (!process.env.NEXT_PUBLIC_API_URL?.trim()) {
-    return []
-  }
   const base = getPublicApiUrl()
   try {
     const res = await fetch(`${base.replace(/\/$/, '')}/products`, {

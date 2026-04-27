@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -18,6 +19,8 @@ import { UserRole } from '../users/schemas/user.schema';
 
 @Controller('products')
 export class ProductsController {
+  private readonly logger = new Logger(ProductsController.name);
+
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
@@ -29,6 +32,7 @@ export class ProductsController {
 
   @Get()
   findAll() {
+    this.logger.log('GET /api/products');
     return this.productsService.findAll();
   }
 

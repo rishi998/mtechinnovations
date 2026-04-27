@@ -5,16 +5,19 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 
-function parseCorsOrigin(): boolean | string | string[] {
+/** Explicit origins only (no `*` / reflective wildcard). */
+function parseCorsOrigin(): string | string[] {
   const raw = process.env.CORS_ORIGIN?.trim();
-  if (!raw) return true;
-  const list = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (list.length === 0) return true;
-  if (list.length === 1) return list[0]!;
-  return list;
+  if (raw) {
+    const list = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (list.length === 0) return ['https://mtechinnovations.in'];
+    if (list.length === 1) return list[0]!;
+    return list;
+  }
+  return ['https://mtechinnovations.in'];
 }
 
 async function bootstrap() {
