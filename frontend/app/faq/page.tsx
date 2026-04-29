@@ -52,7 +52,7 @@ const faqs = [
       },
       {
         q: 'Can I request a product that\'s not listed?',
-        a: 'Absolutely! Send us your requirement at support@electrostore.com, and we\'ll do our best to source it for you.',
+        a: 'Absolutely! Send us your requirement at support@mtechinnovations.in, and we\'ll do our best to source it for you.',
       },
     ],
   },

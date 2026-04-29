@@ -198,7 +198,7 @@ export default function ShippingReturnsPage() {
               <h3 className="font-semibold text-ds-text-primary mb-3">How to Initiate a Return</h3>
               <div className="space-y-3">
                 {[
-                  { step: '1', title: 'Contact Us', desc: 'Email us at returns@electrostore.com or call +91 123 456 7890 within 7 days of delivery' },
+                  { step: '1', title: 'Contact Us', desc: 'Email us at returns@mtechinnovations.in or call +91 123 456 7890 within 7 days of delivery' },
                   { step: '2', title: 'Provide Details', desc: 'Share your order ID, reason for return, and photos of the product' },
                   { step: '3', title: 'Receive Approval', desc: "We'll review your request and send you a return authorization within 24 hours" },
                   { step: '4', title: 'Ship the Product', desc: 'We arrange free pickup or you can ship it to our warehouse' },

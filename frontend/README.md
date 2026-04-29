@@ -1,4 +1,4 @@
-# ElectroStore - Modern E-Commerce Electronics Store
+# M Tech Innovations — storefront
 
 A complete, production-ready e-commerce website for electronics built with Next.js 14+, TypeScript, Tailwind CSS, and Framer Motion.
 

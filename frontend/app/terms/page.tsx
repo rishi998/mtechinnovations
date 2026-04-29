@@ -132,7 +132,7 @@ export default function TermsPage() {
             <div className="mt-3 p-4 bg-ds-primary rounded-lg text-sm text-ds-text-secondary space-y-1">
               <p><strong>MTech Innovations (Maurya Enterprises)</strong></p>
               <p>123 Electronics Street, Mumbai, Maharashtra 400001</p>
-              <p>Email: <a href="mailto:info@electrostore.com" className="text-ds-accent hover:underline">info@electrostore.com</a></p>
+              <p>Email: <a href="mailto:info@mtechinnovations.in" className="text-ds-accent hover:underline">info@mtechinnovations.in</a></p>
               <p>Phone: <a href="tel:+911234567890" className="text-ds-accent hover:underline">+91 123 456 7890</a></p>
             </div>
           </section>

@@ -5,10 +5,20 @@ import { api } from './client'
 export const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800'
 
+/** Turn API-relative paths (e.g. `/zoho/items/…/image`) into absolute URLs for `<Image src>`. */
+export function resolveCatalogImageUrl(url: string): string {
+  const t = url.trim()
+  if (!t) return PLACEHOLDER_IMAGE
+  if (/^https?:\/\//i.test(t)) return t
+  const apiBase = getPublicApiUrl().replace(/\/$/, '')
+  if (t.startsWith('/')) return `${apiBase}${t}`
+  return `${apiBase}/${t.replace(/^\//, '')}`
+}
+
 /** First non-empty image URL, or catalog placeholder (safe for Next/Image `src`). */
 export function firstProductImageUrl(images?: string[] | null): string {
   const first = images?.find((u) => typeof u === 'string' && u.trim().length > 0)
-  return first?.trim() ?? PLACEHOLDER_IMAGE
+  return first ? resolveCatalogImageUrl(first.trim()) : PLACEHOLDER_IMAGE
 }
 
 export function slugifyCatalogLabel(value: string): string {
@@ -26,15 +36,24 @@ export function slugifyCatalogLabel(value: string): string {
 export function mapServerProductDoc(doc: Record<string, unknown>): Product {
   const id = String(doc._id ?? doc.id ?? '')
   const imagesRaw = doc.images
-  const images =
-    Array.isArray(imagesRaw) && imagesRaw.length > 0
-      ? (imagesRaw as string[]).filter((u) => typeof u === 'string' && u.length > 0)
-      : [PLACEHOLDER_IMAGE]
+  let images: string[]
+  if (Array.isArray(imagesRaw) && imagesRaw.length > 0) {
+    images = (imagesRaw as string[])
+      .filter((u) => typeof u === 'string' && u.length > 0)
+      .map((u) => resolveCatalogImageUrl(u))
+    if (images.length === 0) images = [PLACEHOLDER_IMAGE]
+  } else {
+    images = [PLACEHOLDER_IMAGE]
+  }
   return {
     id,
     name: String(doc.name ?? ''),
     slug: String(doc.slug ?? ''),
     sku: doc.sku != null && doc.sku !== '' ? String(doc.sku) : undefined,
+    zohoImageId:
+      doc.zoho_image_id != null && String(doc.zoho_image_id).trim() !== ''
+        ? String(doc.zoho_image_id).trim()
+        : null,
     category: String(doc.category ?? 'Uncategorized'),
     subcategory: String(doc.subcategory ?? ''),
     price: Number(doc.price ?? 0),

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react'
 import { Product, CartItem } from '../types'
+
 import { useAuth } from './AuthContext'
 import { getCart, addToCart as apiAddToCart, updateCartItem as apiUpdateCartItem, removeFromCart as apiRemoveFromCart } from '../api'
 
@@ -34,6 +35,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
   const localCartRef = useRef(localCart)
   localCartRef.current = localCart
+  /** Stops duplicate guest→server merge when the login effect runs twice (e.g. React Strict Mode). */
+  const guestMergedRef = useRef(false)
 
   const refreshCart = useCallback(async () => {
     if (!isAuthenticated) return
@@ -51,23 +54,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
   /** When logged in: merge guest cart into server, then load server cart. */
   useEffect(() => {
     if (!isAuthenticated) {
+      guestMergedRef.current = false
       setCart([])
       return
     }
     let cancelled = false
     const sync = async () => {
       setIsLoading(true)
-      const guest = localCartRef.current
+      let guestSnapshot: CartItem[] = []
+      if (!guestMergedRef.current && localCartRef.current.length > 0) {
+        guestMergedRef.current = true
+        guestSnapshot = [...localCartRef.current]
+        setLocalCart([])
+      }
       try {
-        if (guest.length > 0) {
-          for (const item of guest) {
+        if (guestSnapshot.length > 0) {
+          for (const item of guestSnapshot) {
             try {
-              await apiAddToCart(item.product.id, item.quantity)
+              await apiAddToCart(productRefForApi(item.product), item.quantity)
             } catch {
               // product id may not exist on server; skip
             }
           }
-          setLocalCart([])
         }
         const items = await getCart()
         if (!cancelled) setCart(items)
@@ -77,7 +85,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setIsLoading(false)
       }
     }
-    sync()
+    void sync()
     return () => {
       cancelled = true
     }

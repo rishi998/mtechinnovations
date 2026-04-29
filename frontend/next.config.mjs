@@ -12,6 +12,26 @@ const basePath = rawBase.replace(/\/$/, '') || undefined
 
 const staticExport = process.env.NEXT_STATIC_EXPORT === 'true'
 
+/** Allow `next/image` to load Zoho proxy URLs served under your API host (from NEXT_PUBLIC_API_URL). */
+function apiImageRemotePatterns() {
+  const raw = process.env.NEXT_PUBLIC_API_URL?.trim()
+  if (!raw) return []
+  try {
+    const u = new URL(raw)
+    const pattern = {
+      protocol: u.protocol.replace(/:$/, '') || 'https',
+      hostname: u.hostname,
+      pathname: '/api/**',
+    }
+    if (u.port) {
+      pattern.port = u.port
+    }
+    return [pattern]
+  } catch {
+    return []
+  }
+}
+
 const nextConfig = {
   reactStrictMode: true,
   // Pin tracing to this app so a parent monorepo lockfile does not confuse Next.js.
@@ -30,6 +50,7 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
       },
+      ...apiImageRemotePatterns(),
     ],
   },
   compiler: {

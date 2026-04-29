@@ -67,8 +67,8 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold text-ds-text-primary mb-1">Email</h3>
                     <p className="text-ds-text-secondary">
-                      info@electrostore.com<br />
-                      support@electrostore.com
+                      info@mtechinnovations.in<br />
+                      support@mtechinnovations.in
                     </p>
                   </div>
                 </div>

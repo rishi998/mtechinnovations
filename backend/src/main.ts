@@ -28,7 +28,18 @@ async function bootstrap() {
     bufferLogs: true,
   });
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      /**
+       * Default helmet sets Cross-Origin-Resource-Policy: same-origin which blocks
+       * the browser from loading /api/** images when the page is on a different origin
+       * (e.g. Next.js dev on :3000 fetching images from NestJS on :3001, or any CDN/reverse-proxy
+       * setup where the API lives on a different subdomain). Set cross-origin so browsers
+       * can embed images, fonts, and other resources from this API in cross-origin pages.
+       */
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(compression());
 
   app.setGlobalPrefix('api');

@@ -3,6 +3,8 @@ export interface Product {
   name: string
   slug: string
   sku?: string
+  /** Zoho Inventory item image id when synced from Zoho. */
+  zohoImageId?: string | null
   category: string
   subcategory: string
   price: number

@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
@@ -14,6 +14,7 @@ import type {
 } from './zoho.types';
 import type {
   ZohoInventoryItemNormalized,
+  ZohoInventoryItemDetailResponse,
   ZohoInventoryItemsListResponse,
 } from './zoho-inventory.types';
 import type {
@@ -349,12 +350,32 @@ export class ZohoService {
       }
 
       for (const raw of batch) {
-        const normalized = this.normalizeZohoInventoryItem(
-          raw as Record<string, unknown>,
-        );
-        if (normalized) {
-          aggregated.push(normalized);
+        const rawRecord = raw as Record<string, unknown>;
+        let normalized = this.normalizeZohoInventoryItem(rawRecord);
+        if (!normalized) {
+          continue;
         }
+        if (!normalized.hasZohoImage) {
+          const detailPayload = await this.fetchInventoryItemDetailPayload(
+            normalized.zohoItemId,
+          );
+          if (detailPayload) {
+            const merged: Record<string, unknown> = {
+              ...rawRecord,
+              ...detailPayload,
+            };
+            const afterDetail = this.normalizeZohoInventoryItem(merged);
+            if (afterDetail) {
+              normalized = afterDetail;
+              if (afterDetail.hasZohoImage) {
+                this.logger.log(
+                  `Image enriched via detail API for item: ${afterDetail.zohoItemId}`,
+                );
+              }
+            }
+          }
+        }
+        aggregated.push(normalized);
       }
 
       const hasMore = data.page_context?.has_more_page === true;
@@ -365,6 +386,63 @@ export class ZohoService {
     }
 
     return aggregated;
+  }
+
+  /**
+   * GET /items/{item_id} — used only when list rows omit image_id/image_name.
+   * Errors are swallowed (caller continues sync); failure returns null.
+   */
+  private async fetchInventoryItemDetailPayload(
+    itemId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const id = itemId.trim();
+    if (!id || !/^\d+$/.test(id)) {
+      return null;
+    }
+    try {
+      const qs = new URLSearchParams({
+        organization_id: this.organizationId,
+      });
+      const data = await this.requestInventory<ZohoInventoryItemDetailResponse>({
+        method: 'GET',
+        url: `/items/${encodeURIComponent(id)}?${qs.toString()}`,
+      });
+      if (data && typeof data === 'object' && 'code' in data) {
+        const c = Number((data as { code?: number }).code);
+        if (Number.isFinite(c) && c !== 0) {
+          this.logger.warn(
+            `Failed to fetch image for item ${id}: Zoho code ${c}: ${String((data as { message?: string }).message ?? '')}`,
+          );
+          return null;
+        }
+      }
+      const extracted = this.extractItemRecordFromDetailResponse(data);
+      return extracted;
+    } catch (err) {
+      this.logger.warn(
+        `Failed to fetch image for item ${id}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
+
+  /** Unwrap Zoho Inventory single-item response bodies. */
+  private extractItemRecordFromDetailResponse(
+    data: unknown,
+  ): Record<string, unknown> | null {
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+    const o = data as Record<string, unknown>;
+    const item = o.item;
+    if (item && typeof item === 'object') {
+      return item as Record<string, unknown>;
+    }
+    const items = o.items;
+    if (Array.isArray(items) && items[0] && typeof items[0] === 'object') {
+      return items[0] as Record<string, unknown>;
+    }
+    return null;
   }
 
   private normalizeZohoInventoryItem(
@@ -409,6 +487,18 @@ export class ZohoService {
         ? raw.description.trim()
         : '';
 
+    const imageIdRaw = raw['image_id'];
+    const imageName = raw['image_name'];
+    const zohoImageId =
+      imageIdRaw != null &&
+      imageIdRaw !== '' &&
+      String(imageIdRaw).trim().toLowerCase() !== 'null'
+        ? String(imageIdRaw).trim()
+        : null;
+    const hasZohoImage =
+      zohoImageId != null ||
+      (typeof imageName === 'string' && imageName.trim().length > 0);
+
     return {
       zohoItemId,
       name,
@@ -418,7 +508,80 @@ export class ZohoService {
       category,
       subcategory,
       description,
+      zohoImageId,
+      hasZohoImage,
     };
+  }
+
+  /**
+   * Fetches the catalog image bytes for a Zoho Inventory item (OAuth required).
+   */
+  async fetchItemImageBuffer(
+    itemId: string,
+    imageId: string | null = null,
+  ): Promise<{
+    buffer: Buffer;
+    contentType: string;
+  }> {
+    const id = itemId.trim();
+    if (!id || !/^\d+$/.test(id)) {
+      throw new NotFoundException('Invalid Zoho item id');
+    }
+    const zImage = imageId?.trim() || null;
+    if (zImage && !/^\d+$/.test(zImage)) {
+      throw new NotFoundException('Invalid Zoho image id');
+    }
+
+    const fetchOnce = async (): Promise<{ buffer: Buffer; contentType: string }> => {
+      const token = await this.getAccessToken();
+      const base = this.resolveInventoryBaseUrl();
+      const qs = new URLSearchParams({
+        organization_id: this.organizationId,
+      });
+      if (zImage) {
+        qs.set('image_id', zImage);
+      }
+      const url = `${base}/items/${encodeURIComponent(id)}/image?${qs.toString()}`;
+      const res = await firstValueFrom(
+        this.http.request<ArrayBuffer>({
+          method: 'GET',
+          url,
+          headers: { Authorization: `Zoho-oauthtoken ${token}` },
+          responseType: 'arraybuffer',
+          validateStatus: () => true,
+        }),
+      );
+      if (res.status === 404) {
+        throw new NotFoundException('Zoho item image not found');
+      }
+      if (res.status === 401) {
+        const err = new Error('Zoho Inventory 401') as Error & { status: number };
+        err.status = 401;
+        throw err;
+      }
+      if (res.status >= 400) {
+        throw new ZohoOAuthException(`Zoho item image HTTP ${res.status}`);
+      }
+      const rawCt = res.headers['content-type'];
+      const ct =
+        (typeof rawCt === 'string' ? rawCt.split(';')[0]?.trim() : null) ||
+        'image/jpeg';
+      return { buffer: Buffer.from(res.data), contentType: ct };
+    };
+
+    try {
+      return await fetchOnce();
+    } catch (first) {
+      const status = (first as { status?: number })?.status;
+      if (status === 401) {
+        this.logger.warn(
+          'Zoho item image 401; retrying once after access token refresh',
+        );
+        await this.forceRefreshAccessToken();
+        return fetchOnce();
+      }
+      throw first;
+    }
   }
 
   private coerceNumber(value: unknown, fallback: number): number {

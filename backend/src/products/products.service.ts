@@ -145,26 +145,39 @@ export class ProductsService {
         item.category === 'Uncategorized'
           ? 'Zoho'
           : item.category.split(/[\/|]/)[0]?.trim() || 'Zoho';
+      const imageQuery =
+        item.zohoImageId != null
+          ? `?image_id=${encodeURIComponent(item.zohoImageId)}`
+          : '';
+      const setFields: Record<string, unknown> = {
+        zoho_item_id,
+        zoho_image_id: item.zohoImageId,
+        name: item.name,
+        sku: item.sku,
+        category: item.category,
+        subcategory: item.subcategory,
+        price: item.price,
+        stock: item.stock,
+        description: item.description,
+        brand,
+        /** Proxy resolves image bytes; path always present so storefront URL is stable. */
+        images: [`/zoho/items/${zoho_item_id}/image${imageQuery}`],
+      };
       return {
         updateOne: {
           filter: { zoho_item_id },
           update: {
-            $set: {
-              zoho_item_id,
-              name: item.name,
-              sku: item.sku,
-              category: item.category,
-              subcategory: item.subcategory,
-              price: item.price,
-              stock: item.stock,
-              description: item.description,
-              brand,
-            },
+            $set: setFields,
+            /**
+             * $setOnInsert runs only when the document is first created (upsert INSERT path).
+             * IMPORTANT: do NOT repeat any key that is already in $set — MongoDB will throw
+             * a write conflict and silently drop the entire upsert when ordered:false.
+             * `images` intentionally omitted here because $set always writes it.
+             */
             $setOnInsert: {
               slug,
               originalPrice: null,
               discount: null,
-              images: [],
               rating: 0,
               reviewsCount: 0,
               specs: {},

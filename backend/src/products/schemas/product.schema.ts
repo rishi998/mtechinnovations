@@ -18,6 +18,10 @@ export class Product {
   @Prop({ type: String, default: null, trim: true })
   zoho_item_id: string | null;
 
+  /** Zoho Inventory `image_id` when the item has a catalog image (sync from Zoho). */
+  @Prop({ type: String, default: null, trim: true })
+  zoho_image_id: string | null;
+
   @Prop({ type: String, default: null })
   sku: string | null;
 

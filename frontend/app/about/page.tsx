@@ -6,7 +6,7 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-ds-inverse py-12 sm:py-16 lg:py-20">
         <div className="container-custom text-center">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">About ElectroStore</h1>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">About M Tech Innovations</h1>
           <p className="text-base sm:text-xl text-ds-text-primary max-w-2xl mx-auto px-4">
             Your trusted partner for electronics, robotics, and DIY projects since 2020
           </p>
@@ -20,7 +20,7 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-ds-text-primary mb-6">Our Story</h2>
             <div className="prose max-w-none text-ds-text-secondary space-y-4">
               <p>
-                ElectroStore was founded in 2020 with a simple mission: to make electronics components and 
+                M Tech Innovations was founded in 2020 with a simple mission: to make electronics components and 
                 robotics supplies accessible to everyone—from hobbyists and students to professional engineers 
                 and makers.
               </p>

@@ -131,8 +131,8 @@ export default function PrivacyPage() {
             </ul>
             <p className="text-ds-text-secondary leading-relaxed mt-4">
               To exercise these rights, please contact us at{' '}
-              <a href="mailto:info@electrostore.com" className="text-ds-accent hover:underline">
-                info@electrostore.com
+              <a href="mailto:info@mtechinnovations.in" className="text-ds-accent hover:underline">
+                info@mtechinnovations.in
               </a>
             </p>
           </section>
@@ -163,7 +163,7 @@ export default function PrivacyPage() {
             <div className="mt-3 p-4 bg-ds-primary rounded-lg text-sm text-ds-text-secondary space-y-1">
               <p><strong>MTech Innovations (Maurya Enterprises)</strong></p>
               <p>123 Electronics Street, Mumbai, Maharashtra 400001</p>
-              <p>Email: <a href="mailto:privacy@electrostore.com" className="text-ds-accent hover:underline">privacy@electrostore.com</a></p>
+              <p>Email: <a href="mailto:privacy@mtechinnovations.in" className="text-ds-accent hover:underline">privacy@mtechinnovations.in</a></p>
               <p>Phone: <a href="tel:+911234567890" className="text-ds-accent hover:underline">+91 123 456 7890</a></p>
             </div>
           </section>

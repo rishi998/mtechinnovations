@@ -71,6 +71,8 @@ npm start
 
 If you deploy only static files (`out/`), set `NEXT_STATIC_EXPORT=true` before `npm run build`. See `frontend/DEPLOYMENT_HOSTINGER.md` (paths use `frontend/` instead of `client/`).
 
+**Hostinger VPS (git pull, PM2, Nginx)** — step-by-step after each code change: [`DEPLOY_HOSTINGER.md`](./DEPLOY_HOSTINGER.md).
+
 ## Deploy on Render
 
 1. Push this repo to GitHub/GitLab/Bitbucket.
