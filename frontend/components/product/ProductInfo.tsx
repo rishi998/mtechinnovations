@@ -94,6 +94,7 @@ export function ProductInfo({
           </>
         )}
       </div>
+      <p className="mt-2 text-sm text-ds-text-secondary">Inclusive of all taxes</p>
 
       <div className="mt-4">
         <span

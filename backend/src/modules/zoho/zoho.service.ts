@@ -16,6 +16,8 @@ import type {
   ZohoInventoryItemNormalized,
   ZohoInventoryItemDetailResponse,
   ZohoInventoryItemsListResponse,
+  ZohoInventoryItemGroupNormalized,
+  ZohoInventoryItemGroupsListResponse,
 } from './zoho-inventory.types';
 import type {
   ZohoCreateSalesOrderLineItem,
@@ -25,6 +27,8 @@ import type {
 const ACCESS_EXPIRY_BUFFER_MS = 60_000;
 const ZOHO_ITEMS_PAGE_SIZE = 200;
 const ZOHO_ITEMS_MAX_PAGES = 500;
+const ZOHO_ITEMGROUPS_PAGE_SIZE = 200;
+const ZOHO_ITEMGROUPS_MAX_PAGES = 50;
 
 /** Normalize env ids from .env (quotes, comments, accidental text). */
 function parseZohoEnvId(raw: string | undefined | null): string | null {
@@ -256,6 +260,113 @@ export class ZohoService {
   }
 
   /**
+   * Lists organization item groups (Zoho Inventory `GET /itemgroups`).
+   * In Zoho these are the catalog "categories" (e.g. Sensors, Arduino Boards).
+   * OAuth scope: `ZohoInventory.items.READ` (covered by `read` / `full` presets).
+   * Paginates via `page_context.has_more_page`.
+   */
+  async listItemGroups(): Promise<ZohoInventoryItemGroupNormalized[]> {
+    const aggregated: ZohoInventoryItemGroupNormalized[] = [];
+    let page = 1;
+
+    while (page <= ZOHO_ITEMGROUPS_MAX_PAGES) {
+      const qs = new URLSearchParams({
+        organization_id: this.organizationId,
+        page: String(page),
+        per_page: String(ZOHO_ITEMGROUPS_PAGE_SIZE),
+      });
+
+      const data =
+        await this.requestInventory<ZohoInventoryItemGroupsListResponse>({
+          method: 'GET',
+          url: `/itemgroups?${qs.toString()}`,
+        });
+
+      if (data && typeof data === 'object' && 'code' in data) {
+        const c = Number((data as { code?: number }).code);
+        if (Number.isFinite(c) && c !== 0) {
+          throw new ZohoOAuthException(
+            `Zoho Inventory itemgroups API error code ${c}: ${String((data as { message?: string }).message ?? '')}`,
+          );
+        }
+      }
+
+      const batch = Array.isArray(data?.itemgroups) ? data.itemgroups : [];
+      if (batch.length === 0) {
+        break;
+      }
+
+      for (const raw of batch) {
+        const normalized = this.normalizeZohoItemGroup(
+          raw as Record<string, unknown>,
+        );
+        if (normalized) {
+          aggregated.push(normalized);
+        }
+      }
+
+      const hasMore = data.page_context?.has_more_page === true;
+      if (!hasMore) {
+        break;
+      }
+      page += 1;
+    }
+
+    return aggregated;
+  }
+
+  private normalizeZohoItemGroup(
+    raw: Record<string, unknown>,
+  ): ZohoInventoryItemGroupNormalized | null {
+    const idRaw = raw.group_id;
+    if (idRaw === undefined || idRaw === null || idRaw === '') {
+      return null;
+    }
+    const groupId = String(idRaw).trim();
+    if (!groupId) {
+      return null;
+    }
+    const groupName =
+      typeof raw.group_name === 'string' && raw.group_name.trim()
+        ? raw.group_name.trim()
+        : 'Uncategorized';
+
+    const description =
+      typeof raw.description === 'string' && raw.description.trim()
+        ? raw.description.trim()
+        : '';
+
+    const brand =
+      typeof raw.brand === 'string' && raw.brand.trim() ? raw.brand.trim() : null;
+    const manufacturer =
+      typeof raw.manufacturer === 'string' && raw.manufacturer.trim()
+        ? raw.manufacturer.trim()
+        : null;
+    const status =
+      typeof raw.status === 'string' && raw.status.trim()
+        ? raw.status.trim()
+        : null;
+
+    const imageIdRaw = raw['image_id'];
+    const zohoImageId =
+      imageIdRaw != null &&
+      imageIdRaw !== '' &&
+      String(imageIdRaw).trim().toLowerCase() !== 'null'
+        ? String(imageIdRaw).trim()
+        : null;
+
+    return {
+      groupId,
+      groupName,
+      description,
+      brand,
+      manufacturer,
+      status,
+      zohoImageId,
+    };
+  }
+
+  /**
    * Builds the Zoho authorize URL. Requires `ZOHO_REDIRECT_URI` (browser flow only).
    */
   getAuthorizationUrl(preset: ZohoScopePreset): string {
@@ -469,7 +580,6 @@ export class ZohoService {
       typeof raw.category_name === 'string' && raw.category_name.trim()
         ? raw.category_name.trim()
         : null;
-    const category = groupName ?? categoryName ?? 'Uncategorized';
 
     const itemType =
       typeof raw.item_type === 'string' && raw.item_type.trim()
@@ -486,6 +596,14 @@ export class ZohoService {
       typeof raw.description === 'string' && raw.description.trim()
         ? raw.description.trim()
         : '';
+    const categoryHints = this.deriveCategoryHintsFromText(name, description);
+    const extractedCategory = this.extractCategoryFromDescription(description);
+    const category =
+      groupName ??
+      categoryName ??
+      extractedCategory ??
+      categoryHints[0] ??
+      'Uncategorized';
 
     const imageIdRaw = raw['image_id'];
     const imageName = raw['image_name'];
@@ -508,9 +626,90 @@ export class ZohoService {
       category,
       subcategory,
       description,
+      categoryHints,
       zohoImageId,
       hasZohoImage,
     };
+  }
+
+  private slugifyCategoryLabel(value: string): string {
+    return (
+      value
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'uncategorized'
+    );
+  }
+
+  /**
+   * Parses a structured category hint from item description, supporting common
+   * patterns such as:
+   *   - "Category: Sensors"
+   *   - "Category - Arduino Boards"
+   *   - "Cat: Raspberry Pi"
+   */
+  private extractCategoryFromDescription(description: string): string | null {
+    if (!description) {
+      return null;
+    }
+    const m =
+      description.match(
+        /\b(?:category|cat)\s*[:\-]\s*([A-Za-z0-9][A-Za-z0-9/&,+().\-\s]{1,80})/i,
+      ) ?? null;
+    if (!m?.[1]) {
+      return null;
+    }
+    const raw = m[1].trim();
+    if (!raw) {
+      return null;
+    }
+    return this.slugifyCategoryLabel(raw);
+  }
+
+  /**
+   * Lightweight category inference from Zoho item name + description.
+   * Used only to improve storefront grouping when Zoho group/category fields
+   * are empty/inconsistent.
+   */
+  private deriveCategoryHintsFromText(
+    name: string,
+    description: string,
+  ): string[] {
+    const text = `${name} ${description}`.toLowerCase();
+    const set = new Set<string>();
+
+    const addIfMatch = (slug: string, patterns: RegExp[]) => {
+      if (patterns.some((p) => p.test(text))) {
+        set.add(slug);
+      }
+    };
+
+    addIfMatch('sensors', [
+      /\bsensor\b/,
+      /\bpir\b/,
+      /\baccelerometer\b/,
+      /\bultrasonic\b/,
+      /\bgas sensor\b/,
+      /\bproximity\b/,
+    ]);
+    addIfMatch('arduino', [/\barduino\b/, /\batmega\b/]);
+    addIfMatch('raspberry-pi', [/\braspberry\s*pi\b/, /\bpi\s*hat\b/]);
+    addIfMatch('motors-drivers', [/\bmotor\b/, /\bservo\b/, /\bstepper\b/, /\bdriver\b/]);
+    addIfMatch('power-supply', [/\bpower\b/, /\badapter\b/, /\bcharger\b/, /\bsmps\b/]);
+    addIfMatch('displays', [/\blcd\b/, /\boled\b/, /\bdisplay\b/, /\bled matrix\b/]);
+    addIfMatch('batteries', [/\bbattery\b/, /\blipo\b/, /\bli-ion\b/, /\bcell\b/]);
+    addIfMatch('tools', [/\bsolder/i, /\bmultimeter\b/, /\btool\b/, /\bwire stripper\b/]);
+    addIfMatch('components', [/\bresistor\b/, /\bcapacitor\b/, /\bic\b/, /\btransistor\b/]);
+    addIfMatch('robotics', [/\brobot\b/, /\bchassis\b/, /\bwheel\b/, /\bgripper\b/]);
+
+    const extracted = this.extractCategoryFromDescription(description);
+    if (extracted) {
+      set.add(extracted);
+    }
+
+    return [...set];
   }
 
   /**

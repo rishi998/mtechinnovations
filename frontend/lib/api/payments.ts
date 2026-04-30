@@ -37,6 +37,7 @@ export interface CreateOrderPaymentResponse {
   razorpayOrderId: string
   amount: number
   key: string
+  mode?: 'live' | 'test'
 }
 
 export interface VerifyRazorpayResponse {

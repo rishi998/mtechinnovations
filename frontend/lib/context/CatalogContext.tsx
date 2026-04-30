@@ -12,7 +12,9 @@ import {
 import type { Product, Category } from '@/lib/types'
 import {
   getProducts,
+  getZohoCategories,
   deriveCategoriesFromProducts,
+  mergeCategories,
 } from '@/lib/api/catalog'
 
 interface CatalogContextType {
@@ -28,6 +30,7 @@ const CatalogContext = createContext<CatalogContextType | undefined>(undefined)
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([])
+  const [zohoCategories, setZohoCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,8 +41,12 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       setLoading(true)
     }
     try {
-      const list = await getProducts()
+      const [list, zohoCats] = await Promise.all([
+        getProducts(),
+        getZohoCategories(),
+      ])
       setProducts(list)
+      setZohoCategories(zohoCats)
       if (silent) setError(null)
     } catch (e) {
       setProducts([])
@@ -73,8 +80,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   const categories = useMemo(
-    () => deriveCategoriesFromProducts(products),
-    [products],
+    () => mergeCategories(zohoCategories, deriveCategoriesFromProducts(products)),
+    [zohoCategories, products],
   )
 
   return (

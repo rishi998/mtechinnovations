@@ -159,6 +159,7 @@ export class ProductsService {
         price: item.price,
         stock: item.stock,
         description: item.description,
+        category_hints: item.categoryHints,
         brand,
         /** Proxy resolves image bytes; path always present so storefront URL is stable. */
         /** Full path on site origin; Nest serves GET /api/zoho/items/:id/image */

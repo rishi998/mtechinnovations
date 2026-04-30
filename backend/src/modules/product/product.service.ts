@@ -28,6 +28,29 @@ export interface ZohoSyncDetailResult {
   details?: string;
 }
 
+/**
+ * Public-facing category row (storefront `/api/zoho/categories`).
+ * Merges Zoho item groups (canonical "categories") with the unique categories
+ * already pulled into Mongo by sync, so the storefront can render every group
+ * even if no item has been synced into it yet.
+ */
+export interface ZohoCategoryRow {
+  /** Stable id (Zoho `group_id` when from `/itemgroups`, slug otherwise). */
+  id: string;
+  /** Display name (Zoho `group_name`). */
+  name: string;
+  /** URL slug used by `/category/[slug]/`. */
+  slug: string;
+  /** Zoho item-group description (may be empty). */
+  description: string;
+  /** Number of synced storefront products in this category. */
+  productCount: number;
+  /** `'group'` when sourced from `/itemgroups`, `'item'` when only inferred from items. */
+  source: 'group' | 'item';
+  /** Storefront image URL when Zoho exposes a group image, else null. */
+  image: string | null;
+}
+
 @Injectable()
 export class ProductService implements OnModuleInit {
   private readonly logger = new Logger(ProductService.name);
@@ -73,6 +96,90 @@ export class ProductService implements OnModuleInit {
     }
     const docs = await q.exec();
     return docs.map((d) => d.toJSON() as Record<string, unknown>);
+  }
+
+  /**
+   * Live Zoho categories for the storefront.
+   *
+   * Strategy:
+   *  - Hit Zoho `/itemgroups` for the canonical category list (groups with
+   *    description, image, etc.).
+   *  - Aggregate counts from the local `zoho_inventory_products` cache so the
+   *    storefront can show "N products" without hitting Zoho per group.
+   *  - Add any item-derived categories that Zoho returned via `category_name`
+   *    on items but not as item-groups (so nothing is hidden from the UI).
+   */
+  async getCategoriesFromZoho(): Promise<ZohoCategoryRow[]> {
+    const slugify = (value: string): string =>
+      (value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'uncategorized';
+
+    let groups: Awaited<ReturnType<typeof this.zoho.listItemGroups>> = [];
+    try {
+      groups = await this.zoho.listItemGroups();
+    } catch (err) {
+      this.logger.warn(
+        `Zoho /itemgroups call failed; falling back to product-derived categories: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    const cached = await this.productModel.find().lean().exec();
+    const countsBySlug = new Map<string, number>();
+    const namesBySlug = new Map<string, string>();
+    for (const row of cached) {
+      const r = row as unknown as { category?: string };
+      const name = (r.category ?? '').trim() || 'Uncategorized';
+      const slug = slugify(name);
+      countsBySlug.set(slug, (countsBySlug.get(slug) ?? 0) + 1);
+      if (!namesBySlug.has(slug)) {
+        namesBySlug.set(slug, name);
+      }
+    }
+
+    const out: ZohoCategoryRow[] = [];
+    const seenSlugs = new Set<string>();
+
+    for (const g of groups) {
+      const slug = slugify(g.groupName);
+      if (seenSlugs.has(slug)) {
+        continue;
+      }
+      seenSlugs.add(slug);
+      const image = g.zohoImageId
+        ? `/api/zoho/items/${encodeURIComponent(g.groupId)}/image?image_id=${encodeURIComponent(g.zohoImageId)}`
+        : null;
+      out.push({
+        id: g.groupId,
+        name: g.groupName,
+        slug,
+        description: g.description,
+        productCount: countsBySlug.get(slug) ?? 0,
+        source: 'group',
+        image,
+      });
+    }
+
+    for (const [slug, name] of namesBySlug.entries()) {
+      if (seenSlugs.has(slug)) {
+        continue;
+      }
+      seenSlugs.add(slug);
+      out.push({
+        id: slug,
+        name,
+        slug,
+        description: '',
+        productCount: countsBySlug.get(slug) ?? 0,
+        source: 'item',
+        image: null,
+      });
+    }
+
+    return out.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
@@ -153,6 +260,7 @@ export class ProductService implements OnModuleInit {
                 category: item.category,
                 subcategory: item.subcategory,
                 description: item.description,
+                category_hints: item.categoryHints,
               },
             },
             upsert: true,

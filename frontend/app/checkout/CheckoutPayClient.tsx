@@ -131,6 +131,15 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
       }
 
       const payment = await createOrderPayment(orderIdParam)
+      const isProdHost =
+        typeof window !== 'undefined' &&
+        !['localhost', '127.0.0.1'].includes(window.location.hostname)
+      const keyLooksTest = payment.key.startsWith('rzp_test_')
+      if (isProdHost && keyLooksTest) {
+        throw new Error(
+          'Payment gateway is still using TEST Razorpay key on production. Update backend env to LIVE keys (RAZORPAY_LIVE_KEY_ID / RAZORPAY_LIVE_KEY_SECRET or RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET).',
+        )
+      }
       await loadRazorpayScript()
 
       const storeName =
@@ -140,7 +149,9 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
 
       const options: RazorpayConstructorOptions = {
         key: payment.key,
-        // Amount/currency come from the Razorpay order created on the server (avoids mismatch bugs).
+        // Keep amount/currency aligned with Orders API payload (docs requirement).
+        amount: payment.amount,
+        currency: 'INR',
         name: storeName,
         description: 'Order Payment',
         order_id: payment.razorpayOrderId,
@@ -298,10 +309,6 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
                 <span>
                   {order.shipping === 0 ? 'FREE' : formatPrice(order.shipping)}
                 </span>
-              </div>
-              <div className="flex justify-between text-ds-text-secondary">
-                <span>Tax</span>
-                <span>{formatPrice(order.tax)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold text-ds-text-primary pt-2 border-t">
                 <span>Total</span>

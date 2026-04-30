@@ -7,6 +7,8 @@ export interface Product {
   zohoImageId?: string | null
   category: string
   subcategory: string
+  /** Slug hints inferred from Zoho item description/name. */
+  categoryHints?: string[]
   price: number
   originalPrice?: number
   discount?: number

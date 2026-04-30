@@ -34,21 +34,55 @@ const Razorpay = require('razorpay') as new (args: {
 function resolveRazorpayCredentials(config: ConfigService): {
   keyId: string;
   keySecret: string;
+  mode: 'live' | 'test';
 } {
-  const keyId =
-    config.get<string>('RAZORPAY_KEY_ID')?.trim() ||
-    config.get<string>('RAZORPAY_API_KEY')?.trim() ||
-    '';
-  const keySecret =
-    config.get<string>('RAZORPAY_KEY_SECRET')?.trim() ||
-    config.get<string>('RAZORPAY_API_SECRET')?.trim() ||
-    '';
+  const modeRaw =
+    config.get<string>('RAZORPAY_MODE')?.trim().toLowerCase() ||
+    (process.env.NODE_ENV === 'production' ? 'live' : 'test');
+  const mode: 'live' | 'test' = modeRaw === 'live' ? 'live' : 'test';
+
+  const keyIdCandidates =
+    mode === 'live'
+      ? [
+          config.get<string>('RAZORPAY_LIVE_KEY_ID')?.trim(),
+          config.get<string>('RAZORPAY_KEY_ID')?.trim(),
+          config.get<string>('RAZORPAY_API_KEY')?.trim(),
+        ]
+      : [
+          config.get<string>('RAZORPAY_TEST_KEY_ID')?.trim(),
+          config.get<string>('RAZORPAY_KEY_ID')?.trim(),
+          config.get<string>('RAZORPAY_API_KEY')?.trim(),
+        ];
+  const keySecretCandidates =
+    mode === 'live'
+      ? [
+          config.get<string>('RAZORPAY_LIVE_KEY_SECRET')?.trim(),
+          config.get<string>('RAZORPAY_KEY_SECRET')?.trim(),
+          config.get<string>('RAZORPAY_API_SECRET')?.trim(),
+        ]
+      : [
+          config.get<string>('RAZORPAY_TEST_KEY_SECRET')?.trim(),
+          config.get<string>('RAZORPAY_KEY_SECRET')?.trim(),
+          config.get<string>('RAZORPAY_API_SECRET')?.trim(),
+        ];
+  const keyId = keyIdCandidates.find((x) => Boolean(x)) ?? '';
+  const keySecret = keySecretCandidates.find((x) => Boolean(x)) ?? '';
   if (!keyId || !keySecret) {
     throw new Error(
       'Razorpay credentials missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET, or RAZORPAY_API_KEY and RAZORPAY_API_SECRET.',
     );
   }
-  return { keyId, keySecret };
+  const keyMode = keyId.startsWith('rzp_live_')
+    ? 'live'
+    : keyId.startsWith('rzp_test_')
+      ? 'test'
+      : 'unknown';
+  if (mode === 'live' && keyMode === 'test') {
+    throw new Error(
+      'Razorpay is configured for LIVE mode but a TEST key is loaded (rzp_test_*). Set RAZORPAY_LIVE_KEY_ID and RAZORPAY_LIVE_KEY_SECRET (or replace generic RAZORPAY_KEY_ID/SECRET with live keys).',
+    );
+  }
+  return { keyId, keySecret, mode };
 }
 
 function extractZohoSalesOrderId(data: Record<string, unknown>): string | null {
@@ -107,6 +141,7 @@ export class RazorpayPaymentService {
   private readonly razorpay: InstanceType<typeof Razorpay>;
   private readonly rzpKeyId: string;
   private readonly rzpKeySecret: string;
+  private readonly rzpMode: 'live' | 'test';
 
   constructor(
     private readonly config: ConfigService,
@@ -116,19 +151,28 @@ export class RazorpayPaymentService {
     @InjectModel(Product.name)
     private readonly storefrontProductModel: Model<ProductDocument>,
   ) {
-    const { keyId, keySecret } = resolveRazorpayCredentials(this.config);
+    const { keyId, keySecret, mode } = resolveRazorpayCredentials(this.config);
     this.rzpKeyId = keyId;
     this.rzpKeySecret = keySecret;
+    this.rzpMode = mode;
     this.razorpay = new Razorpay({
       key_id: keyId,
       key_secret: keySecret,
     });
+    this.logger.log(
+      `Razorpay initialized in ${this.rzpMode.toUpperCase()} mode with key ${this.rzpKeyId.slice(0, 12)}…`,
+    );
   }
 
   async createRazorpayOrderForCheckout(
     userId: string,
     orderMongoId: string,
-  ): Promise<{ razorpayOrderId: string; amount: number; key: string }> {
+  ): Promise<{
+    razorpayOrderId: string;
+    amount: number;
+    key: string;
+    mode: 'live' | 'test';
+  }> {
     const order = await this.ordersService.findOne(orderMongoId, userId);
     if (order.status !== 'pending') {
       throw new BadRequestException('Order cannot be paid');
@@ -180,6 +224,7 @@ export class RazorpayPaymentService {
       razorpayOrderId: rzpOrder.id,
       amount: rzpOrder.amount,
       key: this.rzpKeyId,
+      mode: this.rzpMode,
     };
   }
 

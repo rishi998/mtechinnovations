@@ -12,9 +12,17 @@ import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 
 export default function CategoryPageClient({ slug }: { slug: string }) {
-  const { products, loading } = useCatalog()
-  /** Storefront labels from static routes — Zoho group names rarely match these exactly. */
-  const categoryMeta = staticCategories.find((c) => c.slug === slug)
+  const { products, categories: liveCategories, loading } = useCatalog()
+  /**
+   * Prefer the static storefront route metadata (curated names + subcategory
+   * lists) for known slugs (`arduino`, `sensors`, …). Fall back to the live
+   * Zoho item-group / item-derived category for any slug coming from
+   * `/api/zoho/products/categories` so dynamic Zoho groups still render with
+   * a proper title and product count.
+   */
+  const categoryMeta =
+    staticCategories.find((c) => c.slug === slug) ??
+    liveCategories.find((c) => c.slug === slug)
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
@@ -162,7 +170,7 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
               <div
                 className={
                   viewMode === 'grid'
-                    ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'
+                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
                     : 'space-y-4'
                 }
               >

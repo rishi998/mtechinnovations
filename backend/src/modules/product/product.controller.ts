@@ -31,6 +31,7 @@ function classifyZohoFailure(details: string): {
 /**
  * Zoho-backed inventory product cache (global prefix `api`):
  *   GET  /api/zoho/products?limit=10
+ *   GET  /api/zoho/products/categories  (live from Zoho /itemgroups + cached counts)
  *   POST /api/zoho/products/sync
  */
 @Controller('zoho/products')
@@ -38,6 +39,35 @@ export class ProductController {
   private readonly logger = new Logger(ProductController.name);
 
   constructor(private readonly productService: ProductService) {}
+
+  @Get('categories')
+  async listCategories() {
+    const requestId = randomUUID();
+    try {
+      const data = await this.productService.getCategoriesFromZoho();
+      this.logger.log(
+        `[${requestId}] GET zoho/products/categories count=${data.length}`,
+      );
+      return {
+        success: true,
+        count: data.length,
+        data,
+      };
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err);
+      const { message, details } = classifyZohoFailure(raw);
+      this.logger.warn(
+        `[${requestId}] GET zoho/products/categories failed: ${raw}`,
+      );
+      return {
+        success: false,
+        message,
+        details,
+        count: 0,
+        data: [],
+      };
+    }
+  }
 
   @Get()
   async findAll(@Query('limit') limitRaw?: string) {

@@ -55,6 +55,10 @@ export class Product {
   @Prop({ type: String, default: '' })
   description: string;
 
+  /** Slug hints inferred from Zoho description/name (e.g. 'sensors'). */
+  @Prop({ type: [String], default: [] })
+  category_hints: string[];
+
   @Prop({ type: Object, default: {} })
   specs: Record<string, string>;
 

@@ -34,7 +34,7 @@ export function productCategorySlug(product: Pick<Product, 'category'>): string 
  * - Known alias slugs (e.g. "Motors" → `motors` → Motors & Drivers page)
  */
 export function productBelongsToCategoryPage(
-  product: Pick<Product, 'category'>,
+  product: Pick<Product, 'category' | 'categoryHints'>,
   pageSlug: string,
 ): boolean {
   const ps = productCategorySlug(product)
@@ -46,6 +46,15 @@ export function productBelongsToCategoryPage(
   // Zoho sub-groups: e.g. "Arduino Boards" → arduino-boards matches parent `arduino`
   if (ps.startsWith(`${pageSlug}-`)) return true
 
+  const hints = Array.isArray(product.categoryHints) ? product.categoryHints : []
+  for (const raw of hints) {
+    const hs = slugifyCatalogLabel(raw)
+    if (!hs) continue
+    if (hs === pageSlug) return true
+    if (extras?.includes(hs)) return true
+    if (hs.startsWith(`${pageSlug}-`)) return true
+  }
+
   return false
 }
 
@@ -53,7 +62,7 @@ export function productBelongsToCategoryPage(
  * First matching static storefront route slug for this product, or `null` if none.
  */
 export function storefrontCategorySlugForProduct(
-  product: Pick<Product, 'category'>,
+  product: Pick<Product, 'category' | 'categoryHints'>,
 ): string | null {
   for (const c of staticCategories) {
     if (productBelongsToCategoryPage(product, c.slug)) return c.slug

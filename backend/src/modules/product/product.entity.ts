@@ -37,6 +37,10 @@ export class ZohoSyncedProduct {
   @Prop({ type: String, default: '' })
   description: string;
 
+  /** Slug hints inferred from Zoho description/name (e.g. 'sensors'). */
+  @Prop({ type: [String], default: [] })
+  category_hints: string[];
+
   @Prop({ required: true, unique: true, index: true })
   zoho_item_id: string;
 }

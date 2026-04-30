@@ -178,3 +178,139 @@ cd frontend && npm install && NEXT_STATIC_EXPORT=true npm run build
 ```
 
 Then upload the **contents** of **`frontend/out/`** to Hostinger **`public_html`**.
+
+---
+
+## Standard VPS Deployment Routine (your setup)
+
+Use this every time after pushing changes to GitHub.
+
+### Architecture in your server right now
+
+From your nginx output:
+
+- **`/`** is proxied to **`http://localhost:3000`** (Next.js app via PM2)
+- **`/api`** is proxied to **`http://localhost:3001`** (Nest backend)
+
+That means your production frontend is **dynamic Next (`next start`)**, not static files from `out/`.
+
+### Server paths used
+
+- Repo: **`/var/www/myapp/mtechinnovations`**
+- Frontend app path: **`/var/www/myapp/mtechinnovations/frontend`**
+- Backend app path: **`/var/www/myapp/mtechinnovations/backend`**
+
+### 1) Pull latest code
+
+```bash
+cd /var/www/myapp/mtechinnovations
+git fetch origin
+git reset --hard origin/main
+```
+
+### 2) Deploy backend API (port 3001)
+
+```bash
+cd /var/www/myapp/mtechinnovations/backend
+npm ci
+npm run build
+pm2 restart backend || pm2 restart api
+```
+
+Quick check:
+
+```bash
+curl -I https://mtechinnovations.in/api/products
+```
+
+### 3) Deploy frontend Next server (port 3000)
+
+```bash
+cd /var/www/myapp/mtechinnovations/frontend
+
+# clean rebuild avoids stale Server Action mismatch between builds
+rm -rf .next node_modules
+npm ci
+npm run build
+
+pm2 stop frontend || true
+pm2 delete frontend || true
+pm2 start "npm run start -- -p 3000" --name frontend --cwd /var/www/myapp/mtechinnovations/frontend
+pm2 save
+```
+
+### 4) Reload nginx and verify
+
+```bash
+nginx -t && systemctl reload nginx
+pm2 list
+pm2 show frontend
+ss -ltnp | grep :3000
+curl -I https://mtechinnovations.in/
+```
+
+Expected:
+
+- Response headers include `X-Powered-By: Next.js`
+- Only one frontend PM2 process is running on port `3000`
+- Backend still responds via `/api/*`
+
+### 5) If you see "Failed to find Server Action"
+
+This usually means browser has old page payload from a previous deployment.
+
+Do both:
+
+1. Server clean restart (step 3 above, especially deleting `.next`)
+2. Client refresh: close old tabs and open a new incognito window (`Ctrl+Shift+R`)
+
+If a CDN/proxy cache is enabled, purge it.
+
+### 6) One-command routine (recommended)
+
+Create file:
+
+```bash
+cat > /var/www/myapp/mtechinnovations/deploy.sh <<'EOF'
+#!/usr/bin/env bash
+set -e
+
+cd /var/www/myapp/mtechinnovations
+git fetch origin
+git reset --hard origin/main
+
+cd backend
+npm ci
+npm run build
+pm2 restart backend || pm2 restart api
+
+cd ../frontend
+rm -rf .next node_modules
+npm ci
+npm run build
+pm2 stop frontend || true
+pm2 delete frontend || true
+pm2 start "npm run start -- -p 3000" --name frontend --cwd /var/www/myapp/mtechinnovations/frontend
+pm2 save
+
+nginx -t
+systemctl reload nginx
+
+echo "Deploy complete."
+EOF
+
+chmod +x /var/www/myapp/mtechinnovations/deploy.sh
+```
+
+Run anytime:
+
+```bash
+/var/www/myapp/mtechinnovations/deploy.sh
+```
+
+---
+
+### Optional: Static mode (only if you change nginx)
+
+Use static `out/` deployment only after nginx is changed to serve files directly
+(e.g. `root /var/www/html;`) and `/` is no longer proxied to `localhost:3000`.

@@ -141,6 +141,11 @@ export function mapServerProductDoc(doc: Record<string, unknown>): Product {
         : null,
     category: String(doc.category ?? 'Uncategorized'),
     subcategory: String(doc.subcategory ?? ''),
+    categoryHints: Array.isArray(doc.category_hints)
+      ? (doc.category_hints as unknown[])
+          .filter((x) => typeof x === 'string' && x.trim().length > 0)
+          .map((x) => String(x).trim())
+      : [],
     price: Number(doc.price ?? 0),
     originalPrice:
       doc.originalPrice != null ? Number(doc.originalPrice) : undefined,
@@ -196,4 +201,82 @@ export async function getProductBySlugOrId(ref: string): Promise<Product | null>
   } catch {
     return null
   }
+}
+
+/** Row shape returned by GET /api/zoho/products/categories. */
+interface ZohoCategoryApiRow {
+  id?: string | number
+  name?: string
+  slug?: string
+  description?: string
+  productCount?: number
+  source?: 'group' | 'item'
+  image?: string | null
+}
+
+/**
+ * Live Zoho Inventory categories (item groups + items aggregated server-side).
+ * Returns [] on network/Zoho failures so the storefront can fall back to
+ * the categories `deriveCategoriesFromProducts` derives from the cached
+ * `/api/products` payload.
+ */
+export async function getZohoCategories(): Promise<Category[]> {
+  try {
+    const res = await api.get<{
+      success: boolean
+      data: ZohoCategoryApiRow[]
+    }>('/zoho/products/categories')
+    if (!res?.success || !Array.isArray(res.data)) return []
+    return res.data
+      .filter((row) => row && typeof row.name === 'string' && row.name.trim())
+      .map((row) => {
+        const name = String(row.name).trim()
+        const slug = String(row.slug ?? slugifyCatalogLabel(name))
+        const rawImage = row.image
+        const image =
+          typeof rawImage === 'string' && rawImage.trim()
+            ? resolveCatalogImageUrl(rawImage)
+            : PLACEHOLDER_IMAGE
+        return {
+          id: String(row.id ?? slug),
+          name,
+          slug,
+          image,
+          productCount: Number(row.productCount ?? 0),
+          subcategories: [] as string[],
+        }
+      })
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Merge live Zoho categories with categories derived from the storefront
+ * product list. Live entries win for name/image; counts come from whichever
+ * source has a non-zero value (live count, then derived count).
+ */
+export function mergeCategories(
+  live: Category[],
+  derived: Category[],
+): Category[] {
+  const bySlug = new Map<string, Category>()
+  for (const c of derived) {
+    bySlug.set(c.slug, { ...c })
+  }
+  for (const c of live) {
+    const existing = bySlug.get(c.slug)
+    bySlug.set(c.slug, {
+      id: c.id || existing?.id || c.slug,
+      name: c.name || existing?.name || c.slug,
+      slug: c.slug,
+      image:
+        c.image && c.image !== PLACEHOLDER_IMAGE
+          ? c.image
+          : existing?.image ?? c.image,
+      productCount: c.productCount || existing?.productCount || 0,
+      subcategories: existing?.subcategories ?? c.subcategories,
+    })
+  }
+  return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name))
 }

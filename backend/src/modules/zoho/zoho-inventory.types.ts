@@ -35,6 +35,41 @@ export interface ZohoInventoryItemDetailResponse {
   item?: ZohoInventoryItemRaw | Record<string, unknown>;
 }
 
+/** Raw item group row from `GET /inventory/v1/itemgroups`. */
+export interface ZohoInventoryItemGroupRaw {
+  group_id?: string | number;
+  group_name?: string;
+  description?: string | null;
+  brand?: string | null;
+  manufacturer?: string | null;
+  status?: string | null;
+  image_id?: string | number | null;
+  image_name?: string | null;
+  product_type?: string | null;
+}
+
+export interface ZohoInventoryItemGroupsListResponse {
+  code?: number;
+  message?: string;
+  itemgroups?: ZohoInventoryItemGroupRaw[];
+  page_context?: {
+    page?: number;
+    per_page?: number;
+    has_more_page?: boolean;
+  };
+}
+
+/** Normalized item group used by storefront category APIs. */
+export interface ZohoInventoryItemGroupNormalized {
+  groupId: string;
+  groupName: string;
+  description: string;
+  brand: string | null;
+  manufacturer: string | null;
+  status: string | null;
+  zohoImageId: string | null;
+}
+
 /** Normalized row for sync layer (ZohoService → ProductService). */
 export interface ZohoInventoryItemNormalized {
   zohoItemId: string;
@@ -47,6 +82,13 @@ export interface ZohoInventoryItemNormalized {
   /** From item_type / product_type (finer bucket under category) */
   subcategory: string;
   description: string;
+  /**
+   * Storefront category slugs inferred from the Zoho `description` (and item
+   * name) — used as a fallback for routing when Zoho group/category is empty
+   * or 'Uncategorized', and as additional matches for static storefront pages.
+   * Example: "PIR Motion Sensor Module" → ['sensors'].
+   */
+  categoryHints: string[];
   /** Zoho `image_id` when returned by the Items API; null if only `image_name` / no id. */
   zohoImageId: string | null;
   /** True when Zoho has a catalog image (image_id or image_name). */

@@ -43,8 +43,7 @@ export default function CartPage() {
   }
 
   const shipping = cartTotal > 500 ? 0 : 50
-  const tax = Math.round(cartTotal * 0.18)
-  const total = cartTotal + shipping + tax - discount
+  const total = cartTotal + shipping - discount
 
   const handleApplyCoupon = () => {
     // Dummy coupon logic
@@ -191,10 +190,6 @@ export default function CartPage() {
                 <div className="flex justify-between text-ds-text-secondary">
                   <span>Shipping</span>
                   <span>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
-                </div>
-                <div className="flex justify-between text-ds-text-secondary">
-                  <span>Tax (18%)</span>
-                  <span>{formatPrice(tax)}</span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold text-ds-text-primary">
