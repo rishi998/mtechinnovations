@@ -376,7 +376,7 @@ export function Navbar() {
                 </p>
               ) : searchResults.length === 0 ? (
                 <p className="py-10 text-center text-sm text-ds-text-secondary">
-                  No products found for "{searchQuery}".
+                  {`No products found for "${searchQuery}".`}
                 </p>
               ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
