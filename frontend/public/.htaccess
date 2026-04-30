@@ -4,6 +4,14 @@
 # Use 404.html for not-found pages (Next.js static export generates this)
 ErrorDocument 404 /404.html
 
+# Avoid stale HTML after redeploy (browser/CDN keeps old index → looks like “frontend didn’t update”)
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header unset ETag
+  </FilesMatch>
+</IfModule>
+
 # Optional: force HTTPS (uncomment if your Hostinger plan supports it)
 # RewriteEngine On
 # RewriteCond %{HTTPS} off
