@@ -1,4 +1,5 @@
 import { api } from './client'
+import { resolveCatalogImageUrl } from './catalog'
 import type { Product, CartItem } from '@/lib/types'
 
 interface ServerCartItem {
@@ -27,7 +28,11 @@ function mapCartItem(i: ServerCartItem): CartItem {
         price: product.price,
         originalPrice: product.originalPrice,
         discount: product.discount,
-        images: product.images ?? [],
+        images: Array.isArray(product.images)
+          ? product.images
+              .filter((u) => typeof u === 'string' && u.length > 0)
+              .map((u) => resolveCatalogImageUrl(u))
+          : [],
         rating: product.rating ?? 0,
         reviewsCount: product.reviewsCount ?? 0,
         stock: product.stock ?? 0,

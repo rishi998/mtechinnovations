@@ -161,7 +161,8 @@ export class ProductsService {
         description: item.description,
         brand,
         /** Proxy resolves image bytes; path always present so storefront URL is stable. */
-        images: [`/zoho/items/${zoho_item_id}/image${imageQuery}`],
+        /** Full path on site origin; Nest serves GET /api/zoho/items/:id/image */
+        images: [`/api/zoho/items/${zoho_item_id}/image${imageQuery}`],
       };
       return {
         updateOne: {
