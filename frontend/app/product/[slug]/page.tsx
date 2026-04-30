@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import ProductPageClient from './ProductPageClient'
-import { fetchProductsListForBuild } from '@/lib/api/catalog'
+import { fetchProductsListForBuild } from '@/lib/api/fetchProductsForStaticBuild'
 
 const BUILD_SLUG = '__build_placeholder__'
 

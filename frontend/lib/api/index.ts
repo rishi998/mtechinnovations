@@ -17,7 +17,6 @@ export {
   mapServerProductDoc,
   deriveCategoriesFromProducts,
   slugifyCatalogLabel,
-  fetchProductsListForBuild,
 } from './catalog'
 
 export type { CreateOrderPayload, SyncZohoResponse } from './orders'

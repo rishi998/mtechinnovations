@@ -207,21 +207,3 @@ export async function getProductBySlugOrId(ref: string): Promise<Product | null>
     return null
   }
 }
-
-/** For `generateStaticParams` during `next build` (Node). */
-export async function fetchProductsListForBuild(): Promise<Product[]> {
-  const base = getPublicApiUrl()
-  try {
-    const res = await fetch(`${base.replace(/\/$/, '')}/products`, {
-      cache: 'no-store',
-    })
-    if (!res.ok) return []
-    const data: unknown = await res.json()
-    if (!Array.isArray(data)) return []
-    return data.map((row) =>
-      mapServerProductDoc(row as Record<string, unknown>),
-    )
-  } catch {
-    return []
-  }
-}

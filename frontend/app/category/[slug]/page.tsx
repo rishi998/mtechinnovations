@@ -1,8 +1,6 @@
 import CategoryPageClient from './CategoryPageClient'
-import {
-  fetchProductsListForBuild,
-  deriveCategoriesFromProducts,
-} from '@/lib/api/catalog'
+import { deriveCategoriesFromProducts } from '@/lib/api/catalog'
+import { fetchProductsListForBuild } from '@/lib/api/fetchProductsForStaticBuild'
 import { categories as staticCategories } from '@/lib/data/categories'
 
 /**
