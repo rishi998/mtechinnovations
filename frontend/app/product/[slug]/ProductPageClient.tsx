@@ -61,18 +61,6 @@ export default function ProductPageClient({ slug }: { slug: string }) {
   }, [slug, catalogProducts])
 
   useEffect(() => {
-    if (!product?.id) return
-    try {
-      const raw = localStorage.getItem('pdp_recent_ids')
-      const ids: string[] = raw ? JSON.parse(raw) : []
-      const next = [product.id, ...ids.filter((id) => id !== product.id)].slice(0, 24)
-      localStorage.setItem('pdp_recent_ids', JSON.stringify(next))
-    } catch {
-      /* ignore */
-    }
-  }, [product?.id])
-
-  useEffect(() => {
     const el = heroSentinelRef.current
     if (!el) return
     const io = new IntersectionObserver(

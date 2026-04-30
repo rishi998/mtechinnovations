@@ -47,7 +47,7 @@ export function LearningSection() {
   const { ref, visible } = useScrollReveal()
 
   return (
-    <SectionWrapper ref={ref} surface="primary" className="py-20 md:py-24 lg:py-28">
+    <SectionWrapper ref={ref} surface="primary" className="py-10 md:py-12 lg:py-16">
       <div className="container-custom">
         <div
           className={clsx(
@@ -59,14 +59,14 @@ export function LearningSection() {
             <h2 className="text-section font-semibold tracking-tight text-ds-text-primary">
               Learning & Resources
             </h2>
-            <p className="mt-4 text-base leading-[1.75] text-ds-text-secondary">
+            <p className="mt-4 break-safe text-base leading-[1.75] text-ds-text-secondary">
               Practical guides for building reliable circuits, shipping firmware, and sourcing parts that match
               your BOM.
             </p>
           </div>
           <Link
             href="/faq/"
-            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-ds-accent px-6 py-3 text-sm font-semibold uppercase tracking-wide text-ds-inverse transition duration-250 ease-out hover:scale-[1.02] hover:brightness-110"
+            className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-ds-accent px-6 py-3 text-sm font-semibold uppercase tracking-wide text-ds-inverse transition duration-250 ease-out hover:scale-[1.02] hover:brightness-110"
           >
             View all articles
           </Link>
@@ -89,11 +89,11 @@ export function LearningSection() {
                   {article.tag}
                 </span>
               </div>
-              <div className="flex flex-1 flex-col p-6">
-                <h3 className="text-lg font-semibold leading-snug text-ds-link transition duration-180 hover:underline">
+              <div className="flex min-w-0 flex-1 flex-col p-6">
+                <h3 className="line-clamp-2 break-safe text-lg font-semibold leading-snug text-ds-link transition duration-180 hover:underline">
                   {article.title}
                 </h3>
-                <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-ds-text-secondary">
+                <p className="mt-2 line-clamp-3 flex-1 break-safe text-sm leading-relaxed text-ds-text-secondary">
                   {article.description}
                 </p>
                 <div className="mt-4 border-t border-ds-border pt-4">
@@ -102,9 +102,9 @@ export function LearningSection() {
                       <Clock className="h-3.5 w-3.5" strokeWidth={1.75} />
                       {article.read}
                     </span>
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex min-w-0 items-center gap-1">
                       <User className="h-3.5 w-3.5" strokeWidth={1.75} />
-                      {article.author}
+                      <span className="truncate">{article.author}</span>
                     </span>
                   </div>
                   <p className="mt-3 text-xs text-ds-text-secondary/90">{article.date}</p>

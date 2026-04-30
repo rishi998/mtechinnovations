@@ -121,6 +121,9 @@
 
   html,
   body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     transition:
       background-color 200ms ease-out,
       color 200ms ease-out;
@@ -130,12 +133,22 @@
     @apply antialiased;
     background-color: rgb(var(--color-ds-primary));
     color: rgb(var(--color-ds-text-primary));
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
   }
 }
 
 @layer components {
   .container-custom {
-    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-8;
   }
 
   .btn-primary {
@@ -182,6 +195,10 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .break-safe {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .hide-scrollbar::-webkit-scrollbar {
     display: none;

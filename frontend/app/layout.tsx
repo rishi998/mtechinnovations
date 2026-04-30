@@ -29,6 +29,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <Script id="clear-local-storage" strategy="beforeInteractive">
+          {`
+(function () {
+  try {
+    localStorage.clear();
+  } catch (e) {}
+})();
+          `}
+        </Script>
         <Script id="theme-init" strategy="beforeInteractive">
           {`
 (function () {

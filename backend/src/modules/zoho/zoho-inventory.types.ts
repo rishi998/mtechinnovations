@@ -91,6 +91,8 @@ export interface ZohoInventoryItemNormalized {
   categoryHints: string[];
   /** Zoho `image_id` when returned by the Items API; null if only `image_name` / no id. */
   zohoImageId: string | null;
+  /** Additional Zoho image ids discovered from detail/list payload arrays. */
+  zohoImageIds: string[];
   /** True when Zoho has a catalog image (image_id or image_name). */
   hasZohoImage: boolean;
 }

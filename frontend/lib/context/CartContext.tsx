@@ -5,6 +5,7 @@ import { Product, CartItem } from '../types'
 
 import { useAuth } from './AuthContext'
 import { getCart, addToCart as apiAddToCart, updateCartItem as apiUpdateCartItem, removeFromCart as apiRemoveFromCart } from '../api'
+import { APP_LOGOUT_EVENT } from '@/lib/cartEvents'
 
 interface CartContextType {
   cart: CartItem[]
@@ -50,6 +51,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     }
   }, [isAuthenticated])
+
+  useEffect(() => {
+    const onLogout = () => {
+      setLocalCart([])
+      setCart([])
+    }
+    window.addEventListener(APP_LOGOUT_EVENT, onLogout)
+    return () => window.removeEventListener(APP_LOGOUT_EVENT, onLogout)
+  }, [])
 
   /** When logged in: merge guest cart into server, then load server cart. */
   useEffect(() => {
@@ -104,7 +114,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isAuthenticated && isLoaded) {
-      localStorage.setItem('cart', JSON.stringify(localCart))
+      try {
+        if (localCart.length === 0) {
+          localStorage.removeItem('cart')
+        } else {
+          localStorage.setItem('cart', JSON.stringify(localCart))
+        }
+      } catch {
+        /* ignore */
+      }
     }
   }, [localCart, isAuthenticated, isLoaded])
 

@@ -537,6 +537,18 @@ export class ZohoService {
     }
   }
 
+  /**
+   * Live item from Zoho Inventory detail API (`GET /items/{id}`).
+   * List/sync payloads sometimes omit or truncate `description`; use this for PDP enrichment.
+   */
+  async fetchNormalizedItemDetail(
+    itemId: string,
+  ): Promise<ZohoInventoryItemNormalized | null> {
+    const payload = await this.fetchInventoryItemDetailPayload(itemId.trim());
+    if (!payload) return null;
+    return this.normalizeZohoInventoryItem(payload);
+  }
+
   /** Unwrap Zoho Inventory single-item response bodies. */
   private extractItemRecordFromDetailResponse(
     data: unknown,
@@ -613,8 +625,9 @@ export class ZohoService {
       String(imageIdRaw).trim().toLowerCase() !== 'null'
         ? String(imageIdRaw).trim()
         : null;
+    const zohoImageIds = this.extractZohoImageIds(raw, zohoImageId);
     const hasZohoImage =
-      zohoImageId != null ||
+      zohoImageIds.length > 0 ||
       (typeof imageName === 'string' && imageName.trim().length > 0);
 
     return {
@@ -628,8 +641,52 @@ export class ZohoService {
       description,
       categoryHints,
       zohoImageId,
+      zohoImageIds,
       hasZohoImage,
     };
+  }
+
+  /**
+   * Best-effort extraction of all image ids from Zoho payload variants.
+   * Different endpoints/accounts may expose image ids under different keys.
+   */
+  private extractZohoImageIds(
+    raw: Record<string, unknown>,
+    primary: string | null,
+  ): string[] {
+    const out = new Set<string>();
+    const push = (v: unknown) => {
+      if (v == null) return;
+      const s = String(v).trim();
+      if (!s || s.toLowerCase() === 'null') return;
+      if (/^\d+$/.test(s)) out.add(s);
+    };
+
+    push(primary);
+
+    const buckets = [
+      raw.image_ids,
+      raw.item_images,
+      raw.images,
+      raw.documents,
+      raw.attachments,
+    ];
+
+    for (const bucket of buckets) {
+      if (Array.isArray(bucket)) {
+        for (const row of bucket) {
+          if (row && typeof row === 'object') {
+            const r = row as Record<string, unknown>;
+            push(r.image_id);
+            push(r.id);
+          } else {
+            push(row);
+          }
+        }
+      }
+    }
+
+    return [...out];
   }
 
   private slugifyCategoryLabel(value: string): string {

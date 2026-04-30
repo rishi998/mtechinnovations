@@ -7,7 +7,7 @@ export function Footer() {
 
   return (
     <footer className="bg-ds-ink text-ds-ink-muted">
-      <div className="container-custom py-12 lg:py-14">
+      <div className="container-custom py-10 md:py-12 lg:py-14">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-12">
           {/* Brand & contact */}
           <div className="lg:col-span-1">
@@ -20,14 +20,14 @@ export function Footer() {
                 className="h-9 w-auto object-contain"
               />
             </Link>
-            <p className="mb-4 text-sm leading-relaxed text-ds-inverse">
+            <p className="mb-4 break-safe text-sm leading-relaxed text-ds-inverse">
               Powering India&apos;s AI and semiconductor industries through innovative electronic products and
               advancing the &lsquo;Make in India&rsquo; initiative.
             </p>
             <div className="space-y-3 text-sm">
               <div className="flex gap-2">
                 <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-ds-accent" />
-                <span>
+                <span className="break-safe">
                   E-131A, Gali No. 4, Mittal Chowk,
                   <br />
                   Pul Pehladpur, New Delhi 110044
@@ -35,7 +35,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-5 w-5 flex-shrink-0 text-ds-accent" />
-                <a href="tel:+917042861418" className="hover:text-ds-accent transition-colors">
+                <a href="tel:+917042861418" className="transition-colors hover:text-ds-accent">
                   +91 7042861418
                 </a>
               </div>
@@ -43,7 +43,7 @@ export function Footer() {
                 <Mail className="h-5 w-5 flex-shrink-0 text-ds-accent" />
                 <a
                   href="mailto:mtech.mauryaenterprises@gmail.com"
-                  className="break-all hover:text-ds-accent transition-colors"
+                  className="break-all transition-colors hover:text-ds-accent"
                 >
                   mtech.mauryaenterprises@gmail.com
                 </a>
@@ -54,7 +54,7 @@ export function Footer() {
           {/* Company */}
           <div>
             <h4 className="mb-4 font-semibold text-ds-inverse">Company</h4>
-            <ul className="space-y-2.5 text-sm">
+            <ul className="space-y-2.5 text-sm text-ds-inverse/90">
               <li>
                 <Link href="/about" className="transition-colors hover:text-ds-accent">
                   About Us
@@ -86,7 +86,7 @@ export function Footer() {
           {/* Resources */}
           <div>
             <h4 className="mb-4 font-semibold text-ds-inverse">Resources</h4>
-            <ul className="space-y-2.5 text-sm">
+            <ul className="space-y-2.5 text-sm text-ds-inverse/90">
               <li>
                 <Link href="/categories" className="transition-colors hover:text-ds-accent">
                   Products
@@ -118,7 +118,7 @@ export function Footer() {
           {/* Community & newsletter */}
           <div>
             <h4 className="mb-4 font-semibold text-ds-inverse">Community</h4>
-            <ul className="mb-6 space-y-2.5 text-sm">
+            <ul className="mb-6 space-y-2.5 text-sm text-ds-inverse/90">
               <li>
                 <Link href="/contact" className="transition-colors hover:text-ds-accent">
                   Events
@@ -147,7 +147,7 @@ export function Footer() {
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
                 aria-label="Facebook"
               >
                 <Facebook className="h-4 w-4" />
@@ -156,7 +156,7 @@ export function Footer() {
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
                 aria-label="X"
               >
                 <Twitter className="h-4 w-4" />
@@ -165,7 +165,7 @@ export function Footer() {
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="h-4 w-4" />
@@ -174,7 +174,7 @@ export function Footer() {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-ds-footer-icon text-ds-inverse transition-colors hover:bg-ds-accent"
                 aria-label="Instagram"
               >
                 <Instagram className="h-4 w-4" />
@@ -182,7 +182,9 @@ export function Footer() {
             </div>
 
             <h4 className="mb-2 font-semibold text-ds-inverse">Get Updates</h4>
-            <p className="mb-3 text-sm">Subscribe to our newsletter for latest updates and announcements</p>
+            <p className="mb-3 break-safe text-sm text-ds-inverse/90">
+              Subscribe to our newsletter for latest updates and announcements
+            </p>
             <form className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="email"
@@ -193,7 +195,7 @@ export function Footer() {
               />
               <button
                 type="submit"
-                className="whitespace-nowrap rounded-lg bg-ds-accent px-5 py-3 font-medium text-ds-inverse hover:brightness-110 transition-[filter]"
+                className="min-h-10 whitespace-nowrap rounded-lg bg-ds-accent px-5 py-3 font-medium text-ds-inverse transition-[filter] hover:brightness-110"
               >
                 Subscribe
               </button>
@@ -222,7 +224,7 @@ export function Footer() {
                 </Link>
               </div>
             </div>
-            <p className="max-w-md text-sm text-ds-ink-muted lg:text-right">
+            <p className="max-w-md break-safe text-sm text-ds-ink-muted lg:text-right">
               Making India&apos;s Future in Electronics &amp; Semiconductors
             </p>
           </div>

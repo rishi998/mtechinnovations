@@ -91,9 +91,9 @@ export function ProductCard({ product, variant = 'default', onQuickView, classNa
   return (
     <div
       className={cn(
-        'group/card relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-ds-border bg-ds-card',
+        'group/card relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-ds-border bg-ds-card',
         'transition duration-250 ease-out will-change-transform',
-        'hover:scale-[1.02] hover:shadow-[var(--shadow-product-hover)]',
+        'hover:-translate-y-1 hover:scale-[1.01] hover:shadow-[var(--shadow-product-hover)]',
         className,
       )}
     >
@@ -159,7 +159,7 @@ export function ProductCard({ product, variant = 'default', onQuickView, classNa
         <Link
           href={productPath(product.slug, product.id)}
           className={cn(
-            'font-semibold text-ds-text-primary transition duration-180 ease-out hover:text-ds-text-primary/90',
+            'break-safe font-semibold text-ds-text-primary transition duration-180 ease-out hover:text-ds-text-primary/90',
             compact ? 'line-clamp-1 text-sm' : 'line-clamp-2 min-h-[2.75rem] text-base leading-snug',
           )}
         >
@@ -167,7 +167,7 @@ export function ProductCard({ product, variant = 'default', onQuickView, classNa
         </Link>
 
         {!compact && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ds-text-secondary">
+          <p className="mt-2 line-clamp-2 break-safe text-sm leading-relaxed text-ds-text-secondary">
             {product.description}
           </p>
         )}
@@ -186,8 +186,16 @@ export function ProductCard({ product, variant = 'default', onQuickView, classNa
         <div className={cn('mt-3 flex flex-wrap items-center gap-x-3 gap-y-1', compact && 'mt-2')}>
           <div className="flex items-center gap-1">
             <Star className="h-3.5 w-3.5 fill-ds-accent text-ds-accent" aria-hidden />
-            <span className="text-sm font-medium tabular-nums text-ds-text-primary">{product.rating.toFixed(1)}</span>
-            <span className="text-xs text-ds-text-secondary">({product.reviewsCount})</span>
+            {product.reviewsCount > 0 ? (
+              <>
+                <span className="text-sm font-medium tabular-nums text-ds-text-primary">
+                  {product.rating.toFixed(1)}
+                </span>
+                <span className="text-xs text-ds-text-secondary">({product.reviewsCount})</span>
+              </>
+            ) : (
+              <span className="text-xs text-ds-text-secondary">No ratings yet</span>
+            )}
           </div>
           <span
             className={cn(
@@ -220,8 +228,8 @@ export function ProductCard({ product, variant = 'default', onQuickView, classNa
           <Link
             href={productPath(product.slug, product.id)}
             className={cn(
-              'inline-flex w-full items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface',
-              compact && 'py-2 text-[11px]',
+              'inline-flex min-h-10 w-full items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface',
+              compact && 'min-h-10 py-2 text-[11px]',
             )}
           >
             View Details
@@ -233,9 +241,9 @@ export function ProductCard({ product, variant = 'default', onQuickView, classNa
             onClick={handleAdd}
             disabled={product.stock <= 0 || cartPhase === 'loading'}
             className={cn(
-              'relative w-full overflow-hidden rounded-lg border border-ds-cta-solid bg-ds-cta-solid py-3 text-sm font-semibold uppercase tracking-wide text-ds-inverse transition duration-180 ease-out',
+              'relative min-h-10 w-full overflow-hidden rounded-lg border border-ds-accent bg-ds-accent px-4 py-3 text-sm font-semibold uppercase tracking-wide text-ds-inverse transition duration-180 ease-out',
               'hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50',
-              cartPhase === 'success' && 'motion-safe:animate-btn-success-pop border-ds-accent bg-ds-accent',
+              cartPhase === 'success' && 'motion-safe:animate-btn-success-pop',
             )}
           >
             {ripples.map((r) => (

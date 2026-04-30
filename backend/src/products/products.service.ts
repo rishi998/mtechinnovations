@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ZohoService } from '../modules/zoho/zoho.service';
 import type { ZohoInventoryItemNormalized } from '../modules/zoho/zoho-inventory.types';
 import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -47,6 +48,7 @@ export class ProductsService {
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
+    private readonly zoho: ZohoService,
   ) {}
 
   /** Storefront rows with missing / empty `zoho_item_id` (manual catalog or sync gap). */
@@ -114,6 +116,30 @@ export class ProductsService {
   }
 
   /**
+   * Same as {@link findOne} but replaces `description` with Zoho Inventory detail text when available
+   * (full description; list sync rows can be shorter).
+   */
+  async findOneWithLiveZohoDescription(
+    idOrSlug: string,
+  ): Promise<ProductDocument> {
+    const doc = await this.findOne(idOrSlug);
+    const zid = doc.zoho_item_id?.trim();
+    if (!zid) {
+      return doc;
+    }
+    try {
+      const live = await this.zoho.fetchNormalizedItemDetail(zid);
+      const text = live?.description?.trim();
+      if (text) {
+        doc.set('description', text);
+      }
+    } catch {
+      /* keep DB description */
+    }
+    return doc;
+  }
+
+  /**
    * Upsert storefront `products` from a Zoho sync snapshot and remove rows tied to
    * Zoho ids that no longer exist in that snapshot. Rows without `zoho_item_id`
    * (e.g. hand-seeded catalog) are left unchanged.
@@ -145,10 +171,27 @@ export class ProductsService {
         item.category === 'Uncategorized'
           ? 'Zoho'
           : item.category.split(/[\/|]/)[0]?.trim() || 'Zoho';
-      const imageQuery =
-        item.zohoImageId != null
-          ? `?image_id=${encodeURIComponent(item.zohoImageId)}`
-          : '';
+      const imageIds = Array.from(
+        new Set(
+          (Array.isArray(item.zohoImageIds) ? item.zohoImageIds : []).filter(
+            (x) => typeof x === 'string' && x.trim().length > 0,
+          ),
+        ),
+      );
+      if (
+        imageIds.length === 0 &&
+        item.zohoImageId != null &&
+        item.zohoImageId.trim() !== ''
+      ) {
+        imageIds.push(item.zohoImageId.trim());
+      }
+      const images =
+        imageIds.length > 0
+          ? imageIds.map(
+              (id) =>
+                `/api/zoho/items/${zoho_item_id}/image?image_id=${encodeURIComponent(id)}`,
+            )
+          : [`/api/zoho/items/${zoho_item_id}/image`];
       const setFields: Record<string, unknown> = {
         zoho_item_id,
         zoho_image_id: item.zohoImageId,
@@ -163,7 +206,7 @@ export class ProductsService {
         brand,
         /** Proxy resolves image bytes; path always present so storefront URL is stable. */
         /** Full path on site origin; Nest serves GET /api/zoho/items/:id/image */
-        images: [`/api/zoho/items/${zoho_item_id}/image${imageQuery}`],
+        images,
       };
       return {
         updateOne: {

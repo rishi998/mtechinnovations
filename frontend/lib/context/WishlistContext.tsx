@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { Product, WishlistItem } from '../types'
+import { APP_LOGOUT_EVENT } from '@/lib/cartEvents'
 
 interface WishlistContextType {
   wishlist: WishlistItem[]
@@ -40,10 +41,23 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   // Save wishlist to localStorage whenever it changes
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('wishlist', JSON.stringify(wishlist))
+    if (!isLoaded) return
+    try {
+      if (wishlist.length === 0) {
+        localStorage.removeItem('wishlist')
+      } else {
+        localStorage.setItem('wishlist', JSON.stringify(wishlist))
+      }
+    } catch {
+      /* ignore */
     }
   }, [wishlist, isLoaded])
+
+  useEffect(() => {
+    const onLogout = () => setWishlist([])
+    window.addEventListener(APP_LOGOUT_EVENT, onLogout)
+    return () => window.removeEventListener(APP_LOGOUT_EVENT, onLogout)
+  }, [])
 
   const addToWishlist = (product: Product) => {
     setWishlist((prevWishlist) => {

@@ -1,4 +1,4 @@
-import { api, setToken, removeToken } from './client'
+import { api, setToken } from './client'
 import type { Address, User } from '@/lib/types'
 
 interface ServerUser {
@@ -67,5 +67,10 @@ export async function putUserAddresses(addresses: Address[]): Promise<User> {
 }
 
 export function logout(): void {
-  removeToken()
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.clear()
+  } catch {
+    /* ignore */
+  }
 }

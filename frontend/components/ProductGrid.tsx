@@ -127,7 +127,7 @@ export function ProductGrid() {
       <section
         ref={ref as React.LegacyRef<HTMLElement>}
         className={cn(
-          'border-b border-ds-border bg-ds-primary py-20 md:py-24 lg:py-28 transition duration-600 ease-out',
+          'border-b border-ds-border bg-ds-primary py-10 md:py-12 lg:py-16 transition duration-600 ease-out',
           visible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
         )}
       >
@@ -137,7 +137,7 @@ export function ProductGrid() {
               <h2 className="text-section font-semibold tracking-tight text-ds-text-primary">
                 Popular right now
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-[1.75] text-ds-text-secondary">
+              <p className="mt-4 max-w-xl break-safe text-base leading-[1.75] text-ds-text-secondary">
                 Best-selling development boards and modules—ready to ship with live stock and pricing.
               </p>
             </div>
@@ -148,7 +148,7 @@ export function ProductGrid() {
             <ProductFilters {...filterProps} onOpenMobileDrawer={() => setFilterDrawerOpen(true)} />
           </div>
 
-          <div className="mt-12 grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+          <div className="mt-10 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-4 lg:gap-8">
             {loading
               ? Array.from({ length: SKELETON_COUNT }).map((_, i) => <ProductCardSkeleton key={i} />)
               : visibleSlice.map((p) => (
@@ -159,33 +159,33 @@ export function ProductGrid() {
           </div>
 
           {!loading && pipeline.length === 0 && (
-            <p className="mt-10 text-center text-sm text-ds-text-secondary">
+            <p className="mt-10 break-safe text-center text-sm text-ds-text-secondary">
               No products match these filters. Try another tab or clear filters.
             </p>
           )}
 
           {hasMore && !loading && (
-            <div className="mt-12 flex justify-center">
+            <div className="mt-10 flex justify-center">
               <button
                 type="button"
                 onClick={handleLoadMore}
-                className="rounded-lg border border-ds-border bg-ds-surface px-8 py-3 text-sm font-semibold uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out hover:border-ds-accent hover:brightness-110"
+                className="min-h-10 rounded-lg border border-ds-border bg-ds-surface px-8 py-3 text-sm font-semibold uppercase tracking-wide text-ds-text-primary transition duration-180 ease-out hover:border-ds-accent hover:brightness-110"
               >
                 Load More Products
               </button>
             </div>
           )}
 
-          <div className="mt-14 flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
+          <div className="mt-12 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
             <Link
               href="/product/"
-              className="inline-flex flex-1 items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent px-6 py-3 text-center text-sm font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface sm:max-w-xs"
+              className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent px-6 py-3 text-center text-sm font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface sm:max-w-xs"
             >
               Explore All Products
             </Link>
             <Link
               href="/categories/"
-              className="inline-flex flex-1 items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent px-6 py-3 text-center text-sm font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface sm:max-w-xs"
+              className="inline-flex min-h-10 flex-1 items-center justify-center rounded-lg border-2 border-ds-accent bg-transparent px-6 py-3 text-center text-sm font-semibold uppercase tracking-wide text-ds-accent transition duration-180 ease-out hover:bg-ds-surface sm:max-w-xs"
             >
               View All Categories
             </Link>
@@ -196,7 +196,7 @@ export function ProductGrid() {
       <section
         ref={recRef as React.LegacyRef<HTMLElement>}
         className={cn(
-          'border-b border-ds-border bg-ds-primary py-20 md:py-24 transition duration-600 ease-out',
+          'border-b border-ds-border bg-ds-primary py-10 md:py-12 lg:py-16 transition duration-600 ease-out',
           recVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
         )}
       >
@@ -204,7 +204,7 @@ export function ProductGrid() {
           <h2 className="text-section font-semibold tracking-tight text-ds-text-primary">
             Recommended for you
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-[1.75] text-ds-text-secondary">
+          <p className="mt-4 max-w-2xl break-safe text-base leading-[1.75] text-ds-text-secondary">
             Popular in robotics and prototyping—picked from live catalog signals.
           </p>
           <div className="mt-10 -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 hide-scrollbar md:mx-0 md:px-0">

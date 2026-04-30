@@ -19,7 +19,7 @@ export function CTASection() {
   }
 
   return (
-    <SectionWrapper ref={ref} surface="ink" className="border-t border-ds-inverse/10 py-24 md:py-28">
+    <SectionWrapper ref={ref} surface="ink" className="border-t border-ds-inverse/10 py-10 md:py-12 lg:py-16">
       <div
         className={clsx(
           'container-custom mx-auto max-w-2xl text-center transition-[opacity,transform] duration-600 ease-out',
@@ -29,7 +29,7 @@ export function CTASection() {
         <h2 className="text-section font-semibold tracking-tight text-ds-inverse">
           Need help choosing a board?
         </h2>
-        <p className="mt-4 text-base leading-[1.75] text-ds-ink-muted">
+        <p className="mt-4 break-safe text-base leading-[1.75] text-ds-ink-muted">
           Get guides, tips, and restock alerts—no spam, unsubscribe anytime.
         </p>
         <form
@@ -57,7 +57,7 @@ export function CTASection() {
           </button>
         </form>
         {submitted && (
-          <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-ds-inverse" role="status">
+          <p className="mt-4 break-safe text-sm font-semibold uppercase tracking-wide text-ds-inverse" role="status">
             Thanks — you are on the list.
           </p>
         )}

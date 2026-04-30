@@ -18,6 +18,7 @@ import {
   apiLogout,
   getToken,
 } from '../api'
+import { dispatchAppLogout } from '@/lib/cartEvents'
 
 interface AuthContextType {
   user: User | null
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     apiLogout()
     setUser(null)
+    dispatchAppLogout()
   }
 
   const updateUser = async (userData: Partial<User>) => {

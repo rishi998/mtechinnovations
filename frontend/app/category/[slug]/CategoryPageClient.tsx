@@ -109,7 +109,6 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden"
             >
               <SlidersHorizontal className="w-4 h-4 mr-2" />
               Filters
@@ -155,8 +154,8 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
           />
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          <aside className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
+        <div className="space-y-6">
+          <aside className={showFilters ? 'block' : 'hidden'}>
             <FilterSidebar
               isOpen={showFilters}
               onClose={() => setShowFilters(false)}
@@ -165,12 +164,12 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
             />
           </aside>
 
-          <div className="lg:col-span-3">
+          <div className="w-full">
             {filteredProducts.length > 0 ? (
               <div
                 className={
                   viewMode === 'grid'
-                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
+                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6'
                     : 'space-y-4'
                 }
               >
