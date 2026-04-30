@@ -5,14 +5,76 @@ import { api } from './client'
 export const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800'
 
+/**
+ * Nest mounts Zoho routes under `/api/zoho/...`. Production builds sometimes omit `/api`
+ * from `NEXT_PUBLIC_API_URL`; URLs become `https://domain/zoho/...` and static hosts 404.
+ * Normalize absolute URLs that point at `/zoho/` without `/api/zoho/`.
+ */
+function injectApiBeforeZohoIfMissing(absUrl: string): string {
+  if (!/^https?:\/\//i.test(absUrl)) return absUrl
+  if (!absUrl.includes('/zoho/') || absUrl.includes('/api/zoho/')) return absUrl
+  try {
+    const u = new URL(absUrl)
+    if (u.pathname.startsWith('/zoho/')) {
+      u.pathname = '/api' + u.pathname
+      return u.toString()
+    }
+  } catch {
+    /* ignore */
+  }
+  return absUrl.replace(/^(https?:\/\/[^/]+)\/(zoho\/)/i, '$1/api/$2')
+}
+
+let _dbgZohoResolveLogs = 0;
+
 /** Turn API-relative paths (e.g. `/zoho/items/…/image`) into absolute URLs for `<Image src>`. */
 export function resolveCatalogImageUrl(url: string): string {
   const t = url.trim()
   if (!t) return PLACEHOLDER_IMAGE
-  if (/^https?:\/\//i.test(t)) return t
-  const apiBase = getPublicApiUrl().replace(/\/$/, '')
-  if (t.startsWith('/')) return `${apiBase}${t}`
-  return `${apiBase}/${t.replace(/^\//, '')}`
+
+  let out: string
+  const isAbsHttp = /^https?:\/\//i.test(t)
+  const protoRel = t.startsWith('//')
+  if (isAbsHttp) {
+    out = t
+  } else {
+    const apiBase = getPublicApiUrl().replace(/\/$/, '')
+    out = t.startsWith('/') ? `${apiBase}${t}` : `${apiBase}/${t.replace(/^\//, '')}`
+  }
+
+  const final = injectApiBeforeZohoIfMissing(out)
+  // #region agent log
+  if (
+    (t.includes('zoho') || final.includes('zoho')) &&
+    _dbgZohoResolveLogs < 30
+  ) {
+    _dbgZohoResolveLogs += 1;
+    fetch('http://127.0.0.1:7681/ingest/2a46f5dd-d7d2-453e-bd45-dce3655ab643', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': 'ae2d28',
+      },
+      body: JSON.stringify({
+        sessionId: 'ae2d28',
+        runId: 'pre-fix',
+        hypothesisId: 'H2-H3',
+        location: 'catalog.ts:resolveCatalogImageUrl',
+        message: 'catalog image resolve',
+        data: {
+          isAbsHttp,
+          protoRel,
+          injectChanged: final !== out,
+          hasApiZoho: final.includes('/api/zoho/'),
+          inSample: t.slice(0, 140),
+          finalSample: final.slice(0, 140),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  }
+  // #endregion
+  return final
 }
 
 /** First non-empty image URL, or catalog placeholder (safe for Next/Image `src`). */
@@ -32,12 +94,45 @@ export function slugifyCatalogLabel(value: string): string {
   )
 }
 
+let _dbgMapDocLogs = 0;
+
 /** Map Nest/Mongoose product JSON to storefront Product. */
 export function mapServerProductDoc(doc: Record<string, unknown>): Product {
   const id = String(doc._id ?? doc.id ?? '')
   const imagesRaw = doc.images
   let images: string[]
   if (Array.isArray(imagesRaw) && imagesRaw.length > 0) {
+    // #region agent log
+    if (_dbgMapDocLogs < 8) {
+      const firstRaw =
+        (imagesRaw as unknown[]).find((u) => typeof u === 'string') ?? '';
+      if (typeof firstRaw === 'string' && firstRaw.includes('zoho')) {
+        _dbgMapDocLogs += 1;
+        fetch(
+          'http://127.0.0.1:7681/ingest/2a46f5dd-d7d2-453e-bd45-dce3655ab643',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Debug-Session-Id': 'ae2d28',
+            },
+            body: JSON.stringify({
+              sessionId: 'ae2d28',
+              runId: 'pre-fix',
+              hypothesisId: 'H4',
+              location: 'catalog.ts:mapServerProductDoc',
+              message: 'raw product images from API',
+              data: {
+                firstRawSample: firstRaw.slice(0, 140),
+                looksAbsolute: /^https?:\/\//i.test(firstRaw),
+              },
+              timestamp: Date.now(),
+            }),
+          },
+        ).catch(() => {});
+      }
+    }
+    // #endregion
     images = (imagesRaw as string[])
       .filter((u) => typeof u === 'string' && u.length > 0)
       .map((u) => resolveCatalogImageUrl(u))
