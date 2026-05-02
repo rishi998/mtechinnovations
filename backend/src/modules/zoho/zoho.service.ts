@@ -56,15 +56,6 @@ function looksLikeIndianGstin(value: string): boolean {
   return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/i.test(value);
 }
 
-/**
- * Zoho Inventory list endpoints reject ISO-8601 (e.g. …T…Z); use yyyy-MM-dd HH:mm:ss.
- * Stored sync timestamps are UTC; Zoho accepts this shape for last_modified_time filters.
- */
-function formatZohoInventoryLastModifiedTime(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
-}
-
 @Injectable()
 export class ZohoService {
   private readonly logger = new Logger(ZohoService.name);
@@ -441,6 +432,49 @@ export class ZohoService {
     return this.defaultInventoryBase;
   }
 
+  /**
+   * Zoho Inventory rejects ISO strings with fractional seconds and most non-+HHMM shapes.
+   * API payloads use `yyyy-MM-ddTHH:mm:ss+0530` style (see Deluge docs). Optional env:
+   * `ZOHO_INVENTORY_LAST_MODIFIED_TZ` (IANA), default `Asia/Kolkata`.
+   */
+  private formatInventoryLastModifiedFilter(d: Date): string {
+    const tz =
+      this.config.get<string>('ZOHO_INVENTORY_LAST_MODIFIED_TZ')?.trim() ||
+      'Asia/Kolkata';
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(d);
+    const v = (t: string) =>
+      parts.find((p) => p.type === t)?.value?.padStart(2, '0') ?? '00';
+    const offsetRaw = new Intl.DateTimeFormat('en', {
+      timeZone: tz,
+      timeZoneName: 'longOffset',
+    }).formatToParts(d);
+    const gmt =
+      offsetRaw.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+00:00';
+    const offset = ZohoService.gmtLabelToZohoOffset(gmt);
+    return `${v('year')}-${v('month')}-${v('day')}T${v('hour')}:${v('minute')}:${v('second')}${offset}`;
+  }
+
+  /** `GMT+5:30` / `GMT+05:30` / `GMT` → `+0530` / `-0400` */
+  private static gmtLabelToZohoOffset(gmt: string): string {
+    const m = gmt.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
+    if (!m) {
+      return '+0000';
+    }
+    const sign = m[1];
+    const hh = m[2].padStart(2, '0');
+    const mm = (m[3] ?? '00').padStart(2, '0');
+    return `${sign}${hh}${mm}`;
+  }
+
   async getItemsFromZoho(opts?: {
     channel?: ZohoApiUsageChannel;
     modifiedSince?: Date | null;
@@ -459,7 +493,7 @@ export class ZohoService {
       if (opts?.modifiedSince) {
         qs.set(
           'last_modified_time',
-          formatZohoInventoryLastModifiedTime(opts.modifiedSince),
+          this.formatInventoryLastModifiedFilter(opts.modifiedSince),
         );
       }
 
