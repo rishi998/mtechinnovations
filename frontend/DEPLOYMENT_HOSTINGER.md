@@ -266,6 +266,38 @@ Do both:
 
 If a CDN/proxy cache is enabled, purge it.
 
+### 5a) `/_next/static/...` → **400 Bad Request** (VPS + `next start`)
+
+Symptoms: Network tab shows CSS/JS under `https://your-domain/_next/static/...` failing with **400** and **`Content-Type: text/html`** (error HTML, not the real file). This is **not** the static `out/` + `nx/` layout — that only applies when nginx serves files directly.
+
+**A. See whether Next.js is healthy on loopback (bypasses nginx/WAF):**
+
+```bash
+# paste the exact failing path after the port
+curl -I "http://127.0.0.1:3000/_next/static/css/de3eccd0bebb8781.css"
+```
+
+- **200** + `content-type: text/css` → Next is fine; fix **nginx**, **ModSecurity/Imunify**, or **Cloudflare/WAF** (rules often block `/_next/`).
+- **404** → That hashed file is missing: **stale browser tab** or bad deploy. Do a **clean** frontend build (`rm -rf .next`, `npm run build`), **restart PM2 `frontend`**, then **hard refresh / incognito**. Purge CDN cache.
+- **400 on loopback too** → Rare; check PM2 logs (`pm2 logs frontend`). Confirm a **single** Next process on port 3000 (`ss -ltnp | grep 3000`).
+
+**B. Nginx: add an explicit `/_next/` pass-through** (before your generic `location /`), same upstream as the app:
+
+```nginx
+location ^~ /_next/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Then: `sudo nginx -t && sudo systemctl reload nginx`.
+
+**C.** If you use **Cloudflare**, try **Development mode** or a rule to bypass cache for `/_next/*`, and purge cache after each deploy.
+
 ### 6) One-command routine (recommended)
 
 Create file:

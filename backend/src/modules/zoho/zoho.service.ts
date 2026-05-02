@@ -56,6 +56,15 @@ function looksLikeIndianGstin(value: string): boolean {
   return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/i.test(value);
 }
 
+/**
+ * Zoho Inventory list endpoints reject ISO-8601 (e.g. …T…Z); use yyyy-MM-dd HH:mm:ss.
+ * Stored sync timestamps are UTC; Zoho accepts this shape for last_modified_time filters.
+ */
+function formatZohoInventoryLastModifiedTime(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+
 @Injectable()
 export class ZohoService {
   private readonly logger = new Logger(ZohoService.name);
@@ -448,7 +457,10 @@ export class ZohoService {
         per_page: String(ZOHO_ITEMS_PAGE_SIZE),
       });
       if (opts?.modifiedSince) {
-        qs.set('last_modified_time', opts.modifiedSince.toISOString());
+        qs.set(
+          'last_modified_time',
+          formatZohoInventoryLastModifiedTime(opts.modifiedSince),
+        );
       }
 
       const data = await this.requestInventory<ZohoInventoryItemsListResponse>({
