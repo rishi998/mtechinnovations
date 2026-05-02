@@ -110,6 +110,90 @@ export class ProductService implements OnModuleInit {
     return docs.map((d) => d.toJSON() as Record<string, unknown>);
   }
 
+  /**
+   * Zoho list responses may omit/truncate description; enrich missing ones from
+   * GET /items/{item_id}. Capped per sync to control API usage.
+   */
+  private async enrichMissingDescriptionsFromZohoDetails(
+    requestId: string,
+    items: {
+      zohoItemId: string;
+      name: string;
+      sku: string | null;
+      price: number;
+      stock: number;
+      category: string;
+      subcategory: string;
+      description: string;
+      categoryHints: string[];
+      zohoImageId: string | null;
+      zohoImageIds: string[];
+      hasZohoImage: boolean;
+    }[],
+  ): Promise<{
+    items: typeof items;
+    fetched: number;
+    enriched: number;
+    failed: number;
+    capped: boolean;
+  }> {
+    const maxRaw = process.env.ZOHO_DETAIL_DESC_MAX_PER_SYNC?.trim();
+    const parsed = maxRaw ? Number(maxRaw) : 120;
+    const maxLookups =
+      Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 120;
+    let fetched = 0;
+    let enriched = 0;
+    let failed = 0;
+    let capped = false;
+    const out = [...items];
+    for (let i = 0; i < out.length; i++) {
+      const row = out[i]!;
+      if (row.description.trim()) {
+        continue;
+      }
+      if (fetched >= maxLookups) {
+        capped = true;
+        break;
+      }
+      fetched += 1;
+      try {
+        const detail = await this.zoho.fetchNormalizedItemDetail(
+          row.zohoItemId,
+          'sync',
+        );
+        const desc = detail?.description?.trim() ?? '';
+        if (!desc) {
+          continue;
+        }
+        out[i] = {
+          ...row,
+          description: desc,
+          categoryHints:
+            detail?.categoryHints?.length && row.categoryHints.length === 0
+              ? detail.categoryHints
+              : row.categoryHints,
+          category:
+            row.category === 'Uncategorized' && detail?.category?.trim()
+              ? detail.category.trim()
+              : row.category,
+          subcategory:
+            row.subcategory === 'General' && detail?.subcategory?.trim()
+              ? detail.subcategory.trim()
+              : row.subcategory,
+        };
+        enriched += 1;
+      } catch (err) {
+        failed += 1;
+        this.logger.warn(
+          `[${requestId}] Description detail fetch failed for item_id=${row.zohoItemId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+    return { items: out, fetched, enriched, failed, capped };
+  }
+
   /** Mongo-first category listing for storefront reads (no runtime Zoho calls). */
   async getCategoriesFromZoho(): Promise<ZohoCategoryRow[]> {
     const rows = await this.categoryModel
@@ -208,11 +292,11 @@ export class ProductService implements OnModuleInit {
     this.logger.log(`[${requestId}] Starting Zoho product sync...`);
 
     try {
-      const items = await this.zoho.getItemsFromZoho({
+      const listItems = await this.zoho.getItemsFromZoho({
         channel: 'sync',
         modifiedSince: incrementalSince,
       });
-      const totalFetched = items.length;
+      const totalFetched = listItems.length;
 
       if (!totalFetched) {
         const durationMs = Date.now() - t0;
@@ -244,7 +328,17 @@ export class ProductService implements OnModuleInit {
         };
       }
 
-      const byId = new Map<string, (typeof items)[0]>();
+      const enrichedResult =
+        await this.enrichMissingDescriptionsFromZohoDetails(
+          requestId,
+          listItems,
+        );
+      const items = enrichedResult.items;
+      this.logger.log(
+        `[${requestId}] description enrichment fetched=${enrichedResult.fetched} enriched=${enrichedResult.enriched} failed=${enrichedResult.failed} capped=${enrichedResult.capped}`,
+      );
+
+      const byId = new Map<string, (typeof listItems)[0]>();
       let skippedNoItemId = 0;
       for (const item of items) {
         const raw = item.zohoItemId?.trim();
@@ -276,8 +370,26 @@ export class ProductService implements OnModuleInit {
         );
       }
 
+      const existingByZohoId = new Map<string, string>();
+      if (byId.size > 0) {
+        const existing = await this.productModel
+          .find({ zoho_item_id: { $in: [...byId.keys()] } })
+          .select('zoho_item_id description')
+          .lean()
+          .exec();
+        for (const row of existing) {
+          const id = String(row.zoho_item_id ?? '').trim();
+          const desc =
+            typeof row.description === 'string' ? row.description.trim() : '';
+          if (id && desc) existingByZohoId.set(id, desc);
+        }
+      }
+
       const bulk = [...byId.values()].map((item) => {
         const zoho_item_id = String(item.zohoItemId).trim();
+        const incomingDescription = item.description.trim();
+        const description =
+          incomingDescription || existingByZohoId.get(zoho_item_id) || '';
         return {
           updateOne: {
             filter: { zoho_item_id },
@@ -290,7 +402,7 @@ export class ProductService implements OnModuleInit {
                 stock: item.stock,
                 category: item.category,
                 subcategory: item.subcategory,
-                description: item.description,
+                description,
                 category_hints: item.categoryHints,
               },
             },

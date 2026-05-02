@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -137,15 +142,26 @@ export class ProductsService {
   }
 
   /**
+   * Strict Mongo `_id` lookup. Rejects non-ObjectId values up front.
+   */
+  async findByMongoId(id: string): Promise<ProductDocument> {
+    const trimmed = id.trim();
+    if (!isMongoObjectIdString(trimmed)) {
+      throw new BadRequestException(`Invalid Mongo ObjectId: ${id}`);
+    }
+    const product = await this.productModel.findById(trimmed).exec();
+    if (!product) {
+      throw new NotFoundException(`Product with id ${trimmed} not found`);
+    }
+    return product;
+  }
+
+  /**
    * Lookup by Mongo `_id`, Zoho `zoho_item_id`, or `slug`.
    */
   async findOne(idOrSlug: string): Promise<ProductDocument> {
     if (isMongoObjectIdString(idOrSlug)) {
-      const product = await this.productModel.findById(idOrSlug).exec();
-      if (!product) {
-        throw new NotFoundException(`Product with id ${idOrSlug} not found`);
-      }
-      return product;
+      return this.findByMongoId(idOrSlug);
     }
     const trimmed = idOrSlug.trim();
     if (/^\d{5,}$/.test(trimmed)) {
@@ -204,6 +220,19 @@ export class ProductsService {
       if (id && url) imageByZohoId.set(id, url);
     }
 
+    const existingRows = await this.productModel
+      .find({ zoho_item_id: { $in: uniqueIds } })
+      .select('zoho_item_id description')
+      .lean()
+      .exec();
+    const existingDescriptionByZohoId = new Map<string, string>();
+    for (const row of existingRows) {
+      const id = String(row.zoho_item_id ?? '').trim();
+      const desc =
+        typeof row.description === 'string' ? row.description.trim() : '';
+      if (id && desc) existingDescriptionByZohoId.set(id, desc);
+    }
+
     const bulk = [...byId.values()].map((item) => {
       const zoho_item_id = String(item.zohoItemId).trim();
       const slug = slugifyZohoStorefrontProduct(item.name, zoho_item_id, item.sku);
@@ -215,6 +244,11 @@ export class ProductsService {
       const images = cached
         ? [cached]
         : [ProductsService.FALLBACK_IMAGE_URL];
+      const incomingDescription = item.description.trim();
+      const description =
+        incomingDescription ||
+        existingDescriptionByZohoId.get(zoho_item_id) ||
+        '';
       const setFields: Record<string, unknown> = {
         zoho_item_id,
         zoho_image_id: resolveZohoCatalogImageId(item),
@@ -224,7 +258,7 @@ export class ProductsService {
         subcategory: item.subcategory,
         price: item.price,
         stock: item.stock,
-        description: item.description,
+        description,
         category_hints: item.categoryHints,
         brand,
         images,

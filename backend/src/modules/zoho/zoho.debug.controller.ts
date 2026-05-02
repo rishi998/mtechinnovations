@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Post } from '@nestjs/common';
+import { Controller, Get, Logger, Param, Post } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ZohoApiBudgetService } from './zoho-api-budget.service';
 import { ZohoService } from './zoho.service';
@@ -37,6 +37,7 @@ function mapZohoTestError(err: unknown): {
  * Postman / debugging routes (global prefix `api`):
  *   GET  /api/zoho/debug/token
  *   GET  /api/zoho/debug/items
+ *   GET  /api/zoho/debug/item/:itemId
  *   GET  /api/zoho/debug/taxes
  *   GET  /api/zoho/debug/health
  *   GET  /api/zoho/debug/usage
@@ -120,6 +121,41 @@ export class ZohoDebugController {
     } catch (err) {
       this.logger.warn(
         `[${requestId}] GET zoho/debug/items failed: ${err instanceof Error ? err.message : err}`,
+      );
+      return { ...mapZohoTestError(err), requestId };
+    }
+  }
+
+  @Get('item/:itemId')
+  async getItemById(@Param('itemId') itemId: string) {
+    const requestId = randomUUID();
+    const started = Date.now();
+    this.logger.log(
+      `[${requestId}] GET zoho/debug/item/${itemId} started`,
+    );
+    try {
+      const snapshot = await this.zoho.fetchInventoryItemDebugSnapshot(
+        itemId,
+        'sync',
+      );
+      this.logger.log(
+        `[${requestId}] GET zoho/debug/item ok in ${Date.now() - started}ms`,
+      );
+      const activeOk =
+        snapshot.status == null ||
+        String(snapshot.status).toLowerCase() === 'active';
+      return {
+        success: true,
+        organization_id: this.zoho.getInventoryOrganizationId(),
+        ...snapshot,
+        sales_order_line_ready: activeOk,
+        hint: activeOk
+          ? 'Zoho reports this item as usable for transactions (Active or no status).'
+          : 'This item is not Active in Zoho for this organization — fix in Zoho or update Mongo `zoho_item_id` / ZOHO_SHIPPING_ITEM_ID / ZOHO_FALLBACK_LINE_ITEM_ID.',
+      };
+    } catch (err) {
+      this.logger.warn(
+        `[${requestId}] GET zoho/debug/item failed: ${err instanceof Error ? err.message : err}`,
       );
       return { ...mapZohoTestError(err), requestId };
     }

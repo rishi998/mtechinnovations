@@ -57,6 +57,11 @@ export class ProductsController {
     res.send(hit.data);
   }
 
+  @Get('by-mongo-id/:id')
+  findOneByMongoId(@Param('id') id: string) {
+    return this.productsService.findByMongoId(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productsService.findOneWithCachedDescription(id);

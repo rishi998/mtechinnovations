@@ -20,6 +20,7 @@ import { UsersService } from '../users/users.service';
 import { RazorpayVerifyDto } from './dto/razorpay-verify.dto';
 import type { ZohoCreateSalesOrderLineItem } from '../modules/zoho/zoho-inventory-salesorder.types';
 import { ZohoOrderQueueService } from './zoho-order-queue.service';
+import { appendDebugSessionNdjson } from '../debug-session-log';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Razorpay = require('razorpay') as new (args: {
@@ -162,6 +163,30 @@ function truncateZohoErrorMessage(err: unknown): string {
         : JSON.stringify(err);
   const t = msg.trim() || 'Unknown Zoho error';
   return t.length > ZOHO_ERR_UI_MAX ? `${t.slice(0, ZOHO_ERR_UI_MAX)}…` : t;
+}
+
+function isZohoInactiveItemError(err: unknown): boolean {
+  const msg =
+    err instanceof Error
+      ? err.message
+      : typeof err === 'string'
+        ? err
+        : JSON.stringify(err);
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('inactive') &&
+    lower.includes('cannot be added') &&
+    (lower.includes('sales order') || lower.includes('invoice'))
+  );
+}
+
+function extractZohoErrorInfoIds(message: string): string[] {
+  const m = /error_info:\s*([^)]+)/i.exec(message);
+  if (!m?.[1]) return [];
+  return m[1]
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => /^\d+$/.test(s));
 }
 
 @Injectable()
@@ -570,15 +595,64 @@ export class RazorpayPaymentService {
   }
 
   /**
+   * Last-resort payload when Zoho rejects mapped catalog items as inactive.
+   * Uses a single generic fallback line so paid orders can still be invoiced.
+   */
+  private async buildFallbackOnlyLineItemsForInactiveZohoItems(
+    order: OrderDocument,
+  ): Promise<ZohoCreateSalesOrderLineItem[]> {
+    const fallbackId = this.parseNumericZohoItemId('ZOHO_FALLBACK_LINE_ITEM_ID');
+    if (!fallbackId) {
+      throw new BadRequestException(
+        'Zoho rejected catalog line items as inactive. Set ZOHO_FALLBACK_LINE_ITEM_ID to an active generic/non-stock Zoho Inventory item_id for fallback invoicing.',
+      );
+    }
+    const total = Number(order.total ?? 0);
+    if (!Number.isFinite(total) || total <= 0.01) {
+      throw new BadRequestException(
+        'Order total must be greater than zero before fallback Zoho invoicing.',
+      );
+    }
+    try {
+      const snap = await this.zoho.fetchInventoryItemDebugSnapshot(
+        String(fallbackId).trim(),
+        'order',
+      );
+      const status = String(snap.status ?? '').trim().toLowerCase();
+      if (status && status !== 'active') {
+        throw new BadRequestException(
+          `Fallback Zoho item_id ${fallbackId} is ${snap.status}. Activate this item in Zoho Inventory or set ZOHO_FALLBACK_LINE_ITEM_ID to an active item.`,
+        );
+      }
+    } catch (err) {
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+      this.logger.warn(
+        `[Zoho] Could not preflight fallback item_id=${fallbackId}; proceeding anyway: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    return [
+      {
+        item_id: String(fallbackId).trim(),
+        name: 'Order total',
+        quantity: 1,
+        rate: total,
+        unit: 'qty',
+      },
+    ];
+  }
+
+  /**
    * Builds Zoho invoice lines: prefers real SKU → Zoho item mapping; falls back to a
    * generic Zoho item when needed so any paid order can still get an invoice.
    */
   private async resolveZohoLineItemsForPaidOrder(
     order: OrderDocument,
   ): Promise<ZohoCreateSalesOrderLineItem[]> {
-    const fallbackId =
-      this.parseNumericZohoItemId('ZOHO_FALLBACK_LINE_ITEM_ID') ??
-      this.parseNumericZohoItemId('ZOHO_SHIPPING_ITEM_ID');
+    const fallbackId = this.parseNumericZohoItemId('ZOHO_FALLBACK_LINE_ITEM_ID');
 
     let lines: ZohoCreateSalesOrderLineItem[] = [];
     try {
@@ -629,7 +703,7 @@ export class RazorpayPaymentService {
         this.parseNumericZohoItemId('ZOHO_SHIPPING_ITEM_ID') ?? fallbackId;
       if (!shipItemId) {
         throw new BadRequestException(
-          'Order includes shipping. Set ZOHO_SHIPPING_ITEM_ID or ZOHO_FALLBACK_LINE_ITEM_ID to a Zoho Inventory item_id used for shipping lines.',
+          'Order includes shipping. Set ZOHO_SHIPPING_ITEM_ID (or fallback ZOHO_FALLBACK_LINE_ITEM_ID) to an active Zoho Inventory item_id used for shipping lines.',
         );
       }
       this.logger.log(
@@ -784,7 +858,44 @@ export class RazorpayPaymentService {
     order: OrderDocument,
   ): Promise<{ salesOrderId: string; invoiceId: string; paymentId: string | null }> {
     this.logger.log(`[Zoho] runZohoSync starting for order ${order.orderId}`);
-    const lineItems = await this.resolveZohoLineItemsForPaidOrder(order);
+    let lineItems = await this.resolveZohoLineItemsForPaidOrder(order);
+    this.logger.log(
+      `[Zoho] runZohoSync ${order.orderId} line_items: ${lineItems
+        .map((l) => `item_id=${l.item_id} name=${JSON.stringify(l.name)}`)
+        .join(' | ')}`,
+    );
+    // #region agent log
+    const zapRun = {
+      hypothesisId: 'H2',
+      location: 'razorpay-payment.service.ts:runZohoSync:lines',
+      message: 'resolved line items before Zoho SO/invoice',
+      data: {
+        orderId: order.orderId,
+        subtotal: order.subtotal,
+        shipping: order.shipping,
+        total: order.total,
+        line_count: lineItems.length,
+        item_ids: lineItems.map((l) => l.item_id),
+        line_names: lineItems.map((l) => l.name),
+      },
+    };
+    appendDebugSessionNdjson(zapRun);
+    void fetch(
+      'http://127.0.0.1:7681/ingest/2a46f5dd-d7d2-453e-bd45-dce3655ab643',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Debug-Session-Id': '4476a5',
+        },
+        body: JSON.stringify({
+          sessionId: '4476a5',
+          timestamp: Date.now(),
+          ...zapRun,
+        }),
+      },
+    ).catch(() => {});
+    // #endregion
     const user = await this.usersService.findOne(order.userId.toString());
     const email = user?.email?.trim().toLowerCase();
     if (!email) {
@@ -800,27 +911,85 @@ export class RazorpayPaymentService {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const soBody = await this.zoho.createSalesOrder({
-      customer_id: customerId,
-      date: today,
-      line_items: lineItems,
-    }, 'order');
-    const salesOrderId = extractZohoSalesOrderId(soBody);
-    if (!salesOrderId) {
-      throw new Error('Zoho sales order response missing salesorder_id');
+    const createSalesOrderAndInvoice = async (
+      lines: ZohoCreateSalesOrderLineItem[],
+    ): Promise<{
+      salesOrderId: string;
+      invoiceId: string;
+      invRecord: Record<string, unknown>;
+    }> => {
+      const soBody = await this.zoho.createSalesOrder(
+        {
+          customer_id: customerId,
+          date: today,
+          line_items: lines,
+        },
+        'order',
+      );
+      const salesOrderId = extractZohoSalesOrderId(soBody);
+      if (!salesOrderId) {
+        throw new Error('Zoho sales order response missing salesorder_id');
+      }
+      const invBody = await this.zoho.createInvoice(
+        {
+          customer_id: customerId,
+          date: today,
+          line_items: lines,
+        },
+        'order',
+      );
+      const invoiceId = extractZohoInvoiceId(invBody);
+      if (!invoiceId) {
+        throw new Error('Zoho invoice response missing invoice_id');
+      }
+      return {
+        salesOrderId,
+        invoiceId,
+        invRecord: invBody as Record<string, unknown>,
+      };
+    };
+
+    let syncResult: {
+      salesOrderId: string;
+      invoiceId: string;
+      invRecord: Record<string, unknown>;
+    };
+    try {
+      syncResult = await createSalesOrderAndInvoice(lineItems);
+    } catch (err) {
+      if (!isZohoInactiveItemError(err)) {
+        throw err;
+      }
+      const primaryErrorMessage = truncateZohoErrorMessage(err);
+      const shippingId = this.parseNumericZohoItemId('ZOHO_SHIPPING_ITEM_ID');
+      if (shippingId) {
+        const inactiveIds = extractZohoErrorInfoIds(primaryErrorMessage);
+        if (inactiveIds.includes(shippingId)) {
+          throw new BadRequestException(
+            `Zoho rejected shipping line item ${shippingId} as inactive. Activate this item in Zoho Inventory or set ZOHO_SHIPPING_ITEM_ID to an active item.`,
+          );
+        }
+      }
+      this.logger.warn(
+        `[Zoho] ${order.orderId} has inactive Zoho item(s); retrying with fallback line item`,
+      );
+      lineItems = await this.buildFallbackOnlyLineItemsForInactiveZohoItems(order);
+      this.logger.warn(
+        `[Zoho] ${order.orderId} fallback line_items: ${lineItems
+          .map((l) => `item_id=${l.item_id} name=${JSON.stringify(l.name)}`)
+          .join(' | ')}`,
+      );
+      try {
+        syncResult = await createSalesOrderAndInvoice(lineItems);
+      } catch (fallbackErr) {
+        const fallbackErrorMessage = truncateZohoErrorMessage(fallbackErr);
+        throw new BadRequestException(
+          `Zoho rejected original line items: ${primaryErrorMessage} | Fallback retry failed: ${fallbackErrorMessage}`,
+        );
+      }
     }
 
-    const invBody = await this.zoho.createInvoice({
-      customer_id: customerId,
-      date: today,
-      line_items: lineItems,
-    }, 'order');
-    const invoiceId = extractZohoInvoiceId(invBody);
-    if (!invoiceId) {
-      throw new Error('Zoho invoice response missing invoice_id');
-    }
-
-    const invRecord = invBody as Record<string, unknown>;
+    const { salesOrderId, invoiceId, invRecord } = syncResult;
     const amountDue =
       extractZohoInvoiceAmountDue(invRecord) ?? Number(order.total);
     if (!Number.isFinite(amountDue) || amountDue < 0) {

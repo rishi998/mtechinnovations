@@ -14,7 +14,7 @@ import {
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/lib/context/AuthContext'
-import { getOrders } from '@/lib/api'
+import { getOrders, syncZohoForPaidOrder } from '@/lib/api'
 import type { Order } from '@/lib/types'
 
 function zohoStatusLabel(status: Order['zohoSyncStatus'] | undefined): string {
@@ -40,6 +40,8 @@ function SuccessContent() {
   const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [syncingZoho, setSyncingZoho] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
 
   /** Poll order while Zoho invoice is still being created (server runs sync in background). */
   useEffect(() => {
@@ -61,7 +63,7 @@ function SuccessContent() {
 
   useEffect(() => {
     if (order?.zohoSyncLastError) {
-      console.error('[Zoho sync error]', order.zohoSyncLastError)
+      console.warn('[Zoho sync warning]', order.zohoSyncLastError)
     }
   }, [order?.zohoSyncLastError])
 
@@ -124,6 +126,27 @@ function SuccessContent() {
       await navigator.clipboard.writeText(order.zohoInvoiceId)
     } catch {
       /* ignore */
+    }
+  }
+
+  const retryZohoNow = async () => {
+    if (!order?.id) return
+    setSyncingZoho(true)
+    setSyncMessage('')
+    try {
+      const out = await syncZohoForPaidOrder(order.id)
+      setSyncMessage(
+        out.zohoSynced
+          ? 'Zoho sync completed. Invoice is available now.'
+          : 'Zoho sync retried. Refresh status in a few seconds.',
+      )
+      setRefreshKey((k) => k + 1)
+    } catch (e) {
+      setSyncMessage(
+        e instanceof Error ? e.message : 'Could not retry Zoho sync right now.',
+      )
+    } finally {
+      setSyncingZoho(false)
     }
   }
 
@@ -252,6 +275,38 @@ function SuccessContent() {
         )}
 
         <div className="space-y-3">
+          {order &&
+            (order.paymentStatus ?? '') === 'success' &&
+            order.zohoSyncStatus !== 'synced' && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                type="button"
+                onClick={() => void retryZohoNow()}
+                disabled={syncingZoho}
+              >
+                {syncingZoho ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Retrying Zoho sync…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-5 h-5 mr-2" />
+                    Retry Zoho sync now
+                  </>
+                )}
+              </Button>
+            )}
+          {syncMessage && (
+            <div
+              className="rounded-lg bg-ds-surface text-ds-text-secondary text-sm px-3 py-2 border border-ds-border"
+              role="status"
+            >
+              {syncMessage}
+            </div>
+          )}
           {orderNumber && (
             <Link
               href={`/order-detail?orderId=${encodeURIComponent(orderNumber)}`}

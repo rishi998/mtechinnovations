@@ -25,6 +25,7 @@ import type {
   ZohoCreateSalesOrderLineItem,
   ZohoCreateSalesOrderPayload,
 } from './zoho-inventory-salesorder.types';
+import { appendDebugSessionNdjson } from '../../debug-session-log';
 
 const ACCESS_EXPIRY_BUFFER_MS = 60_000;
 const ZOHO_ITEMS_PAGE_SIZE = 200;
@@ -116,6 +117,41 @@ export class ZohoService {
     return this.config.getOrThrow<string>('ZOHO_ORGANIZATION_ID');
   }
 
+  // #region agent log
+  private agentDebugLog(payload: {
+    hypothesisId: string;
+    location: string;
+    message: string;
+    data?: Record<string, unknown>;
+    runId?: string;
+  }): void {
+    const envelope = {
+      hypothesisId: payload.hypothesisId,
+      location: payload.location,
+      message: payload.message,
+      runId: payload.runId,
+      data: payload.data ?? {},
+    };
+    appendDebugSessionNdjson(envelope);
+    void fetch(
+      'http://127.0.0.1:7681/ingest/2a46f5dd-d7d2-453e-bd45-dce3655ab643',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Debug-Session-Id': '4476a5',
+        },
+        body: JSON.stringify({
+          sessionId: '4476a5',
+          timestamp: Date.now(),
+          ...envelope,
+        }),
+      },
+    ).catch(() => {});
+  }
+
+  // #endregion
+
   /**
    * True when there is no usable cached access token (missing, or past expiry minus buffer).
    */
@@ -199,6 +235,11 @@ export class ZohoService {
     } catch {
       return false;
     }
+  }
+
+  /** Inventory `organization_id` on every API call — compare to the org in your Zoho browser URL if results disagree with the UI. */
+  getInventoryOrganizationId(): string {
+    return this.organizationId;
   }
 
   /**
@@ -587,6 +628,88 @@ export class ZohoService {
     return this.normalizeZohoInventoryItem(payload);
   }
 
+  /**
+   * Debug: `GET /items/{id}` — returns `status` (e.g. Active / Inactive).
+   * Use when Zoho rejects sales orders with “inactive items” to verify each `item_id`.
+   */
+  async fetchInventoryItemDebugSnapshot(
+    itemId: string,
+    channel: ZohoApiUsageChannel = 'sync',
+  ): Promise<{
+    item_id: string;
+    name: string;
+    sku: string | null;
+    status: string | null;
+    item_type: string | null;
+    product_type: string | null;
+  }> {
+    const id = itemId.trim();
+    if (!/^\d+$/.test(id)) {
+      throw new ZohoOAuthException(
+        'itemId must be a numeric Zoho Inventory item_id',
+      );
+    }
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+    const data = await this.requestInventory<ZohoInventoryItemDetailResponse>(
+      {
+        method: 'GET',
+        url: `/items/${encodeURIComponent(id)}?${qs.toString()}`,
+      },
+      channel,
+    );
+
+    if (data && typeof data === 'object' && 'code' in data) {
+      const c = Number((data as { code?: number }).code);
+      if (Number.isFinite(c) && c !== 0) {
+        throw new ZohoOAuthException(
+          String(
+            (data as { message?: string }).message ??
+              `Zoho item GET returned code ${c}`,
+          ),
+        );
+      }
+    }
+
+    const raw = this.extractItemRecordFromDetailResponse(data);
+    if (!raw) {
+      throw new ZohoOAuthException(
+        'Zoho returned no item in GET /items/{id} response',
+      );
+    }
+
+    const sku =
+      raw.sku === undefined || raw.sku === null || raw.sku === ''
+        ? null
+        : String(raw.sku);
+    const status =
+      typeof raw.status === 'string' && raw.status.trim()
+        ? raw.status.trim()
+        : null;
+    const item_type =
+      typeof raw.item_type === 'string' && raw.item_type.trim()
+        ? raw.item_type.trim()
+        : null;
+    const product_type =
+      typeof raw.product_type === 'string' && raw.product_type.trim()
+        ? raw.product_type.trim()
+        : null;
+    const name =
+      typeof raw.name === 'string' && raw.name.trim()
+        ? raw.name.trim()
+        : 'Unnamed item';
+
+    return {
+      item_id: String(raw.item_id ?? id).trim(),
+      name,
+      sku,
+      status,
+      item_type,
+      product_type,
+    };
+  }
+
   /** Unwrap Zoho Inventory single-item response bodies. */
   private extractItemRecordFromDetailResponse(
     data: unknown,
@@ -926,14 +1049,42 @@ export class ZohoService {
       );
     }
 
+    // If env tax id is missing/invalid, try Zoho default tax as fallback.
     if (!lineTaxId) {
-      throw new ZohoOAuthException(
-        'ZOHO_SALES_ORDER_LINE_TAX_ID is required for order/invoice creation.',
+      try {
+        const taxes = await this.listInventoryTaxes();
+        const fallbackTax =
+          taxes.find((t) => t.is_default_tax === true) ??
+          taxes.find((t) => Number.isFinite(t.tax_percentage) && t.tax_percentage > 0) ??
+          taxes[0];
+        const fallbackTaxId = String(fallbackTax?.tax_id ?? '').trim();
+        if (fallbackTaxId) {
+          lineTaxId = fallbackTaxId;
+          this.logger.warn(
+            `Using fallback Zoho tax_id from settings: ${lineTaxId}. Set ZOHO_SALES_ORDER_LINE_TAX_ID to this value in .env to avoid fallback.`,
+          );
+        }
+      } catch (err) {
+        this.logger.warn(
+          `Could not resolve fallback Zoho tax_id from settings: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    if (!lineTaxId) {
+      if (taxExemptionId || payloadTaxExemptionId?.trim()) {
+        this.logger.warn(
+          'Tax exemption config/payload provided, but no line tax_id was resolved; proceeding without explicit tax_id on lines.',
+        );
+      }
+      this.logger.warn(
+        'Proceeding without explicit Zoho line tax_id. Configure ZOHO_SALES_ORDER_LINE_TAX_ID (or grant settings scope for fallback) to enforce a specific tax on every line.',
       );
+      return { line_items: items };
     }
     if (taxExemptionId || payloadTaxExemptionId?.trim()) {
       this.logger.warn(
-        'Tax exemption config/payload is ignored because line tax is mandatory in this deployment profile.',
+        'Tax exemption config/payload is ignored because explicit line tax_id is being applied.',
       );
     }
     this.logger.log(`Sales order line tax_id from env: ${lineTaxId}`);
@@ -971,6 +1122,65 @@ export class ZohoService {
       }
       li.item_id = s;
     }
+  }
+
+  /**
+   * Builds a strict Zoho mutation payload shape for line_items:
+   * `item_id`, `quantity`, `rate`, optional `tax_id`.
+   * Extra local fields (e.g. `name`, `unit`) are intentionally excluded.
+   */
+  private toZohoMutationLineItems(
+    line_items: ZohoCreateSalesOrderLineItem[],
+    operation: 'sales_order' | 'invoice',
+  ): Array<{
+    item_id: string;
+    quantity: number;
+    rate: number;
+    tax_id?: string;
+  }> {
+    const out: Array<{
+      item_id: string;
+      quantity: number;
+      rate: number;
+      tax_id?: string;
+    }> = [];
+    for (let i = 0; i < line_items.length; i++) {
+      const li = line_items[i]!;
+      const itemId = String(li.item_id ?? '').trim();
+      if (!/^\d+$/.test(itemId)) {
+        throw new ZohoOAuthException(
+          `Invalid line_items[${i}].item_id for ${operation}; expected numeric Zoho item_id.`,
+        );
+      }
+      const qty = Number(li.quantity);
+      if (!Number.isFinite(qty) || qty <= 0) {
+        throw new ZohoOAuthException(
+          `Invalid line_items[${i}].quantity for ${operation}; expected > 0.`,
+        );
+      }
+      const rate = Number(li.rate);
+      if (!Number.isFinite(rate) || rate < 0) {
+        throw new ZohoOAuthException(
+          `Invalid line_items[${i}].rate for ${operation}; expected >= 0.`,
+        );
+      }
+      const next: { item_id: string; quantity: number; rate: number; tax_id?: string } = {
+        item_id: itemId,
+        quantity: Math.round(qty * 1000) / 1000,
+        rate: Math.round(rate * 100) / 100,
+      };
+      const taxId = String(li.tax_id ?? '').trim();
+      if (taxId) {
+        if (!/^\d+$/.test(taxId)) {
+          throw new ZohoOAuthException(
+            `Invalid line_items[${i}].tax_id for ${operation}; expected numeric Zoho tax_id.`,
+          );
+        }
+        next.tax_id = taxId;
+      }
+      out.push(next);
+    }
+    return out;
   }
 
   private throwIfInventoryMutationFailed(
@@ -1016,11 +1226,18 @@ export class ZohoService {
       );
 
     this.assertLineItemsReadyForZoho(line_items, 'sales_order');
+    const zohoLineItems = this.toZohoMutationLineItems(line_items, 'sales_order');
+    const date = String(payload.date ?? '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new ZohoOAuthException(
+        'Invalid date for sales order; expected YYYY-MM-DD.',
+      );
+    }
 
     const body: Record<string, unknown> = {
       customer_id: String(cidRaw).trim(),
-      date: payload.date,
-      line_items,
+      date,
+      line_items: zohoLineItems,
     };
     if (tax_exemption_id) {
       body.tax_exemption_id = tax_exemption_id;
@@ -1028,6 +1245,20 @@ export class ZohoService {
 
     const qs = new URLSearchParams({
       organization_id: this.organizationId,
+    });
+    this.agentDebugLog({
+      hypothesisId: 'H2,H4',
+      location: 'zoho.service.ts:createSalesOrder:preflight',
+      message: 'POST salesorders payload snapshot',
+      data: {
+        organization_id: this.organizationId,
+        line_count: zohoLineItems.length,
+        item_ids: zohoLineItems.map((li) => li.item_id),
+        line_names: line_items.map((li) => li.name),
+        tax_id_sample: zohoLineItems[0]?.tax_id ?? null,
+        rates: zohoLineItems.map((li) => li.rate),
+        quantities: zohoLineItems.map((li) => li.quantity),
+      },
     });
     try {
       const data = await this.requestInventory<Record<string, unknown>>({
@@ -1043,6 +1274,14 @@ export class ZohoService {
       this.throwIfInventoryMutationFailed(data, 'Zoho rejected sales order');
 
       this.logger.log('Sales Order created successfully');
+      this.agentDebugLog({
+        hypothesisId: 'H1,H3',
+        location: 'zoho.service.ts:createSalesOrder:success',
+        message: 'sales order created',
+        data: {
+          code: typeof data?.code === 'number' ? data.code : undefined,
+        },
+      });
       return data;
     } catch (err) {
       this.logger.error(
@@ -1077,11 +1316,18 @@ export class ZohoService {
       );
 
     this.assertLineItemsReadyForZoho(line_items, 'invoice');
+    const zohoLineItems = this.toZohoMutationLineItems(line_items, 'invoice');
+    const date = String(params.date ?? '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new ZohoOAuthException(
+        'Invalid date for invoice; expected YYYY-MM-DD.',
+      );
+    }
 
     const body: Record<string, unknown> = {
       customer_id: cid,
-      date: params.date,
-      line_items,
+      date,
+      line_items: zohoLineItems,
     };
     if (tax_exemption_id) {
       body.tax_exemption_id = tax_exemption_id;
@@ -1089,6 +1335,20 @@ export class ZohoService {
 
     const qs = new URLSearchParams({
       organization_id: this.organizationId,
+    });
+    this.agentDebugLog({
+      hypothesisId: 'H3,H4',
+      location: 'zoho.service.ts:createInvoice:preflight',
+      message: 'POST invoices payload snapshot',
+      data: {
+        organization_id: this.organizationId,
+        line_count: zohoLineItems.length,
+        item_ids: zohoLineItems.map((li) => li.item_id),
+        line_names: line_items.map((li) => li.name),
+        tax_id_sample: zohoLineItems[0]?.tax_id ?? null,
+        rates: zohoLineItems.map((li) => li.rate),
+        quantities: zohoLineItems.map((li) => li.quantity),
+      },
     });
     try {
       const data = await this.requestInventory<Record<string, unknown>>({
@@ -1104,6 +1364,14 @@ export class ZohoService {
       this.throwIfInventoryMutationFailed(data, 'Zoho rejected invoice');
 
       this.logger.log('Zoho Invoice created successfully');
+      this.agentDebugLog({
+        hypothesisId: 'H1',
+        location: 'zoho.service.ts:createInvoice:success',
+        message: 'invoice created',
+        data: {
+          code: typeof data?.code === 'number' ? data.code : undefined,
+        },
+      });
       return data;
     } catch (err) {
       this.logger.error(
@@ -1133,15 +1401,29 @@ export class ZohoService {
       );
     }
 
+    const date = String(params.date ?? '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new ZohoOAuthException(
+        'Invalid date for customer payment; expected YYYY-MM-DD.',
+      );
+    }
+    const amount = Number(params.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new ZohoOAuthException(
+        'Invalid amount for customer payment; expected > 0.',
+      );
+    }
+    const normalizedAmount = Math.round(amount * 100) / 100;
+
     const body = {
       customer_id: cid,
       payment_mode: params.payment_mode ?? 'Razorpay',
-      amount: params.amount,
-      date: params.date,
+      amount: normalizedAmount,
+      date,
       invoices: [
         {
           invoice_id: invId,
-          amount_applied: params.amount,
+          amount_applied: normalizedAmount,
         },
       ],
     };
@@ -1351,10 +1633,53 @@ export class ZohoService {
             if (m) {
               detail = `${detail}: ${m}`;
             }
+            const rawInfo = d.error_info;
+            if (Array.isArray(rawInfo)) {
+              const ids = rawInfo
+                .map((x) => String(x ?? '').trim())
+                .filter((x) => x.length > 0);
+              if (ids.length > 0) {
+                detail = `${detail} (error_info: ${ids.join(', ')})`;
+              }
+            } else if (rawInfo != null) {
+              const info = String(rawInfo).trim();
+              if (info) {
+                detail = `${detail} (error_info: ${info})`;
+              }
+            }
           }
           this.logger.error(
             `[Zoho] ${String(config.method ?? 'GET').toUpperCase()} ${pathForBudget} failed: ${detail}`,
           );
+          // Full payload often includes extra context (duplicate line index, composite items, etc.)
+          try {
+            this.logger.error(
+              `[Zoho] Response body (debug): ${JSON.stringify(res.data)}`,
+            );
+          } catch {
+            /* ignore stringify edge cases */
+          }
+          let bodyPreview = '';
+          try {
+            bodyPreview = JSON.stringify(res.data).slice(0, 4000);
+          } catch {
+            bodyPreview = '[unstringifiable]';
+          }
+          this.agentDebugLog({
+            hypothesisId: 'H1,H5',
+            location: 'zoho.service.ts:requestInventory:httpError',
+            message: detail,
+            data: {
+              httpStatus: res.status,
+              path: pathForBudget,
+              method: String(config.method ?? 'GET').toUpperCase(),
+              zoho_code:
+                res.data && typeof res.data === 'object'
+                  ? (res.data as { code?: number }).code
+                  : undefined,
+              body_preview: bodyPreview,
+            },
+          });
           throw new ZohoOAuthException(detail);
         }
 

@@ -113,9 +113,23 @@ export function slugifyCatalogLabel(value: string): string {
   )
 }
 
+function fallbackDescriptionFromKnownFields(doc: Record<string, unknown>): string {
+  const brand = String(doc.brand ?? '').trim()
+  const category = String(doc.category ?? '').trim()
+  const subcategory = String(doc.subcategory ?? '').trim()
+  const sku = doc.sku != null && String(doc.sku).trim() ? String(doc.sku).trim() : ''
+  const bits = [brand, category, subcategory, sku ? `SKU ${sku}` : ''].filter(Boolean)
+  if (bits.length === 0) {
+    return 'Detailed description is currently unavailable from the source catalog.'
+  }
+  return `Detailed description is currently unavailable from the source catalog. ${bits.join(' | ')}.`
+}
+
 /** Map Nest/Mongoose product JSON to storefront Product. */
 export function mapServerProductDoc(doc: Record<string, unknown>): Product {
   const id = String(doc._id ?? doc.id ?? '')
+  const descriptionRaw =
+    typeof doc.description === 'string' ? doc.description.trim() : ''
   const imagesRaw = doc.images
   let images: string[]
   if (Array.isArray(imagesRaw) && imagesRaw.length > 0) {
@@ -150,7 +164,7 @@ export function mapServerProductDoc(doc: Record<string, unknown>): Product {
     rating: Number(doc.rating ?? 0),
     reviewsCount: Number(doc.reviewsCount ?? 0),
     stock: Number(doc.stock ?? 0),
-    description: String(doc.description ?? ''),
+    description: descriptionRaw || fallbackDescriptionFromKnownFields(doc),
     specs: (doc.specs as Record<string, string>) ?? {},
     tags: Array.isArray(doc.tags) ? (doc.tags as string[]) : [],
     brand: String(doc.brand ?? 'Zoho'),

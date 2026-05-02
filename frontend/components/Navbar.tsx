@@ -186,6 +186,18 @@ export function Navbar() {
           >
             SALE
           </Link>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className={clsx(
+              navButtonClass,
+              'inline-flex items-center gap-1.5 hover:underline hover:underline-offset-4',
+            )}
+            aria-label="Search products"
+          >
+            <Search className="h-3.5 w-3.5" strokeWidth={2.5} />
+            SEARCH
+          </button>
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 text-gray-400 sm:gap-3 md:gap-5">
