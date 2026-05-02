@@ -5,14 +5,7 @@ import { api } from './client'
 export const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800'
 
-/**
- * Nest mounts Zoho routes under `/api/zoho/...`. Production builds sometimes omit `/api`
- * from `NEXT_PUBLIC_API_URL`; URLs become `https://domain/zoho/...` and static hosts 404.
- * Normalize absolute URLs that point at `/zoho/` without `/api/zoho/`.
- *
- * Root-relative `/zoho/*` or `/api/zoho/*` (no origin) resolves against the site host on
- * static export → Apache 404. Prefix with `NEXT_PUBLIC_API_URL` origin so images hit Nest.
- */
+/** Legacy compatibility helper. New sync stores CDN/static URLs directly. */
 function injectApiBeforeZohoIfMissing(absUrl: string): string {
   if (absUrl.startsWith('/api/zoho/')) {
     const base = getPublicApiUrl().replace(/\/$/, '')
@@ -214,12 +207,7 @@ interface ZohoCategoryApiRow {
   image?: string | null
 }
 
-/**
- * Live Zoho Inventory categories (item groups + items aggregated server-side).
- * Returns [] on network/Zoho failures so the storefront can fall back to
- * the categories `deriveCategoriesFromProducts` derives from the cached
- * `/api/products` payload.
- */
+/** Mongo-backed categories from the API cache layer. */
 export async function getZohoCategories(): Promise<Category[]> {
   try {
     const res = await api.get<{

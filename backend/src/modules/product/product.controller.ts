@@ -31,7 +31,7 @@ function classifyZohoFailure(details: string): {
 /**
  * Zoho-backed inventory product cache (global prefix `api`):
  *   GET  /api/zoho/products?limit=10
- *   GET  /api/zoho/products/categories  (live from Zoho /itemgroups + cached counts)
+ *   GET  /api/zoho/products/categories  (Mongo cache; no runtime Zoho call)
  *   POST /api/zoho/products/sync
  */
 @Controller('zoho/products')

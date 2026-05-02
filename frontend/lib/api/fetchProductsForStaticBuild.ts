@@ -86,8 +86,7 @@ export async function fetchProductsListForBuild(): Promise<Product[]> {
 }
 
 /**
- * Live Zoho categories during `next build` (for `generateStaticParams` so we
- * pre-render every Zoho item-group slug, even those without synced products).
+ * Category snapshot from backend Mongo cache during `next build`.
  * Returns [] on any failure — caller already unions with derived categories.
  */
 export async function fetchZohoCategoriesForBuild(): Promise<Category[]> {

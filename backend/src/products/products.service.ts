@@ -1,11 +1,14 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ZohoService } from '../modules/zoho/zoho.service';
 import type { ZohoInventoryItemNormalized } from '../modules/zoho/zoho-inventory.types';
 import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  ZohoImageCache,
+  ZohoImageCacheDocument,
+} from './schemas/zoho-image-cache.schema';
 
 /** Only treat 24-char hex strings as Mongo ObjectIds (avoids e.g. `"3"` or slugs). */
 function isMongoObjectIdString(value: string): boolean {
@@ -44,11 +47,14 @@ export interface ZohoCatalogSyncStats {
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
+  private static readonly FALLBACK_IMAGE_URL =
+    'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800';
 
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
-    private readonly zoho: ZohoService,
+    @InjectModel(ZohoImageCache.name)
+    private readonly imageCacheModel: Model<ZohoImageCacheDocument>,
   ) {}
 
   /** Storefront rows with missing / empty `zoho_item_id` (manual catalog or sync gap). */
@@ -116,27 +122,11 @@ export class ProductsService {
   }
 
   /**
-   * Same as {@link findOne} but replaces `description` with Zoho Inventory detail text when available
-   * (full description; list sync rows can be shorter).
+   * Mongo-first product lookup for storefront reads.
+   * Zoho calls are intentionally avoided in user request flow.
    */
-  async findOneWithLiveZohoDescription(
-    idOrSlug: string,
-  ): Promise<ProductDocument> {
-    const doc = await this.findOne(idOrSlug);
-    const zid = doc.zoho_item_id?.trim();
-    if (!zid) {
-      return doc;
-    }
-    try {
-      const live = await this.zoho.fetchNormalizedItemDetail(zid);
-      const text = live?.description?.trim();
-      if (text) {
-        doc.set('description', text);
-      }
-    } catch {
-      /* keep DB description */
-    }
-    return doc;
+  async findOneWithCachedDescription(idOrSlug: string): Promise<ProductDocument> {
+    return this.findOne(idOrSlug);
   }
 
   /**
@@ -146,7 +136,9 @@ export class ProductsService {
    */
   async syncCatalogFromZohoItems(
     items: ZohoInventoryItemNormalized[],
+    options?: { pruneMissing?: boolean },
   ): Promise<ZohoCatalogSyncStats> {
+    const pruneMissing = options?.pruneMissing ?? true;
     const byId = new Map<string, ZohoInventoryItemNormalized>();
     for (const item of items) {
       const raw = item.zohoItemId?.trim();
@@ -164,6 +156,16 @@ export class ProductsService {
       return { catalogUpserted: 0, catalogModified: 0, catalogRemoved: 0 };
     }
 
+    const imageCacheRows = await this.imageCacheModel.find({
+      zoho_item_id: { $in: uniqueIds },
+    }).lean().exec();
+    const imageByZohoId = new Map<string, string>();
+    for (const row of imageCacheRows) {
+      const id = String(row.zoho_item_id ?? '').trim();
+      const url = String(row.image_url ?? '').trim();
+      if (id && url) imageByZohoId.set(id, url);
+    }
+
     const bulk = [...byId.values()].map((item) => {
       const zoho_item_id = String(item.zohoItemId).trim();
       const slug = slugifyZohoStorefrontProduct(item.name, zoho_item_id, item.sku);
@@ -171,27 +173,10 @@ export class ProductsService {
         item.category === 'Uncategorized'
           ? 'Zoho'
           : item.category.split(/[\/|]/)[0]?.trim() || 'Zoho';
-      const imageIds = Array.from(
-        new Set(
-          (Array.isArray(item.zohoImageIds) ? item.zohoImageIds : []).filter(
-            (x) => typeof x === 'string' && x.trim().length > 0,
-          ),
-        ),
-      );
-      if (
-        imageIds.length === 0 &&
-        item.zohoImageId != null &&
-        item.zohoImageId.trim() !== ''
-      ) {
-        imageIds.push(item.zohoImageId.trim());
-      }
-      const images =
-        imageIds.length > 0
-          ? imageIds.map(
-              (id) =>
-                `/api/zoho/items/${zoho_item_id}/image?image_id=${encodeURIComponent(id)}`,
-            )
-          : [`/api/zoho/items/${zoho_item_id}/image`];
+      const cached = imageByZohoId.get(zoho_item_id);
+      const images = cached
+        ? [cached]
+        : [ProductsService.FALLBACK_IMAGE_URL];
       const setFields: Record<string, unknown> = {
         zoho_item_id,
         zoho_image_id: item.zohoImageId,
@@ -204,8 +189,6 @@ export class ProductsService {
         description: item.description,
         category_hints: item.categoryHints,
         brand,
-        /** Proxy resolves image bytes; path always present so storefront URL is stable. */
-        /** Full path on site origin; Nest serves GET /api/zoho/items/:id/image */
         images,
       };
       return {
@@ -242,12 +225,51 @@ export class ProductsService {
     const catalogUpserted = write.upsertedCount;
     const catalogModified = write.modifiedCount;
 
-    const removeRes = await this.productModel.deleteMany({
-      zoho_item_id: { $exists: true, $ne: null, $nin: uniqueIds },
-    });
-    const catalogRemoved = removeRes.deletedCount ?? 0;
+    let catalogRemoved = 0;
+    if (pruneMissing) {
+      const removeRes = await this.productModel.deleteMany({
+        zoho_item_id: { $exists: true, $ne: null, $nin: uniqueIds },
+      });
+      catalogRemoved = removeRes.deletedCount ?? 0;
+    }
 
     return { catalogUpserted, catalogModified, catalogRemoved };
+  }
+
+  async upsertZohoImageCache(
+    items: ZohoInventoryItemNormalized[],
+  ): Promise<number> {
+    const byId = new Map<string, ZohoInventoryItemNormalized>();
+    for (const item of items) {
+      const id = String(item.zohoItemId ?? '').trim();
+      if (id) byId.set(id, { ...item, zohoItemId: id });
+    }
+    if (byId.size === 0) return 0;
+
+    const ops = [...byId.values()].map((item) => {
+      const id = String(item.zohoItemId).trim();
+      const zImg = item.zohoImageId?.trim() || null;
+      const image_url = item.hasZohoImage
+        ? `/api/zoho/items/${encodeURIComponent(id)}/image${
+            zImg ? `?image_id=${encodeURIComponent(zImg)}` : ''
+          }`
+        : ProductsService.FALLBACK_IMAGE_URL;
+      return {
+        updateOne: {
+          filter: { zoho_item_id: id },
+          update: {
+            $set: {
+              zoho_item_id: id,
+              image_url,
+              cached_at: new Date(),
+            },
+          },
+          upsert: true,
+        },
+      };
+    });
+    const res = await this.imageCacheModel.bulkWrite(ops, { ordered: false });
+    return Number(res.upsertedCount ?? 0) + Number(res.modifiedCount ?? 0);
   }
 
   async findBySlug(slug: string): Promise<ProductDocument> {

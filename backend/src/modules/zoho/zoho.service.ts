@@ -6,6 +6,8 @@ import { firstValueFrom } from 'rxjs';
 import { buildScopesForPreset, type ZohoScopePreset } from './zoho.config';
 import { ZohoMissingScopeException, ZohoOAuthException } from './zoho.exceptions';
 import { ZohoScopeLogger } from './zoho-scope-logger';
+import { ZohoApiBudgetService } from './zoho-api-budget.service';
+import type { ZohoApiUsageChannel } from './zoho-api-usage.entity';
 import { ZohoTokenPersistence } from './zoho-token.persistence';
 import type {
   ZohoTokenBundle,
@@ -72,6 +74,7 @@ export class ZohoService {
     private readonly config: ConfigService,
     private readonly tokens: ZohoTokenPersistence,
     private readonly scopeLogger: ZohoScopeLogger,
+    private readonly budget: ZohoApiBudgetService,
   ) {}
 
   /**
@@ -127,13 +130,13 @@ export class ZohoService {
    * Returns a valid access token using `ZOHO_REFRESH_TOKEN` + client credentials.
    * Uses in-memory cache until near expiry, then POSTs to Accounts token endpoint.
    */
-  async getAccessToken(): Promise<string> {
+  async getAccessToken(channel: ZohoApiUsageChannel = 'order'): Promise<string> {
     if (!this.isTokenExpired()) {
       this.logger.log('Reusing cached Zoho access token');
       return this.cachedAccessToken as string;
     }
 
-    await this.synchronizedEnvRefresh();
+    await this.synchronizedEnvRefresh(channel);
     if (!this.cachedAccessToken) {
       throw new ZohoOAuthException('Failed to obtain Zoho access token.');
     }
@@ -144,7 +147,7 @@ export class ZohoService {
    * @deprecated Prefer {@link getAccessToken}. Kept for callers that still use this name.
    */
   async getValidAccessToken(): Promise<string> {
-    return this.getAccessToken();
+    return this.getAccessToken('order');
   }
 
   /**
@@ -171,7 +174,7 @@ export class ZohoService {
    */
   async probeAccessToken(): Promise<{ expiresIn: number; isCached: boolean }> {
     const isCached = !this.isTokenExpired();
-    await this.getAccessToken();
+    await this.getAccessToken('order');
     return {
       isCached,
       expiresIn: this.getSecondsUntilAccessTokenExpiry(),
@@ -181,7 +184,7 @@ export class ZohoService {
   /**
    * Lightweight Inventory call (single item page) for connectivity checks.
    */
-  async isInventoryReachable(): Promise<boolean> {
+  async isInventoryReachable(channel: ZohoApiUsageChannel = 'sync'): Promise<boolean> {
     try {
       const qs = new URLSearchParams({
         organization_id: this.organizationId,
@@ -191,7 +194,7 @@ export class ZohoService {
       await this.requestInventory<ZohoInventoryItemsListResponse>({
         method: 'GET',
         url: `/items?${qs.toString()}`,
-      });
+      }, channel);
       return true;
     } catch {
       return false;
@@ -223,7 +226,7 @@ export class ZohoService {
     }>({
       method: 'GET',
       url: `/settings/taxes?${qs.toString()}`,
-    });
+    }, 'order');
 
     if (data && typeof data === 'object' && 'code' in data) {
       const c = Number((data as { code?: number }).code);
@@ -265,7 +268,7 @@ export class ZohoService {
    * OAuth scope: `ZohoInventory.items.READ` (covered by `read` / `full` presets).
    * Paginates via `page_context.has_more_page`.
    */
-  async listItemGroups(): Promise<ZohoInventoryItemGroupNormalized[]> {
+  async listItemGroups(channel: ZohoApiUsageChannel = 'sync'): Promise<ZohoInventoryItemGroupNormalized[]> {
     const aggregated: ZohoInventoryItemGroupNormalized[] = [];
     let page = 1;
 
@@ -280,7 +283,7 @@ export class ZohoService {
         await this.requestInventory<ZohoInventoryItemGroupsListResponse>({
           method: 'GET',
           url: `/itemgroups?${qs.toString()}`,
-        });
+        }, channel);
 
       if (data && typeof data === 'object' && 'code' in data) {
         const c = Number((data as { code?: number }).code);
@@ -406,7 +409,7 @@ export class ZohoService {
       redirect_uri: redirectUri.trim(),
     });
 
-    const data = await this.postTokenForm(body);
+    const data = await this.postTokenForm(body, 'order');
     const bundle = this.mapTokenResponse(data, data.scope ?? '');
     await this.tokens.save(bundle);
     this.applySuccessfulTokenResponse(data);
@@ -429,7 +432,11 @@ export class ZohoService {
     return this.defaultInventoryBase;
   }
 
-  async getItemsFromZoho(): Promise<ZohoInventoryItemNormalized[]> {
+  async getItemsFromZoho(opts?: {
+    channel?: ZohoApiUsageChannel;
+    modifiedSince?: Date | null;
+  }): Promise<ZohoInventoryItemNormalized[]> {
+    const channel = opts?.channel ?? 'sync';
     const organizationId = this.organizationId;
     const aggregated: ZohoInventoryItemNormalized[] = [];
     let page = 1;
@@ -440,11 +447,14 @@ export class ZohoService {
         page: String(page),
         per_page: String(ZOHO_ITEMS_PAGE_SIZE),
       });
+      if (opts?.modifiedSince) {
+        qs.set('last_modified_time', opts.modifiedSince.toISOString());
+      }
 
       const data = await this.requestInventory<ZohoInventoryItemsListResponse>({
         method: 'GET',
         url: `/items?${qs.toString()}`,
-      });
+      }, channel);
 
       if (data && typeof data === 'object' && 'code' in data) {
         const c = Number((data as { code?: number }).code);
@@ -462,29 +472,9 @@ export class ZohoService {
 
       for (const raw of batch) {
         const rawRecord = raw as Record<string, unknown>;
-        let normalized = this.normalizeZohoInventoryItem(rawRecord);
+        const normalized = this.normalizeZohoInventoryItem(rawRecord);
         if (!normalized) {
           continue;
-        }
-        if (!normalized.hasZohoImage) {
-          const detailPayload = await this.fetchInventoryItemDetailPayload(
-            normalized.zohoItemId,
-          );
-          if (detailPayload) {
-            const merged: Record<string, unknown> = {
-              ...rawRecord,
-              ...detailPayload,
-            };
-            const afterDetail = this.normalizeZohoInventoryItem(merged);
-            if (afterDetail) {
-              normalized = afterDetail;
-              if (afterDetail.hasZohoImage) {
-                this.logger.log(
-                  `Image enriched via detail API for item: ${afterDetail.zohoItemId}`,
-                );
-              }
-            }
-          }
         }
         aggregated.push(normalized);
       }
@@ -505,6 +495,7 @@ export class ZohoService {
    */
   private async fetchInventoryItemDetailPayload(
     itemId: string,
+    channel: ZohoApiUsageChannel = 'sync',
   ): Promise<Record<string, unknown> | null> {
     const id = itemId.trim();
     if (!id || !/^\d+$/.test(id)) {
@@ -517,7 +508,7 @@ export class ZohoService {
       const data = await this.requestInventory<ZohoInventoryItemDetailResponse>({
         method: 'GET',
         url: `/items/${encodeURIComponent(id)}?${qs.toString()}`,
-      });
+      }, channel);
       if (data && typeof data === 'object' && 'code' in data) {
         const c = Number((data as { code?: number }).code);
         if (Number.isFinite(c) && c !== 0) {
@@ -543,8 +534,9 @@ export class ZohoService {
    */
   async fetchNormalizedItemDetail(
     itemId: string,
+    channel: ZohoApiUsageChannel = 'sync',
   ): Promise<ZohoInventoryItemNormalized | null> {
-    const payload = await this.fetchInventoryItemDetailPayload(itemId.trim());
+    const payload = await this.fetchInventoryItemDetailPayload(itemId.trim(), channel);
     if (!payload) return null;
     return this.normalizeZohoInventoryItem(payload);
   }
@@ -775,6 +767,7 @@ export class ZohoService {
   async fetchItemImageBuffer(
     itemId: string,
     imageId: string | null = null,
+    channel: ZohoApiUsageChannel = 'sync',
   ): Promise<{
     buffer: Buffer;
     contentType: string;
@@ -789,7 +782,7 @@ export class ZohoService {
     }
 
     const fetchOnce = async (): Promise<{ buffer: Buffer; contentType: string }> => {
-      const token = await this.getAccessToken();
+      const token = await this.getAccessToken(channel);
       const base = this.resolveInventoryBaseUrl();
       const qs = new URLSearchParams({
         organization_id: this.organizationId,
@@ -798,6 +791,10 @@ export class ZohoService {
         qs.set('image_id', zImage);
       }
       const url = `${base}/items/${encodeURIComponent(id)}/image?${qs.toString()}`;
+      await this.budget.incrementAndAssertWithinBudget(
+        channel,
+        `GET /items/${id}/image`,
+      );
       const res = await firstValueFrom(
         this.http.request<ArrayBuffer>({
           method: 'GET',
@@ -883,46 +880,23 @@ export class ZohoService {
       );
     }
 
-    if (lineTaxId) {
-      this.logger.log(`Sales order line tax_id from env: ${lineTaxId}`);
-      return {
-        line_items: items.map((li) => ({
-          ...li,
-          tax_id: lineTaxId!,
-        })),
-      };
-    }
-
-    if (taxExemptionId) {
-      this.logger.log(
-        `Sales order tax_exemption_id from env: ${taxExemptionId}`,
+    if (!lineTaxId) {
+      throw new ZohoOAuthException(
+        'ZOHO_SALES_ORDER_LINE_TAX_ID is required for order/invoice creation.',
       );
-      return { line_items: items, tax_exemption_id: taxExemptionId };
     }
-
-    const payloadEx = payloadTaxExemptionId?.trim();
-    if (payloadEx) {
-      return { line_items: items, tax_exemption_id: payloadEx };
-    }
-
-    const taxes = await this.listInventoryTaxes();
-    const fallbackTax =
-      taxes.find((t) => t.is_default_tax === true) ?? taxes[0] ?? null;
-    if (fallbackTax?.tax_id) {
+    if (taxExemptionId || payloadTaxExemptionId?.trim()) {
       this.logger.warn(
-        `Sales order tax_id fallback applied from Zoho settings: ${fallbackTax.tax_id}`,
+        'Tax exemption config/payload is ignored because line tax is mandatory in this deployment profile.',
       );
-      return {
-        line_items: items.map((li) => ({
-          ...li,
-          tax_id: fallbackTax.tax_id,
-        })),
-      };
     }
-
-    throw new ZohoOAuthException(
-      'Zoho requires a tax or tax exemption on sales orders. Set ZOHO_SALES_ORDER_LINE_TAX_ID (Zoho Inventory -> Settings -> Taxes -> copy tax id) or ZOHO_SALES_ORDER_TAX_EXEMPTION_ID in server .env, then restart.',
-    );
+    this.logger.log(`Sales order line tax_id from env: ${lineTaxId}`);
+    return {
+      line_items: items.map((li) => ({
+        ...li,
+        tax_id: lineTaxId!,
+      })),
+    };
   }
 
   /**
@@ -974,6 +948,7 @@ export class ZohoService {
    */
   async createSalesOrder(
     payload: ZohoCreateSalesOrderPayload,
+    channel: ZohoApiUsageChannel = 'order',
   ): Promise<Record<string, unknown>> {
     const cidRaw = payload.customer_id;
     if (
@@ -1017,7 +992,7 @@ export class ZohoService {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-      });
+      }, channel);
 
       this.throwIfInventoryMutationFailed(data, 'Zoho rejected sales order');
 
@@ -1040,7 +1015,7 @@ export class ZohoService {
     date: string;
     line_items: ZohoCreateSalesOrderLineItem[];
     tax_exemption_id?: string;
-  }): Promise<Record<string, unknown>> {
+  }, channel: ZohoApiUsageChannel = 'order'): Promise<Record<string, unknown>> {
     const cid = String(params.customer_id ?? '').trim();
     if (!/^\d+$/.test(cid)) {
       throw new ZohoOAuthException(
@@ -1078,7 +1053,7 @@ export class ZohoService {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-      });
+      }, channel);
 
       this.throwIfInventoryMutationFailed(data, 'Zoho rejected invoice');
 
@@ -1103,7 +1078,7 @@ export class ZohoService {
     amount: number;
     date: string;
     payment_mode?: string;
-  }): Promise<Record<string, unknown>> {
+  }, channel: ZohoApiUsageChannel = 'order'): Promise<Record<string, unknown>> {
     const cid = String(params.customer_id ?? '').trim();
     const invId = String(params.invoice_id ?? '').trim();
     if (!/^\d+$/.test(cid) || !/^\d+$/.test(invId)) {
@@ -1138,7 +1113,7 @@ export class ZohoService {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-      });
+      }, channel);
 
       this.throwIfInventoryMutationFailed(
         data,
@@ -1180,6 +1155,7 @@ export class ZohoService {
   async ensureCustomerContact(
     customerName: string,
     email: string,
+    channel: ZohoApiUsageChannel = 'order',
   ): Promise<string> {
     const org = this.organizationId;
     const emailNorm = email.trim().toLowerCase();
@@ -1191,7 +1167,7 @@ export class ZohoService {
     const listRes = await this.requestInventory<Record<string, unknown>>({
       method: 'GET',
       url: `/contacts?${listQs.toString()}`,
-    });
+    }, channel);
 
     if (listRes && typeof listRes === 'object' && 'code' in listRes) {
       const c = Number((listRes as { code?: number }).code);
@@ -1244,7 +1220,7 @@ export class ZohoService {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-    });
+    }, channel);
 
     if (created && typeof created === 'object' && 'code' in created) {
       const c = Number((created as { code?: number }).code);
@@ -1271,9 +1247,10 @@ export class ZohoService {
    */
   async requestInventory<T = unknown>(
     config: AxiosRequestConfig,
+    channel: ZohoApiUsageChannel = 'order',
   ): Promise<T> {
     const run = async (): Promise<T> => {
-      const token = await this.getAccessToken();
+      const token = await this.getAccessToken(channel);
       const base = this.resolveInventoryBaseUrl();
       const path = config.url != null ? String(config.url) : '';
       const url = path.startsWith('http')
@@ -1284,6 +1261,11 @@ export class ZohoService {
         config.method?.toUpperCase() ?? 'GET',
         '(env refresh token flow)',
       );
+        const pathForBudget = path.startsWith('/') ? path : `/${path}`;
+        await this.budget.incrementAndAssertWithinBudget(
+          channel,
+          `${config.method?.toUpperCase() ?? 'GET'} ${pathForBudget}`,
+        );
 
       try {
         const res = await firstValueFrom(
@@ -1399,7 +1381,7 @@ export class ZohoService {
     }
   }
 
-  private async synchronizedEnvRefresh(): Promise<void> {
+  private async synchronizedEnvRefresh(channel: ZohoApiUsageChannel): Promise<void> {
     if (this.tokenFetchLock) {
       await this.tokenFetchLock;
       if (!this.isTokenExpired()) {
@@ -1407,7 +1389,7 @@ export class ZohoService {
       }
     }
 
-    this.tokenFetchLock = this.fetchAccessTokenUsingEnvRefreshToken().finally(
+    this.tokenFetchLock = this.fetchAccessTokenUsingEnvRefreshToken(channel).finally(
       () => {
         this.tokenFetchLock = null;
       },
@@ -1429,7 +1411,7 @@ export class ZohoService {
     );
   }
 
-  private async fetchAccessTokenUsingEnvRefreshToken(): Promise<void> {
+  private async fetchAccessTokenUsingEnvRefreshToken(channel: ZohoApiUsageChannel): Promise<void> {
     const refreshToken = await this.resolveRefreshToken();
 
     const body = new URLSearchParams({
@@ -1439,16 +1421,21 @@ export class ZohoService {
       client_secret: this.clientSecret,
     });
 
-    const data = await this.postTokenForm(body);
+    const data = await this.postTokenForm(body, channel);
     this.applySuccessfulTokenResponse(data);
     this.logger.log('Generated new Zoho access token');
   }
 
   private async postTokenForm(
     body: URLSearchParams,
+    channel: ZohoApiUsageChannel,
   ): Promise<ZohoTokenEndpointSuccess> {
     const url = `${this.accountsBase}/oauth/v2/token`;
     try {
+      await this.budget.incrementAndAssertWithinBudget(
+        channel,
+        'POST /oauth/v2/token',
+      );
       const res = await firstValueFrom(
         this.http.post<ZohoTokenEndpointSuccess | ZohoTokenEndpointError>(
           url,

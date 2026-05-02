@@ -1,5 +1,6 @@
 import { Controller, Get, Logger, Post } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { ZohoApiBudgetService } from './zoho-api-budget.service';
 import { ZohoService } from './zoho.service';
 import { ZohoOAuthException } from './zoho.exceptions';
 
@@ -38,13 +39,17 @@ function mapZohoTestError(err: unknown): {
  *   GET  /api/zoho/debug/items
  *   GET  /api/zoho/debug/taxes
  *   GET  /api/zoho/debug/health
+ *   GET  /api/zoho/debug/usage
  *   POST /api/zoho/debug/reset-token
  */
 @Controller('zoho/debug')
 export class ZohoDebugController {
   private readonly logger = new Logger(ZohoDebugController.name);
 
-  constructor(private readonly zoho: ZohoService) {}
+  constructor(
+    private readonly zoho: ZohoService,
+    private readonly budget: ZohoApiBudgetService,
+  ) {}
 
   @Get('token')
   async getTokenProbe() {
@@ -157,6 +162,18 @@ export class ZohoDebugController {
       success: true,
       message:
         'Cached access token cleared; next Zoho call will fetch a new access token.',
+    };
+  }
+
+  @Get('usage')
+  async usage() {
+    const usage = await this.budget.getTodayUsage();
+    return {
+      success: true,
+      ...usage,
+      remainingTotal: Math.max(0, usage.totalBudget - usage.total),
+      remainingSync: Math.max(0, usage.sync.budget - usage.sync.count),
+      remainingOrder: Math.max(0, usage.order.budget - usage.order.count),
     };
   }
 }

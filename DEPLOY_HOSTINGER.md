@@ -86,23 +86,38 @@ NEXT_PUBLIC_API_URL=https://mtechinnovations.in/api
 
 If the site is under a subpath, set `NEXT_PUBLIC_BASE_PATH` per `frontend/next.config.mjs` and rebuild.
 
-### Option A — Static export (typical for `public_html`)
+### Option A — Static export (typical for `public_html` / LiteSpeed)
+
+Preferred:
 
 ```bash
-export NEXT_STATIC_EXPORT=true
 npm ci
-npm run build
+npm run build:static
 ```
 
-Upload or sync the **`frontend/out/`** folder to the web root (e.g. `public_html`), preserving **`_next/`** next to `index.html`. Do not omit **`out/_next`**.
+(`build:static` sets `NEXT_STATIC_EXPORT=true` and runs the Hostinger patch: **`out/_next` → `out/nx`** and rewrites asset URLs to **`/nx/`**, which avoids **400 Bad Request** on many Hostinger/LiteSpeed setups that dislike `/_next/`.)
+
+Upload **everything inside** **`frontend/out/`** (including **`nx/`**, not `_next`). If an old **`_next`** folder exists on the server from a previous deploy, **delete it** so you do not mix `nx` HTML with stale `_next` chunks.
+
+To keep **`/_next/`** paths (only if your host serves them without 400):  
+`HOSTINGER_PATCH_EXPORT=false npm run build:static`
 
 ### Option B — `next start` on the VPS
 
-Do **not** set `NEXT_STATIC_EXPORT`. After build, run Next with PM2 (separate process from backend), and point Nginx at that listener. (Use this only if you already use that pattern.)
+Do **not** set `NEXT_STATIC_EXPORT`. Use **`npm run build`** (not `build:static`), run Next with PM2 on port **3000**, and point Nginx **`/`** at that upstream. The browser will correctly request **`/_next/static/...`** from Node.
 
 ### After deploy
 
 Hard-refresh the site; in DevTools → Network, product requests must go to **`https://mtechinnovations.in/api/...`** (HTTPS), not `http://` or a raw IP.
+
+---
+
+### `/_next/static/...` → **400** in the browser (common causes)
+
+| Setup | What it usually means | What to do |
+|--------|------------------------|------------|
+| **Static `out/` on Hostinger** | LiteSpeed/WAF blocks **`/_next/`**, or HTML/chunks mismatch | Use **`npm run build:static`** (default **`nx`** paths). Upload full **`out/`**. Remove **`public_html/_next`** if present. Hard refresh / incognito. |
+| **VPS + `next start` + Nginx proxy** | Edge WAF (Cloudflare, Imunify, ModSecurity) or odd Nginx rules rejecting `/_next/` | From the server: `curl -I http://127.0.0.1:3000/_next/static/...` (paste one failing URL path). If **200** locally but **400** on the domain, fix/disable rules on the CDN/WAF or add an explicit Nginx `location ^~ /_next/` → same upstream as `/`. If **400** even on localhost, wipe **`frontend/.next`**, **`npm run build`**, restart PM2 `frontend`. |
 
 ---
 

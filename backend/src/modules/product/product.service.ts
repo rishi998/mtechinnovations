@@ -6,9 +6,17 @@ import { randomUUID } from 'crypto';
 import { ZohoService } from '../zoho/zoho.service';
 import { ProductsService } from '../../products/products.service';
 import {
+  CategoryCache,
+  CategoryDocument,
+} from './category.entity';
+import {
   ZohoSyncedProduct,
   ZohoSyncedProductDocument,
 } from './product.entity';
+import {
+  ZohoSyncState,
+  ZohoSyncStateDocument,
+} from './zoho-sync-state.entity';
 
 export interface ZohoSyncDetailResult {
   success: boolean;
@@ -35,19 +43,19 @@ export interface ZohoSyncDetailResult {
  * even if no item has been synced into it yet.
  */
 export interface ZohoCategoryRow {
-  /** Stable id (Zoho `group_id` when from `/itemgroups`, slug otherwise). */
+  /** Stable id for storefront category. */
   id: string;
-  /** Display name (Zoho `group_name`). */
+  /** Display name. */
   name: string;
   /** URL slug used by `/category/[slug]/`. */
   slug: string;
-  /** Zoho item-group description (may be empty). */
+  /** Category description. */
   description: string;
   /** Number of synced storefront products in this category. */
   productCount: number;
-  /** `'group'` when sourced from `/itemgroups`, `'item'` when only inferred from items. */
-  source: 'group' | 'item';
-  /** Storefront image URL when Zoho exposes a group image, else null. */
+  /** Category source row type. */
+  source: 'cache';
+  /** Category image URL if available. */
   image: string | null;
 }
 
@@ -58,6 +66,10 @@ export class ProductService implements OnModuleInit {
   constructor(
     @InjectModel(ZohoSyncedProduct.name)
     private readonly productModel: Model<ZohoSyncedProductDocument>,
+    @InjectModel(CategoryCache.name)
+    private readonly categoryModel: Model<CategoryDocument>,
+    @InjectModel(ZohoSyncState.name)
+    private readonly syncStateModel: Model<ZohoSyncStateDocument>,
     private readonly zoho: ZohoService,
     private readonly storefrontProducts: ProductsService,
   ) {}
@@ -98,18 +110,25 @@ export class ProductService implements OnModuleInit {
     return docs.map((d) => d.toJSON() as Record<string, unknown>);
   }
 
-  /**
-   * Live Zoho categories for the storefront.
-   *
-   * Strategy:
-   *  - Hit Zoho `/itemgroups` for the canonical category list (groups with
-   *    description, image, etc.).
-   *  - Aggregate counts from the local `zoho_inventory_products` cache so the
-   *    storefront can show "N products" without hitting Zoho per group.
-   *  - Add any item-derived categories that Zoho returned via `category_name`
-   *    on items but not as item-groups (so nothing is hidden from the UI).
-   */
+  /** Mongo-first category listing for storefront reads (no runtime Zoho calls). */
   async getCategoriesFromZoho(): Promise<ZohoCategoryRow[]> {
+    const rows = await this.categoryModel
+      .find()
+      .sort({ name: 1 })
+      .lean()
+      .exec();
+    if (rows.length > 0) {
+      return rows.map((r) => ({
+        id: r.slug,
+        name: r.name,
+        slug: r.slug,
+        description: r.description ?? '',
+        productCount: Number(r.product_count ?? 0),
+        source: 'cache',
+        image: typeof r.image === 'string' ? r.image : null,
+      }));
+    }
+
     const slugify = (value: string): string =>
       (value || '')
         .toLowerCase()
@@ -117,15 +136,6 @@ export class ProductService implements OnModuleInit {
         .replace(/[^\w\s-]/g, '')
         .replace(/[\s_-]+/g, '-')
         .replace(/^-+|-+$/g, '') || 'uncategorized';
-
-    let groups: Awaited<ReturnType<typeof this.zoho.listItemGroups>> = [];
-    try {
-      groups = await this.zoho.listItemGroups();
-    } catch (err) {
-      this.logger.warn(
-        `Zoho /itemgroups call failed; falling back to product-derived categories: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
 
     const cached = await this.productModel.find().lean().exec();
     const countsBySlug = new Map<string, number>();
@@ -141,40 +151,14 @@ export class ProductService implements OnModuleInit {
     }
 
     const out: ZohoCategoryRow[] = [];
-    const seenSlugs = new Set<string>();
-
-    for (const g of groups) {
-      const slug = slugify(g.groupName);
-      if (seenSlugs.has(slug)) {
-        continue;
-      }
-      seenSlugs.add(slug);
-      const image = g.zohoImageId
-        ? `/api/zoho/items/${encodeURIComponent(g.groupId)}/image?image_id=${encodeURIComponent(g.zohoImageId)}`
-        : null;
-      out.push({
-        id: g.groupId,
-        name: g.groupName,
-        slug,
-        description: g.description,
-        productCount: countsBySlug.get(slug) ?? 0,
-        source: 'group',
-        image,
-      });
-    }
-
     for (const [slug, name] of namesBySlug.entries()) {
-      if (seenSlugs.has(slug)) {
-        continue;
-      }
-      seenSlugs.add(slug);
       out.push({
         id: slug,
         name,
         slug,
         description: '',
         productCount: countsBySlug.get(slug) ?? 0,
-        source: 'item',
+        source: 'cache',
         image: null,
       });
     }
@@ -188,13 +172,46 @@ export class ProductService implements OnModuleInit {
    */
   async syncProductsFromZoho(context?: {
     requestId?: string;
+    forceFull?: boolean;
   }): Promise<ZohoSyncDetailResult> {
     const requestId = context?.requestId ?? `cron-${randomUUID()}`;
     const t0 = Date.now();
+    const state = await this.syncStateModel
+      .findOne({ key: 'inventory' })
+      .lean()
+      .exec();
+    const now = new Date();
+    const lastFull = state?.last_full_sync_at
+      ? new Date(state.last_full_sync_at)
+      : null;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const fullSyncDue =
+      !lastFull || now.getTime() - lastFull.getTime() >= oneDayMs;
+    const isFullSync = Boolean(context?.forceFull) || fullSyncDue;
+    const incrementalSince =
+      !isFullSync && state?.last_incremental_sync_at
+        ? new Date(state.last_incremental_sync_at)
+        : null;
+    await this.syncStateModel
+      .updateOne(
+        { key: 'inventory' },
+        {
+          $set: {
+            key: 'inventory',
+            sync_status: 'running',
+            last_error: null,
+          },
+        },
+        { upsert: true },
+      )
+      .exec();
     this.logger.log(`[${requestId}] Starting Zoho product sync...`);
 
     try {
-      const items = await this.zoho.getItemsFromZoho();
+      const items = await this.zoho.getItemsFromZoho({
+        channel: 'sync',
+        modifiedSince: incrementalSince,
+      });
       const totalFetched = items.length;
 
       if (!totalFetched) {
@@ -203,6 +220,20 @@ export class ProductService implements OnModuleInit {
           `[${requestId}] inserted=0 updated=0 skipped=0 (no items from Zoho)`,
         );
         this.logger.log(`[${requestId}] Completed sync in ${durationMs} ms`);
+        await this.syncStateModel
+          .updateOne(
+            { key: 'inventory' },
+            {
+              $set: {
+                sync_status: 'success',
+                ...(isFullSync ? { last_full_sync_at: new Date() } : {}),
+                last_incremental_sync_at: new Date(),
+                last_error: null,
+              },
+            },
+            { upsert: true },
+          )
+          .exec();
         return {
           success: true,
           totalFetched: 0,
@@ -273,6 +304,20 @@ export class ProductService implements OnModuleInit {
         this.logger.log(
           `[${requestId}] inserted=0 updated=0 skipped=0 (no items with valid Zoho id)`,
         );
+        await this.syncStateModel
+          .updateOne(
+            { key: 'inventory' },
+            {
+              $set: {
+                sync_status: 'success',
+                ...(isFullSync ? { last_full_sync_at: new Date() } : {}),
+                last_incremental_sync_at: new Date(),
+                last_error: null,
+              },
+            },
+            { upsert: true },
+          )
+          .exec();
         return {
           success: true,
           totalFetched,
@@ -293,16 +338,18 @@ export class ProductService implements OnModuleInit {
 
       const zohoIds = [...byId.keys()];
       let removedZohoCache = 0;
-      if (zohoIds.length > 0) {
+      if (isFullSync && zohoIds.length > 0) {
         const del = await this.productModel.deleteMany({
           zoho_item_id: { $nin: zohoIds },
         });
         removedZohoCache = del.deletedCount ?? 0;
       }
 
+      await this.storefrontProducts.upsertZohoImageCache([...byId.values()]);
       const catalog = await this.storefrontProducts.syncCatalogFromZohoItems([
         ...byId.values(),
-      ]);
+      ], { pruneMissing: isFullSync });
+      await this.refreshCategoriesFromStorefrontSnapshot();
 
       this.logger.log(
         `[${requestId}] zoho_cache inserted=${inserted} updated=${updated} skipped=${skipped} removed=${removedZohoCache}`,
@@ -315,6 +362,21 @@ export class ProductService implements OnModuleInit {
 
       const durationMs = Date.now() - t0;
       this.logger.log(`[${requestId}] Completed sync in ${durationMs} ms`);
+      await this.syncStateModel
+        .updateOne(
+          { key: 'inventory' },
+          {
+            $set: {
+              sync_status: 'success',
+              ...(isFullSync ? { last_full_sync_at: new Date() } : {}),
+              last_incremental_sync_at: new Date(),
+              last_successful_page: 1,
+              last_error: null,
+            },
+          },
+          { upsert: true },
+        )
+        .exec();
 
       return {
         success: true,
@@ -335,6 +397,18 @@ export class ProductService implements OnModuleInit {
         `[${requestId}] Zoho product sync failed after ${durationMs} ms: ${details}`,
         err instanceof Error ? err.stack : undefined,
       );
+      await this.syncStateModel
+        .updateOne(
+          { key: 'inventory' },
+          {
+            $set: {
+              sync_status: 'failed',
+              last_error: details,
+            },
+          },
+          { upsert: true },
+        )
+        .exec();
       return {
         success: false,
         totalFetched: 0,
@@ -344,18 +418,90 @@ export class ProductService implements OnModuleInit {
         durationMs,
         details,
       };
+    } finally {
+      await this.syncStateModel
+        .updateOne(
+          { key: 'inventory' },
+          {
+            $setOnInsert: { key: 'inventory' },
+          },
+          { upsert: true },
+        )
+        .exec();
     }
+  }
+
+  private async refreshCategoriesFromStorefrontSnapshot(): Promise<void> {
+    const rows = await this.storefrontProducts.findAll();
+    const bySlug = new Map<
+      string,
+      { name: string; count: number; image: string | null }
+    >();
+    const slugify = (value: string): string =>
+      (value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'uncategorized';
+
+    for (const row of rows) {
+      const name = String(row.category ?? '').trim() || 'Uncategorized';
+      const slug = slugify(name);
+      const existing = bySlug.get(slug);
+      const firstImage =
+        Array.isArray(row.images) &&
+        row.images.find((x) => typeof x === 'string' && x.trim()) != null
+          ? String(
+              row.images.find((x) => typeof x === 'string' && x.trim()),
+            ).trim()
+          : null;
+      if (!existing) {
+        bySlug.set(slug, { name, count: 1, image: firstImage });
+        continue;
+      }
+      existing.count += 1;
+      if (!existing.image && firstImage) {
+        existing.image = firstImage;
+      }
+    }
+
+    const now = new Date();
+    const bulk = [...bySlug.entries()].map(([slug, payload]) => ({
+      updateOne: {
+        filter: { slug },
+        update: {
+          $set: {
+            slug,
+            name: payload.name,
+            description: '',
+            image: payload.image,
+            product_count: payload.count,
+            source: 'mongo',
+            last_synced_at: now,
+          },
+        },
+        upsert: true,
+      },
+    }));
+    if (bulk.length > 0) {
+      await this.categoryModel.bulkWrite(bulk, { ordered: false });
+    }
+    await this.categoryModel.deleteMany({
+      slug: { $nin: [...bySlug.keys()] },
+    });
   }
 
   /**
    * Pull Zoho Inventory items and upsert `zoho_inventory_products` (+ storefront catalog).
-   * Twice daily at 09:00 and 17:00 (process timezone; set `TZ` in production if needed).
+   * Full sync once daily at 02:00 (process timezone; set `TZ` in production if needed).
    * Same data path as POST /api/zoho/products/sync.
    */
-  @Cron('0 9,17 * * *')
+  @Cron('0 2 * * *')
   async scheduledZohoInventoryPull(): Promise<void> {
     await this.syncProductsFromZoho({
       requestId: `interval-${randomUUID()}`,
+      forceFull: true,
     });
   }
 
@@ -364,6 +510,16 @@ export class ProductService implements OnModuleInit {
   async zohoSyncOneMinuteAfterBoot(): Promise<void> {
     await this.syncProductsFromZoho({
       requestId: `boot-${randomUUID()}`,
+      forceFull: true,
+    });
+  }
+
+  /** Incremental sync every 30 minutes using last_incremental_sync_at watermark. */
+  @Cron('*/30 * * * *')
+  async scheduledIncrementalZohoInventoryPull(): Promise<void> {
+    await this.syncProductsFromZoho({
+      requestId: `incremental-${randomUUID()}`,
+      forceFull: false,
     });
   }
 }

@@ -4,6 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ZohoController } from './zoho.controller';
 import { ZohoDebugController } from './zoho.debug.controller';
+import { ZohoApiBudgetService } from './zoho-api-budget.service';
+import { ZohoApiUsage, ZohoApiUsageSchema } from './zoho-api-usage.entity';
 import { ZohoScopeLogger } from './zoho-scope-logger';
 import {
   ZohoMongoTokenPersistence,
@@ -21,17 +23,24 @@ import { ZohoService } from './zoho.service';
     }),
     MongooseModule.forFeature([
       { name: ZohoTokenState.name, schema: ZohoTokenStateSchema },
+      { name: ZohoApiUsage.name, schema: ZohoApiUsageSchema },
     ]),
   ],
   controllers: [ZohoController, ZohoDebugController],
   providers: [
     ZohoService,
+    ZohoApiBudgetService,
     ZohoScopeLogger,
     {
       provide: ZohoTokenPersistence,
       useClass: ZohoMongoTokenPersistence,
     },
   ],
-  exports: [ZohoService, ZohoTokenPersistence, ZohoScopeLogger],
+  exports: [
+    ZohoService,
+    ZohoApiBudgetService,
+    ZohoTokenPersistence,
+    ZohoScopeLogger,
+  ],
 })
 export class ZohoModule {}

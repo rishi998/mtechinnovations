@@ -15,7 +15,16 @@ const staticExport = process.env.NEXT_STATIC_EXPORT === 'true'
 /** Allow `next/image` to load Zoho proxy URLs served under your API host (from NEXT_PUBLIC_API_URL). */
 function apiImageRemotePatterns() {
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim()
-  if (!raw) return []
+  if (!raw) {
+    return [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/api/**',
+      },
+    ]
+  }
   try {
     const u = new URL(raw)
     const pattern = {

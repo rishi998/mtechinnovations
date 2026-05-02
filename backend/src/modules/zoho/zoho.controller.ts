@@ -20,7 +20,9 @@ const IMAGE_FALLBACK_URL =
  * With global prefix `api` (see main.ts), routes are:
  *   GET /api/zoho/login?type=read|order|full
  *   GET /api/zoho/callback?code=...
- *   GET /api/zoho/items/:itemId/image?image_id=...  (optional Zoho image_id query)
+ *   GET /api/zoho/items/:itemId/image?image_id=...
+ *       — streams the catalog image from Zoho Inventory (OAuth). Falls back to a static
+ *       placeholder on error. Counts against the `order` API budget channel.
  */
 @Controller('zoho')
 export class ZohoController {
@@ -76,23 +78,21 @@ export class ZohoController {
       const { buffer, contentType } = await this.zoho.fetchItemImageBuffer(
         itemId,
         imageId?.trim() || null,
+        'order',
       );
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      /** Allow cross-origin pages (Next.js on a different port/domain) to display this image. */
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader(
+        'Cache-Control',
+        'public, max-age=86400, stale-while-revalidate=604800',
+      );
       res.send(buffer);
     } catch (err) {
       if (err instanceof NotFoundException) {
-        /** Item has no image in Zoho — redirect browser to the catalog placeholder. */
-        this.logger.debug(
-          `No image in Zoho for item ${itemId}; redirecting to placeholder`,
-        );
         res.redirect(302, IMAGE_FALLBACK_URL);
         return;
       }
       this.logger.warn(
-        `Image proxy error for item ${itemId}: ${err instanceof Error ? err.message : String(err)}`,
+        `Zoho item image failed for item ${itemId}: ${err instanceof Error ? err.message : String(err)}`,
       );
       res.redirect(302, IMAGE_FALLBACK_URL);
     }

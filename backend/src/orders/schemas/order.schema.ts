@@ -90,6 +90,9 @@ export class Order {
   @Prop({ type: String, default: null })
   zoho_invoice_id: string | null;
 
+  @Prop({ type: String, default: null })
+  zoho_payment_id: string | null;
+
   @Prop({
     type: String,
     enum: ['pending', 'synced', 'failed'],

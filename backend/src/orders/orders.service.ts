@@ -160,6 +160,13 @@ export class OrdersService {
       .exec();
   }
 
+  async findByMongoIdForSystem(orderMongoId: string): Promise<OrderDocument | null> {
+    return this.orderModel
+      .findById(orderMongoId)
+      .populate('items.productId')
+      .exec();
+  }
+
   async attachRazorpayOrderId(
     orderMongoId: string,
     userId: string,
@@ -182,6 +189,7 @@ export class OrdersService {
     razorpayPaymentId: string;
     zohoSalesOrderId: string | null;
     zohoInvoiceId: string | null;
+    zohoPaymentId?: string | null;
     zohoSyncStatus: OrderZohoSyncStatus;
   }): Promise<OrderDocument> {
     const order = await this.orderModel
@@ -194,6 +202,7 @@ export class OrdersService {
             paymentId: input.razorpayPaymentId,
             zoho_salesorder_id: input.zohoSalesOrderId,
             zoho_invoice_id: input.zohoInvoiceId,
+            zoho_payment_id: input.zohoPaymentId ?? null,
             zoho_sync_status: input.zohoSyncStatus,
             status: 'processing',
           },
@@ -224,6 +233,7 @@ export class OrdersService {
     orderMongoId: string,
     zohoSalesOrderId: string | null,
     zohoInvoiceId: string | null,
+    zohoPaymentId: string | null,
     zohoSyncStatus: OrderZohoSyncStatus,
   ): Promise<OrderDocument> {
     const order = await this.orderModel
@@ -233,6 +243,7 @@ export class OrdersService {
           $set: {
             zoho_salesorder_id: zohoSalesOrderId,
             zoho_invoice_id: zohoInvoiceId,
+            zoho_payment_id: zohoPaymentId,
             zoho_sync_status: zohoSyncStatus,
           },
         },

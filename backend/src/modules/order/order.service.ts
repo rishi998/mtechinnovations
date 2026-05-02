@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ZohoService } from '../zoho/zoho.service';
@@ -48,7 +49,7 @@ export class OrderService {
     success: boolean;
     orderId: string;
     zohoSalesOrderId?: string | null;
-    status: 'SYNCED' | 'FAILED';
+    status: 'PENDING' | 'SYNCED' | 'FAILED';
     message?: string;
   }> {
     const lineInputs: {
@@ -107,16 +108,6 @@ export class OrderService {
       0,
     );
 
-    const customerId = dto.zohoCustomerId?.trim()
-      ? dto.zohoCustomerId.trim()
-      : await this.zoho.ensureCustomerContact(
-          dto.customerName,
-          dto.customerEmail,
-        );
-    if (!customerId || !/^\d+$/.test(customerId)) {
-      throw new Error('Invalid Zoho customer_id before creating sales order');
-    }
-
     const doc = await this.orderModel.create({
       customerName: dto.customerName.trim(),
       customerEmail: dto.customerEmail.trim().toLowerCase(),
@@ -133,67 +124,62 @@ export class OrderService {
     });
 
     const orderId = String(doc._id);
+    return {
+      success: true,
+      orderId,
+      status: 'PENDING',
+      message: 'Queued for background Zoho sync.',
+    };
+  }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const zohoPayload = {
-      customer_id: customerId,
-      date: today,
-      line_items: lineInputs.map((l) => ({
+  @Cron('*/10 * * * *')
+  async processPendingSalesOrders(): Promise<void> {
+    const docs = await this.orderModel
+      .find({ status: 'PENDING' })
+      .sort({ createdAt: 1 })
+      .limit(20)
+      .exec();
+    for (const doc of docs) {
+      const today = new Date().toISOString().slice(0, 10);
+      const lineItems = doc.items.map((l) => ({
         item_id: String(l.zoho_item_id).trim(),
-        name: l.productName,
+        name: 'Item',
         quantity: l.quantity,
         rate: l.price,
         unit: 'qty',
-      })),
-    };
-
-    this.logger.log(`Customer ID used: ${customerId}`);
-
-    try {
-      const zohoBody = await this.zoho.createSalesOrder(zohoPayload);
-      const zohoSalesOrderId = extractZohoSalesOrderId(zohoBody);
-
-      if (!zohoSalesOrderId) {
-        const msg =
-          'Zoho returned success but no salesorder_id; check API response shape.';
-        this.logger.error(msg);
+      }));
+      try {
+        const customerId = await this.zoho.ensureCustomerContact(
+          doc.customerName,
+          doc.customerEmail,
+          'order',
+        );
+        const zohoPayload = {
+          customer_id: customerId,
+          date: today,
+          line_items: lineItems,
+        };
+        const zohoBody = await this.zoho.createSalesOrder(zohoPayload, 'order');
+        const zohoSalesOrderId = extractZohoSalesOrderId(zohoBody);
+        if (!zohoSalesOrderId) {
+          throw new Error(
+            'Zoho returned success but no salesorder_id; check API response shape.',
+          );
+        }
+        await this.orderModel.findByIdAndUpdate(doc._id, {
+          $set: {
+            status: 'SYNCED',
+            zoho_salesorder_id: zohoSalesOrderId,
+            lastError: null,
+          },
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`Order ${String(doc._id)} Zoho sync failed: ${msg}`);
         await this.orderModel.findByIdAndUpdate(doc._id, {
           $set: { status: 'FAILED', lastError: msg },
         });
-        return {
-          success: false,
-          orderId,
-          status: 'FAILED',
-          message: msg,
-        };
       }
-
-      await this.orderModel.findByIdAndUpdate(doc._id, {
-        $set: {
-          status: 'SYNCED',
-          zoho_salesorder_id: zohoSalesOrderId,
-          lastError: null,
-        },
-      });
-
-      return {
-        success: true,
-        orderId,
-        zohoSalesOrderId,
-        status: 'SYNCED',
-      };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Order ${orderId} Zoho sync failed: ${msg}`);
-      await this.orderModel.findByIdAndUpdate(doc._id, {
-        $set: { status: 'FAILED', lastError: msg },
-      });
-      return {
-        success: false,
-        orderId,
-        status: 'FAILED',
-        message: msg,
-      };
     }
   }
 

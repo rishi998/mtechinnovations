@@ -6,6 +6,7 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { createHmac, timingSafeEqual } from 'crypto';
@@ -18,6 +19,7 @@ import { OrderDocument } from '../orders/schemas/order.schema';
 import { UsersService } from '../users/users.service';
 import { RazorpayVerifyDto } from './dto/razorpay-verify.dto';
 import type { ZohoCreateSalesOrderLineItem } from '../modules/zoho/zoho-inventory-salesorder.types';
+import { ZohoOrderQueueService } from './zoho-order-queue.service';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Razorpay = require('razorpay') as new (args: {
@@ -135,6 +137,20 @@ function extractZohoInvoiceAmountDue(data: Record<string, unknown>): number | nu
   return pick(o.balance) ?? pick(o.total);
 }
 
+function extractZohoCustomerPaymentId(data: Record<string, unknown>): string | null {
+  const payment = data.payment;
+  if (payment && typeof payment === 'object') {
+    const id = (payment as Record<string, unknown>).payment_id;
+    if (id != null && String(id).trim() !== '') {
+      return String(id).trim();
+    }
+  }
+  if (data.payment_id != null && String(data.payment_id).trim() !== '') {
+    return String(data.payment_id).trim();
+  }
+  return null;
+}
+
 @Injectable()
 export class RazorpayPaymentService {
   private readonly logger = new Logger(RazorpayPaymentService.name);
@@ -148,6 +164,7 @@ export class RazorpayPaymentService {
     private readonly ordersService: OrdersService,
     private readonly usersService: UsersService,
     private readonly zoho: ZohoService,
+    private readonly zohoQueue: ZohoOrderQueueService,
     @InjectModel(Product.name)
     private readonly storefrontProductModel: Model<ProductDocument>,
   ) {
@@ -374,27 +391,21 @@ export class RazorpayPaymentService {
         };
       }
 
-      try {
-        const zoho = await this.runZohoSync(order);
-        await this.ordersService.updateZohoSyncForOrder(
-          String(order._id),
-          zoho.salesOrderId,
-          zoho.invoiceId,
-          'synced',
-        );
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        this.logger.error(
-          `Zoho retry failed for order ${order.orderId}: ${msg}`,
-          err instanceof Error ? err.stack : undefined,
-        );
-        await this.ordersService.updateZohoSyncForOrder(
-          String(order._id),
-          order.zoho_salesorder_id ?? null,
-          order.zoho_invoice_id ?? null,
-          'failed',
-        );
-      }
+      await this.zohoQueue.enqueuePending({
+        orderId: order.orderId,
+        orderMongoId: String(order._id),
+        salesOrderId: order.zoho_salesorder_id ?? null,
+        invoiceId: order.zoho_invoice_id ?? null,
+        paymentId: order.zoho_payment_id ?? null,
+        reason: 'Order already paid; deferred Zoho sync',
+      });
+      await this.ordersService.updateZohoSyncForOrder(
+        String(order._id),
+        order.zoho_salesorder_id ?? null,
+        order.zoho_invoice_id ?? null,
+        order.zoho_payment_id ?? null,
+        'pending',
+      );
 
       const refreshed = await this.ordersService.findByRazorpayOrderId(
         order.razorpay_order_id!,
@@ -410,33 +421,28 @@ export class RazorpayPaymentService {
 
     let zohoSales: string | null = null;
     let zohoInv: string | null = null;
-    let syncStatus: 'synced' | 'failed' = 'synced';
+    let zohoPayment: string | null = null;
+    const syncStatus: 'pending' = 'pending';
 
-    try {
-      const zoho = await this.runZohoSync(order);
-      zohoSales = zoho.salesOrderId;
-      zohoInv = zoho.invoiceId;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `Zoho sync failed after Razorpay success for order ${order.orderId}: ${msg}`,
-        err instanceof Error ? err.stack : undefined,
-      );
-      syncStatus = 'failed';
-    }
+    await this.zohoQueue.enqueuePending({
+      orderId: order.orderId,
+      orderMongoId: String(order._id),
+      reason: 'Payment captured; queued Zoho sync',
+    });
 
     await this.ordersService.applyVerifiedRazorpayPayment({
       orderMongoId: String(order._id),
       razorpayPaymentId,
       zohoSalesOrderId: zohoSales,
       zohoInvoiceId: zohoInv,
+      zohoPaymentId: zohoPayment,
       zohoSyncStatus: syncStatus,
     });
 
     return {
       success: true,
       orderId: order.orderId,
-      zohoSynced: syncStatus === 'synced',
+      zohoSynced: false,
       zohoSalesOrderId: zohoSales,
       zohoInvoiceId: zohoInv,
     };
@@ -597,34 +603,71 @@ export class RazorpayPaymentService {
         zohoInvoiceId: order.zoho_invoice_id,
       };
     }
-    try {
-      const zoho = await this.runZohoSync(order);
-      await this.ordersService.updateZohoSyncForOrder(
-        String(order._id),
-        zoho.salesOrderId,
-        zoho.invoiceId,
-        'synced',
+    await this.zohoQueue.enqueuePending({
+      orderId: order.orderId,
+      orderMongoId: String(order._id),
+      salesOrderId: order.zoho_salesorder_id ?? null,
+      invoiceId: order.zoho_invoice_id ?? null,
+      paymentId: order.zoho_payment_id ?? null,
+      reason: 'Manual sync requested; queued for worker',
+    });
+    await this.ordersService.updateZohoSyncForOrder(
+      String(order._id),
+      order.zoho_salesorder_id ?? null,
+      order.zoho_invoice_id ?? null,
+      order.zoho_payment_id ?? null,
+      'pending',
+    );
+    return {
+      orderId: order.orderId,
+      zohoSynced: false,
+      zohoSalesOrderId: order.zoho_salesorder_id ?? null,
+      zohoInvoiceId: order.zoho_invoice_id ?? null,
+    };
+  }
+
+  @Cron('*/10 * * * *')
+  async retryPendingZohoSyncs(): Promise<void> {
+    const jobs = await this.zohoQueue.fetchRetryBatch(20);
+    for (const job of jobs) {
+      const order = await this.ordersService.findByMongoIdForSystem(
+        job.order_mongo_id,
       );
-      return {
-        orderId: order.orderId,
-        zohoSynced: true,
-        zohoSalesOrderId: zoho.salesOrderId,
-        zohoInvoiceId: zoho.invoiceId,
-      };
-    } catch (err) {
-      await this.ordersService.updateZohoSyncForOrder(
-        String(order._id),
-        order.zoho_salesorder_id ?? null,
-        order.zoho_invoice_id ?? null,
-        'failed',
-      );
-      throw err;
+      if (!order) {
+        await this.zohoQueue.markRetry(job.order_id, 'Order not found');
+        continue;
+      }
+      if ((order.payment_status ?? 'pending') !== 'success') {
+        await this.zohoQueue.markRetry(
+          job.order_id,
+          'Payment is not successful; skipping retry',
+        );
+        continue;
+      }
+      try {
+        const result = await this.runZohoSync(order);
+        await this.ordersService.updateZohoSyncForOrder(
+          String(order._id),
+          result.salesOrderId,
+          result.invoiceId,
+          result.paymentId,
+          'synced',
+        );
+        await this.zohoQueue.markSuccess(job.order_id, {
+          salesOrderId: result.salesOrderId,
+          invoiceId: result.invoiceId,
+          paymentId: result.paymentId,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await this.zohoQueue.markRetry(job.order_id, msg);
+      }
     }
   }
 
   private async runZohoSync(
     order: OrderDocument,
-  ): Promise<{ salesOrderId: string; invoiceId: string }> {
+  ): Promise<{ salesOrderId: string; invoiceId: string; paymentId: string | null }> {
     const lineItems = await this.resolveZohoLineItemsForPaidOrder(order);
     const user = await this.usersService.findOne(order.userId.toString());
     const email = user?.email?.trim().toLowerCase();
@@ -636,6 +679,7 @@ export class RazorpayPaymentService {
     const customerId = await this.zoho.ensureCustomerContact(
       customerName,
       email,
+      'order',
     );
 
     const today = new Date().toISOString().slice(0, 10);
@@ -644,7 +688,7 @@ export class RazorpayPaymentService {
       customer_id: customerId,
       date: today,
       line_items: lineItems,
-    });
+    }, 'order');
     const salesOrderId = extractZohoSalesOrderId(soBody);
     if (!salesOrderId) {
       throw new Error('Zoho sales order response missing salesorder_id');
@@ -654,7 +698,7 @@ export class RazorpayPaymentService {
       customer_id: customerId,
       date: today,
       line_items: lineItems,
-    });
+    }, 'order');
     const invoiceId = extractZohoInvoiceId(invBody);
     if (!invoiceId) {
       throw new Error('Zoho invoice response missing invoice_id');
@@ -682,15 +726,19 @@ export class RazorpayPaymentService {
       );
     }
 
+    let paymentId: string | null = null;
     if (paymentAmount > 0) {
       try {
-        await this.zoho.recordCustomerPayment({
+        const payBody = await this.zoho.recordCustomerPayment({
           customer_id: customerId,
           invoice_id: invoiceId,
           amount: paymentAmount,
           date: today,
           payment_mode: 'Razorpay',
-        });
+        }, 'order');
+        paymentId = extractZohoCustomerPaymentId(
+          payBody as Record<string, unknown>,
+        );
       } catch (err) {
         this.logger.error(
           `Zoho invoice ${invoiceId} was created but recording customer payment failed for order ${order.orderId}: ${
@@ -705,6 +753,6 @@ export class RazorpayPaymentService {
       );
     }
 
-    return { salesOrderId, invoiceId };
+    return { salesOrderId, invoiceId, paymentId };
   }
 }
