@@ -96,3 +96,20 @@ export interface ZohoInventoryItemNormalized {
   /** True when Zoho has a catalog image (image_id or image_name). */
   hasZohoImage: boolean;
 }
+
+/**
+ * Zoho list payloads often omit top-level `image_id` but still expose an image
+ * via `image_name` or nested arrays (`zohoImageIds`). Use this for storefront
+ * `zoho_image_id` and for the `image_id` query param when fetching bytes.
+ */
+export function resolveZohoCatalogImageId(
+  item: Pick<ZohoInventoryItemNormalized, 'zohoImageId' | 'zohoImageIds'>,
+): string | null {
+  const primary = item.zohoImageId?.trim();
+  if (primary) return primary;
+  for (const x of item.zohoImageIds ?? []) {
+    const s = String(x ?? '').trim();
+    if (s && /^\d+$/.test(s)) return s;
+  }
+  return null;
+}

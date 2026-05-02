@@ -13,7 +13,7 @@ import { ZohoService } from './zoho.service';
 
 /** Storefront catalog images are served from Mongo (`products.images`); no runtime Zoho. */
 const IMAGE_FALLBACK_URL =
-  'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800';
+  'https://picsum.photos/seed/mtech-placeholder/800/800';
 
 /**
  * With global prefix `api` (see main.ts), routes are:

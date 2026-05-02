@@ -1,7 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import type { ZohoInventoryItemNormalized } from '../modules/zoho/zoho-inventory.types';
+import {
+  resolveZohoCatalogImageId,
+  type ZohoInventoryItemNormalized,
+} from '../modules/zoho/zoho-inventory.types';
 import { ZohoService } from '../modules/zoho/zoho.service';
 import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -14,6 +17,36 @@ import {
 /** Only treat 24-char hex strings as Mongo ObjectIds (avoids e.g. `"3"` or slugs). */
 function isMongoObjectIdString(value: string): boolean {
   return /^[a-fA-F0-9]{24}$/.test(value);
+}
+
+/** Normalize Mongo Binary/Buffer payloads into a Node Buffer. */
+function asNodeBuffer(raw: unknown): Buffer | null {
+  if (raw == null) return null;
+  if (Buffer.isBuffer(raw)) return raw;
+  if (raw instanceof Uint8Array) return Buffer.from(raw);
+  if (typeof raw !== 'object') return null;
+
+  const o = raw as {
+    buffer?: unknown;
+    value?: (...args: unknown[]) => unknown;
+    data?: unknown;
+  };
+
+  if (Buffer.isBuffer(o.buffer)) return o.buffer;
+  if (o.buffer instanceof Uint8Array) return Buffer.from(o.buffer);
+  if (Array.isArray(o.data)) return Buffer.from(o.data);
+
+  if (typeof o.value === 'function') {
+    try {
+      const v = o.value(true);
+      if (Buffer.isBuffer(v)) return v;
+      if (v instanceof Uint8Array) return Buffer.from(v);
+    } catch {
+      // Ignore unsupported BSON wrappers and continue.
+    }
+  }
+
+  return null;
 }
 
 /** Stable URL slug for Zoho-backed storefront rows (includes Zoho id to avoid collisions). */
@@ -49,7 +82,7 @@ export interface ZohoCatalogSyncStats {
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
   static readonly FALLBACK_IMAGE_URL =
-    'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800';
+    'https://picsum.photos/seed/mtech-placeholder/800/800';
 
   /** Skip storing blobs larger than this (Mongo 16 MB doc limit; keep headroom). */
   private static readonly MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -184,7 +217,7 @@ export class ProductsService {
         : [ProductsService.FALLBACK_IMAGE_URL];
       const setFields: Record<string, unknown> = {
         zoho_item_id,
-        zoho_image_id: item.zohoImageId,
+        zoho_image_id: resolveZohoCatalogImageId(item),
         name: item.name,
         sku: item.sku,
         category: item.category,
@@ -279,7 +312,7 @@ export class ProductsService {
         continue;
       }
 
-      const zohoKey = item.zohoImageId?.trim() || null;
+      const zohoKey = resolveZohoCatalogImageId(item);
       const image_url = `/api/products/image/${encodeURIComponent(id)}`;
       const existing = await this.imageCacheModel
         .findOne({ zoho_item_id: id })
@@ -339,16 +372,11 @@ export class ProductsService {
       }
       const id = String(item.zohoItemId ?? '').trim();
       if (!id) continue;
-      const key = item.zohoImageId?.trim() || '';
+      const key = resolveZohoCatalogImageId(item) ?? '';
 
       const row = await this.imageCacheModel.findOne({ zoho_item_id: id }).lean().exec();
       const existingBuf = row?.image_data;
-      const existingLen =
-        existingBuf != null
-          ? Buffer.isBuffer(existingBuf)
-            ? existingBuf.length
-            : (existingBuf as { length?: number })?.length ?? 0
-          : 0;
+      const existingLen = asNodeBuffer(existingBuf)?.length ?? 0;
       if (
         existingLen > 0 &&
         String(row?.zoho_image_key ?? '') === key
@@ -360,7 +388,7 @@ export class ProductsService {
       try {
         const { buffer, contentType } = await this.zoho.fetchItemImageBuffer(
           id,
-          item.zohoImageId?.trim() || null,
+          resolveZohoCatalogImageId(item),
           'sync',
         );
         if (buffer.length > ProductsService.MAX_IMAGE_BYTES) {
@@ -405,11 +433,8 @@ export class ProductsService {
     if (!id || !/^\d+$/.test(id)) return null;
     const row = await this.imageCacheModel.findOne({ zoho_item_id: id }).lean().exec();
     if (!row) return null;
-    const raw = row.image_data;
-    if (raw == null) return null;
-    const data = Buffer.isBuffer(raw)
-      ? raw
-      : Buffer.from(raw as Uint8Array);
+    const data = asNodeBuffer(row.image_data);
+    if (data == null) return null;
     if (data.length === 0) return null;
     const contentType =
       typeof row.content_type === 'string' && row.content_type.trim()

@@ -28,11 +28,23 @@ function classifyZohoFailure(details: string): {
   };
 }
 
+function parseBooleanQuery(value: string | undefined): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === '1' ||
+    normalized === 'true' ||
+    normalized === 'yes' ||
+    normalized === 'y' ||
+    normalized === 'on'
+  );
+}
+
 /**
  * Zoho-backed inventory product cache (global prefix `api`):
  *   GET  /api/zoho/products?limit=10
  *   GET  /api/zoho/products/categories  (Mongo cache; no runtime Zoho call)
- *   POST /api/zoho/products/sync
+ *   POST /api/zoho/products/sync?forceFull=true
  */
 @Controller('zoho/products')
 export class ProductController {
@@ -99,11 +111,15 @@ export class ProductController {
   }
 
   @Post('sync')
-  async sync() {
+  async sync(@Query('forceFull') forceFullRaw?: string) {
     const requestId = randomUUID();
-    this.logger.log(`[${requestId}] POST zoho/products/sync`);
+    const forceFull = parseBooleanQuery(forceFullRaw);
+    this.logger.log(
+      `[${requestId}] POST zoho/products/sync forceFull=${forceFull}`,
+    );
     const result = await this.productService.syncProductsFromZoho({
       requestId,
+      forceFull,
     });
 
     if (!result.success) {
