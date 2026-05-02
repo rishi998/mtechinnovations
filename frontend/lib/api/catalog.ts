@@ -3,6 +3,8 @@ import { getPublicApiUrl } from '@/lib/env/publicApi'
 import { api } from './client'
 
 export const PLACEHOLDER_IMAGE =
+  'https://picsum.photos/seed/mtech-placeholder/800/800'
+const LEGACY_BROKEN_PLACEHOLDER =
   'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800'
 
 /** Legacy compatibility helper. New sync stores CDN/static URLs directly. */
@@ -58,6 +60,7 @@ function injectApiBeforeZohoIfMissing(absUrl: string): string {
 export function resolveCatalogImageUrl(url: string): string {
   let t = url.trim()
   if (!t) return PLACEHOLDER_IMAGE
+  if (t === LEGACY_BROKEN_PLACEHOLDER) return PLACEHOLDER_IMAGE
 
   // Protocol-relative URLs (//host/...)
   if (t.startsWith('//')) {
