@@ -235,7 +235,7 @@ npm run build
 
 pm2 stop frontend || true
 pm2 delete frontend || true
-pm2 start "npm run start -- -p 3000" --name frontend --cwd /var/www/myapp/mtechinnovations/frontend
+pm2 start "npm run dev -- -p 3000" --name frontend --cwd /var/www/myapp/mtechinnovations/frontend
 pm2 save
 ```
 

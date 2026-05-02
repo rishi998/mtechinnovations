@@ -28,12 +28,12 @@ async function request<T>(
     ? `${API_BASE}${path}?${new URLSearchParams(params).toString()}`
     : `${API_BASE}${path}`
   const token = getToken()
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string>),
+  const headers = new Headers(init.headers ?? undefined)
+  if (init.body != null && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
   }
   if (token) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
+    headers.set('Authorization', `Bearer ${token}`)
   }
   const res = await fetch(url, {
     ...init,

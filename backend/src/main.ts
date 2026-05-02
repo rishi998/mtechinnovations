@@ -6,27 +6,29 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 
-/** Default storefront origins (apex + www) when CORS_ORIGIN is unset. */
+/** Default storefront + local dev origins. */
 function defaultCorsOrigins(): string[] {
   return [
     'https://mtechinnovations.in',
     'https://www.mtechinnovations.in',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
   ];
 }
 
 /** Explicit origins only (no `*` / reflective wildcard). */
-function parseCorsOrigin(): string | string[] {
+function parseCorsOrigins(): string[] {
+  const defaults = defaultCorsOrigins();
   const raw = process.env.CORS_ORIGIN?.trim();
-  if (raw) {
-    const list = raw
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (list.length === 0) return defaultCorsOrigins();
-    if (list.length === 1) return list[0]!;
-    return list;
-  }
-  return defaultCorsOrigins();
+  if (!raw) return defaults;
+
+  const list = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (list.length === 0) return defaults;
+
+  return [...new Set([...defaults, ...list])];
 }
 
 async function bootstrap() {
@@ -62,7 +64,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: parseCorsOrigin(),
+    origin: parseCorsOrigins(),
     credentials: true,
   });
 
