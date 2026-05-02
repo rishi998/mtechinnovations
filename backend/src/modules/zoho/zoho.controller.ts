@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Logger,
-  NotFoundException,
   Param,
   Query,
   Res,
@@ -12,7 +11,7 @@ import type { Response } from 'express';
 import { resolvePreset } from './zoho.config';
 import { ZohoService } from './zoho.service';
 
-/** Publicly-reachable fallback shown when a Zoho item has no image. */
+/** Storefront catalog images are served from Mongo (`products.images`); no runtime Zoho. */
 const IMAGE_FALLBACK_URL =
   'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800';
 
@@ -20,9 +19,7 @@ const IMAGE_FALLBACK_URL =
  * With global prefix `api` (see main.ts), routes are:
  *   GET /api/zoho/login?type=read|order|full
  *   GET /api/zoho/callback?code=...
- *   GET /api/zoho/items/:itemId/image?image_id=...
- *       — streams the catalog image from Zoho Inventory (OAuth). Falls back to a static
- *       placeholder on error. Counts against the `order` API budget channel.
+ *   GET /api/zoho/items/:itemId/image — legacy path; redirects to placeholder (no Zoho call).
  */
 @Controller('zoho')
 export class ZohoController {
@@ -69,32 +66,14 @@ export class ZohoController {
   }
 
   @Get('items/:itemId/image')
-  async itemImage(
+  itemImage(
     @Param('itemId') itemId: string,
-    @Query('image_id') imageId: string | undefined,
+    @Query('image_id') _imageId: string | undefined,
     @Res() res: Response,
-  ) {
-    try {
-      const { buffer, contentType } = await this.zoho.fetchItemImageBuffer(
-        itemId,
-        imageId?.trim() || null,
-        'order',
-      );
-      res.setHeader('Content-Type', contentType);
-      res.setHeader(
-        'Cache-Control',
-        'public, max-age=86400, stale-while-revalidate=604800',
-      );
-      res.send(buffer);
-    } catch (err) {
-      if (err instanceof NotFoundException) {
-        res.redirect(302, IMAGE_FALLBACK_URL);
-        return;
-      }
-      this.logger.warn(
-        `Zoho item image failed for item ${itemId}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      res.redirect(302, IMAGE_FALLBACK_URL);
-    }
+  ): void {
+    this.logger.debug(
+      `Catalog image request for Zoho item ${itemId} — redirecting to placeholder (Mongo-only runtime).`,
+    );
+    res.redirect(302, IMAGE_FALLBACK_URL);
   }
 }

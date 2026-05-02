@@ -66,7 +66,7 @@ export class ZohoOrderQueueService {
       .exec();
   }
 
-  async markRetry(orderId: string, errorMessage: string): Promise<void> {
+  async markRetry(orderId: string, errorMessage: string): Promise<{ terminalFailure: boolean }> {
     const existing = await this.queueModel.findOne({ order_id: orderId }).lean().exec();
     const retries = Number(existing?.retry_count ?? 0) + 1;
     const delayMinutes = Math.min(6 * 60, Math.pow(2, Math.min(retries, 8)));
@@ -85,6 +85,7 @@ export class ZohoOrderQueueService {
         },
       )
       .exec();
+    return { terminalFailure: syncStatus === 'failed' };
   }
 
   async fetchRetryBatch(limit: number): Promise<ZohoOrderDocument[]> {

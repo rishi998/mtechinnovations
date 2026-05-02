@@ -115,7 +115,7 @@ export class ZohoDebugController {
         count: items.length,
         sample,
         hint:
-          'This only lists items from Zoho. To persist them to Mongo (`zoho_inventory_products` + storefront `products`), call POST /api/zoho/products/sync or wait for the scheduled job (2× / day at 09:00 and 17:00, process timezone).',
+          'This only lists items from Zoho. To persist them to Mongo (`zoho_inventory_products` + storefront `products`), call POST /api/zoho/products/sync or wait for the hourly cron (top of each hour, process timezone).',
       };
     } catch (err) {
       this.logger.warn(

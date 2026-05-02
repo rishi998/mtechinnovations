@@ -23,6 +23,7 @@ interface ServerOrder {
   trackingId?: string | null
   payment_status?: string
   zoho_sync_status?: string
+  zoho_sync_last_error?: string | null
   zoho_salesorder_id?: string | null
   zoho_invoice_id?: string | null
   createdAt: string
@@ -74,6 +75,7 @@ function mapOrder(o: ServerOrder): Order {
     trackingId: o.trackingId ?? undefined,
     paymentStatus: o.payment_status as Order['paymentStatus'],
     zohoSyncStatus: o.zoho_sync_status as Order['zohoSyncStatus'],
+    zohoSyncLastError: o.zoho_sync_last_error ?? null,
     zohoSalesOrderId: o.zoho_salesorder_id ?? null,
     zohoInvoiceId: o.zoho_invoice_id ?? null,
   }

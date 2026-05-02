@@ -75,7 +75,7 @@ export function resolveCatalogImageUrl(url: string): string {
   let out: string
   if (isAbsHttp) {
     out = t
-  } else if (/^\/api\/zoho\//i.test(t)) {
+  } else if (/^\/api\//i.test(t)) {
     try {
       const origin = new URL(
         apiBase.includes('://') ? apiBase : `https://${apiBase}`,

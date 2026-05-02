@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Cron, Timeout } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { randomUUID } from 'crypto';
 import { ZohoService } from '../zoho/zoho.service';
 import { ProductsService } from '../../products/products.service';
@@ -344,8 +344,14 @@ export class ProductService implements OnModuleInit {
         });
         removedZohoCache = del.deletedCount ?? 0;
       }
-
+      
       await this.storefrontProducts.upsertZohoImageCache([...byId.values()]);
+      const imgStats = await this.storefrontProducts.hydrateZohoImagesFromZoho([
+        ...byId.values(),
+      ]);
+      this.logger.log(
+        `[${requestId}] zoho_images hydrate fetched=${imgStats.fetched} skipped=${imgStats.skipped} errors=${imgStats.errors} capped=${imgStats.capped}`,
+      );
       const catalog = await this.storefrontProducts.syncCatalogFromZohoItems([
         ...byId.values(),
       ], { pruneMissing: isFullSync });
@@ -493,32 +499,15 @@ export class ProductService implements OnModuleInit {
   }
 
   /**
-   * Pull Zoho Inventory items and upsert `zoho_inventory_products` (+ storefront catalog).
-   * Full sync once daily at 02:00 (process timezone; set `TZ` in production if needed).
+   * Hourly Zoho → Mongo inventory pull. Storefront catalog reads stay Mongo-only.
+   * Incremental watermark: `last_incremental_sync_at`. Full snapshot + prune when
+   * `last_full_sync_at` is ≥ 24h old (see `syncProductsFromZoho`).
    * Same data path as POST /api/zoho/products/sync.
    */
-  @Cron('0 2 * * *')
-  async scheduledZohoInventoryPull(): Promise<void> {
+  @Cron('0 * * * *')
+  async scheduledHourlyZohoInventoryPull(): Promise<void> {
     await this.syncProductsFromZoho({
-      requestId: `interval-${randomUUID()}`,
-      forceFull: true,
-    });
-  }
-
-  /** First sync soon after startup so DB is not empty until the first interval. */
-  @Timeout(60_000)
-  async zohoSyncOneMinuteAfterBoot(): Promise<void> {
-    await this.syncProductsFromZoho({
-      requestId: `boot-${randomUUID()}`,
-      forceFull: true,
-    });
-  }
-
-  /** Incremental sync every 30 minutes using last_incremental_sync_at watermark. */
-  @Cron('*/30 * * * *')
-  async scheduledIncrementalZohoInventoryPull(): Promise<void> {
-    await this.syncProductsFromZoho({
-      requestId: `incremental-${randomUUID()}`,
+      requestId: `hourly-${randomUUID()}`,
       forceFull: false,
     });
   }

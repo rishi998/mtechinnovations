@@ -92,6 +92,8 @@ export interface Order {
   trackingId?: string
   paymentStatus?: OrderPaymentStatus
   zohoSyncStatus?: OrderZohoSyncStatus
+  /** Last Zoho Books/Inventory error for this order (from server). */
+  zohoSyncLastError?: string | null
   zohoSalesOrderId?: string | null
   zohoInvoiceId?: string | null
 }

@@ -8,7 +8,9 @@ import {
   Param,
   UseGuards,
   Logger,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -34,6 +36,25 @@ export class ProductsController {
   findAll() {
     this.logger.log('GET /api/products');
     return this.productsService.findAll();
+  }
+
+  /** Serve BSON-stored catalog image (Mongo); no Zoho call. */
+  @Get('image/:zohoItemId')
+  async streamProductImage(
+    @Param('zohoItemId') zohoItemId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const hit = await this.productsService.getCachedImageBinary(zohoItemId);
+    if (!hit) {
+      res.redirect(302, ProductsService.FALLBACK_IMAGE_URL);
+      return;
+    }
+    res.setHeader('Content-Type', hit.contentType);
+    res.setHeader(
+      'Cache-Control',
+      'public, max-age=86400, stale-while-revalidate=604800',
+    );
+    res.send(hit.data);
   }
 
   @Get(':id')

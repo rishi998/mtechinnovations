@@ -100,6 +100,10 @@ export class Order {
   })
   zoho_sync_status: OrderZohoSyncStatus;
 
+  /** Last Zoho API / sync error message (for support UI; cleared on success). */
+  @Prop({ type: String, default: null })
+  zoho_sync_last_error: string | null;
+
   @Prop({ type: [OrderItemSchema], default: [] })
   items: OrderItem[];
 }

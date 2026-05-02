@@ -8,7 +8,6 @@ import { useAuth } from '@/lib/context/AuthContext'
 import {
   createOrderPayment,
   getOrderById,
-  syncZohoForPaidOrder,
   verifyRazorpayPayment,
 } from '@/lib/api'
 import type { Order } from '@/lib/types'
@@ -165,13 +164,6 @@ export function CheckoutPayClient({ orderId: orderIdParam }: { orderId: string }
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             })
-            if (verified.success && !verified.zohoSynced) {
-              try {
-                await syncZohoForPaidOrder(orderIdParam)
-              } catch {
-                /* Zoho may still be fixed from success page; payment is already verified */
-              }
-            }
             const q = new URLSearchParams()
             if (verified.orderId) {
               q.set('orderId', verified.orderId)

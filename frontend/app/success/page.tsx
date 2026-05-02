@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -14,7 +14,7 @@ import {
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/lib/context/AuthContext'
-import { getOrders, syncZohoForPaidOrder } from '@/lib/api'
+import { getOrders } from '@/lib/api'
 import type { Order } from '@/lib/types'
 
 function zohoStatusLabel(status: Order['zohoSyncStatus'] | undefined): string {
@@ -40,55 +40,30 @@ function SuccessContent() {
   const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [zohoSyncing, setZohoSyncing] = useState(false)
-  const [zohoSyncError, setZohoSyncError] = useState('')
-  /** One automatic Zoho sync attempt per success URL (no button click). */
-  const zohoAutoAttemptForOrderId = useRef<string | null>(null)
 
+  /** Poll order while Zoho invoice is still being created (server runs sync in background). */
   useEffect(() => {
-    zohoAutoAttemptForOrderId.current = null
-  }, [orderNumber])
-
-  useEffect(() => {
-    if (authLoading || !isAuthenticated || !orderNumber) return
-    if (!order?.id) return
-    if ((order.paymentStatus ?? '') !== 'success') return
+    if (!order?.id || (order.paymentStatus ?? '') !== 'success') return
     if (order.zohoSyncStatus === 'synced' && order.zohoInvoiceId) return
-    if (zohoAutoAttemptForOrderId.current === order.id) return
 
-    zohoAutoAttemptForOrderId.current = order.id
-    let cancelled = false
-    setZohoSyncing(true)
-    setZohoSyncError('')
-    void (async () => {
-      try {
-        await syncZohoForPaidOrder(order.id)
-        if (!cancelled) setRefreshKey((k) => k + 1)
-      } catch (e) {
-        if (!cancelled) {
-          setZohoSyncError(
-            e instanceof Error
-              ? e.message
-              : 'Could not sync invoice to Zoho automatically.',
-          )
-        }
-      } finally {
-        if (!cancelled) setZohoSyncing(false)
+    let n = 0
+    const maxPolls = 36
+    const id = window.setInterval(() => {
+      n += 1
+      if (n > maxPolls) {
+        clearInterval(id)
+        return
       }
-    })()
+      setRefreshKey((k) => k + 1)
+    }, 5000)
+    return () => clearInterval(id)
+  }, [order?.id, order?.paymentStatus, order?.zohoSyncStatus, order?.zohoInvoiceId])
 
-    return () => {
-      cancelled = true
+  useEffect(() => {
+    if (order?.zohoSyncLastError) {
+      console.error('[Zoho sync error]', order.zohoSyncLastError)
     }
-  }, [
-    authLoading,
-    isAuthenticated,
-    orderNumber,
-    order?.id,
-    order?.paymentStatus,
-    order?.zohoSyncStatus,
-    order?.zohoInvoiceId,
-  ])
+  }, [order?.zohoSyncLastError])
 
   useEffect(() => {
     if (authLoading) return
@@ -248,14 +223,19 @@ function SuccessContent() {
               {loadError}
             </div>
           )}
-          {zohoSyncError && (
+          {order?.zohoSyncLastError ? (
             <div
-              className="rounded-lg bg-red-50 text-red-800 text-sm px-3 py-2 border border-red-100"
+              className="rounded-lg bg-red-50 text-red-900 text-sm px-3 py-2 border border-red-100"
               role="alert"
             >
-              {zohoSyncError}
+              <p className="font-semibold">Zoho could not sync this invoice yet</p>
+              <p className="mt-1 break-words text-red-800">{order.zohoSyncLastError}</p>
+              <p className="mt-2 text-xs text-red-800/90">
+                Your payment succeeded. We will retry automatically, or use Refresh status. Check
+                server logs for full details.
+              </p>
             </div>
-          )}
+          ) : null}
         </div>
 
         {invoiceHref && (
@@ -295,48 +275,6 @@ function SuccessContent() {
             <RefreshCw className="w-5 h-5 mr-2" />
             Refresh status
           </Button>
-          {order &&
-            order.id &&
-            (order.paymentStatus ?? 'success') === 'success' &&
-            (order.zohoSyncStatus !== 'synced' || !order.zohoInvoiceId) && (
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                type="button"
-                disabled={zohoSyncing}
-                onClick={() => {
-                  setZohoSyncError('')
-                  setZohoSyncing(true)
-                  void (async () => {
-                    try {
-                      await syncZohoForPaidOrder(order.id)
-                      setRefreshKey((k) => k + 1)
-                    } catch (e) {
-                      setZohoSyncError(
-                        e instanceof Error
-                          ? e.message
-                          : 'Could not sync invoice to Zoho.',
-                      )
-                    } finally {
-                      setZohoSyncing(false)
-                    }
-                  })()
-                }}
-              >
-                {zohoSyncing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Syncing to Zoho…
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-5 h-5 mr-2" />
-                    Sync invoice to Zoho
-                  </>
-                )}
-              </Button>
-            )}
           <Link href="/" className="block">
             <Button variant="outline" size="lg" className="w-full">
               <Home className="w-5 h-5 mr-2" />

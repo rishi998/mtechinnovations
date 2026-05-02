@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import type { ZohoInventoryItemNormalized } from '../modules/zoho/zoho-inventory.types';
+import { ZohoService } from '../modules/zoho/zoho.service';
 import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -47,14 +48,18 @@ export interface ZohoCatalogSyncStats {
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
-  private static readonly FALLBACK_IMAGE_URL =
+  static readonly FALLBACK_IMAGE_URL =
     'https://images.unsplash.com/photo-1565814329452-e1efa73c9420?w=800';
+
+  /** Skip storing blobs larger than this (Mongo 16 MB doc limit; keep headroom). */
+  private static readonly MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
     @InjectModel(ZohoImageCache.name)
     private readonly imageCacheModel: Model<ZohoImageCacheDocument>,
+    private readonly zoho: ZohoService,
   ) {}
 
   /** Storefront rows with missing / empty `zoho_item_id` (manual catalog or sync gap). */
@@ -236,6 +241,10 @@ export class ProductsService {
     return { catalogUpserted, catalogModified, catalogRemoved };
   }
 
+  /**
+   * Upsert image cache metadata. Binary is filled by {@link hydrateZohoImagesFromZoho} (sync only).
+   * Storefront serves bytes from GET /api/products/image/:zohoItemId.
+   */
   async upsertZohoImageCache(
     items: ZohoInventoryItemNormalized[],
   ): Promise<number> {
@@ -246,30 +255,167 @@ export class ProductsService {
     }
     if (byId.size === 0) return 0;
 
-    const ops = [...byId.values()].map((item) => {
+    let n = 0;
+    for (const item of byId.values()) {
       const id = String(item.zohoItemId).trim();
-      const zImg = item.zohoImageId?.trim() || null;
-      const image_url = item.hasZohoImage
-        ? `/api/zoho/items/${encodeURIComponent(id)}/image${
-            zImg ? `?image_id=${encodeURIComponent(zImg)}` : ''
-          }`
-        : ProductsService.FALLBACK_IMAGE_URL;
-      return {
-        updateOne: {
-          filter: { zoho_item_id: id },
-          update: {
+      if (!item.hasZohoImage) {
+        await this.imageCacheModel
+          .updateOne(
+            { zoho_item_id: id },
+            {
+              $set: {
+                zoho_item_id: id,
+                image_url: ProductsService.FALLBACK_IMAGE_URL,
+                zoho_image_key: null,
+                image_data: null,
+                content_type: 'image/jpeg',
+                cached_at: new Date(),
+              },
+            },
+            { upsert: true },
+          )
+          .exec();
+        n += 1;
+        continue;
+      }
+
+      const zohoKey = item.zohoImageId?.trim() || null;
+      const image_url = `/api/products/image/${encodeURIComponent(id)}`;
+      const existing = await this.imageCacheModel
+        .findOne({ zoho_item_id: id })
+        .select('zoho_image_key')
+        .lean()
+        .exec();
+      const prevKey =
+        existing?.zoho_image_key !== undefined &&
+        existing?.zoho_image_key !== null
+          ? String(existing.zoho_image_key)
+          : '';
+      const newKey = zohoKey ?? '';
+      const keyChanged = prevKey !== newKey;
+
+      await this.imageCacheModel
+        .updateOne(
+          { zoho_item_id: id },
+          {
             $set: {
               zoho_item_id: id,
               image_url,
+              zoho_image_key: zohoKey,
+              cached_at: new Date(),
+              ...(keyChanged ? { image_data: null } : {}),
+            },
+          },
+          { upsert: true },
+        )
+        .exec();
+      n += 1;
+    }
+    return n;
+  }
+
+  /**
+   * Fetches catalog images from Zoho during sync and stores BSON Binary in Mongo.
+   * Respects ZOHO_IMAGE_FETCH_MAX_PER_SYNC (default 120) to limit API usage per run.
+   */
+  async hydrateZohoImagesFromZoho(
+    items: ZohoInventoryItemNormalized[],
+  ): Promise<{ fetched: number; skipped: number; errors: number; capped: boolean }> {
+    const rawMax = process.env.ZOHO_IMAGE_FETCH_MAX_PER_SYNC?.trim();
+    const parsed = rawMax ? Number(rawMax) : 120;
+    const maxFetches =
+      Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 120;
+
+    let fetched = 0;
+    let skipped = 0;
+    let errors = 0;
+    let capped = false;
+
+    for (const item of items) {
+      if (!item.hasZohoImage) continue;
+      if (fetched >= maxFetches) {
+        capped = true;
+        break;
+      }
+      const id = String(item.zohoItemId ?? '').trim();
+      if (!id) continue;
+      const key = item.zohoImageId?.trim() || '';
+
+      const row = await this.imageCacheModel.findOne({ zoho_item_id: id }).lean().exec();
+      const existingBuf = row?.image_data;
+      const existingLen =
+        existingBuf != null
+          ? Buffer.isBuffer(existingBuf)
+            ? existingBuf.length
+            : (existingBuf as { length?: number })?.length ?? 0
+          : 0;
+      if (
+        existingLen > 0 &&
+        String(row?.zoho_image_key ?? '') === key
+      ) {
+        skipped += 1;
+        continue;
+      }
+
+      try {
+        const { buffer, contentType } = await this.zoho.fetchItemImageBuffer(
+          id,
+          item.zohoImageId?.trim() || null,
+          'sync',
+        );
+        if (buffer.length > ProductsService.MAX_IMAGE_BYTES) {
+          this.logger.warn(
+            `Zoho image for item ${id} skipped (${buffer.length} bytes > max)`,
+          );
+          errors += 1;
+          continue;
+        }
+        await this.imageCacheModel.updateOne(
+          { zoho_item_id: id },
+          {
+            $set: {
+              image_data: buffer,
+              content_type: contentType || 'image/jpeg',
+              zoho_image_key: key || null,
               cached_at: new Date(),
             },
           },
-          upsert: true,
-        },
-      };
-    });
-    const res = await this.imageCacheModel.bulkWrite(ops, { ordered: false });
-    return Number(res.upsertedCount ?? 0) + Number(res.modifiedCount ?? 0);
+        ).exec();
+        fetched += 1;
+      } catch (err) {
+        errors += 1;
+        this.logger.warn(
+          `Zoho image fetch failed for item ${id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    if (capped) {
+      this.logger.warn(
+        `hydrateZohoImagesFromZoho: cap reached (${maxFetches} fetches); remaining items unchanged this run`,
+      );
+    }
+    return { fetched, skipped, errors, capped };
+  }
+
+  async getCachedImageBinary(
+    zohoItemId: string,
+  ): Promise<{ data: Buffer; contentType: string } | null> {
+    const id = zohoItemId.trim();
+    if (!id || !/^\d+$/.test(id)) return null;
+    const row = await this.imageCacheModel.findOne({ zoho_item_id: id }).lean().exec();
+    if (!row) return null;
+    const raw = row.image_data;
+    if (raw == null) return null;
+    const data = Buffer.isBuffer(raw)
+      ? raw
+      : Buffer.from(raw as Uint8Array);
+    if (data.length === 0) return null;
+    const contentType =
+      typeof row.content_type === 'string' && row.content_type.trim()
+        ? row.content_type.trim()
+        : 'image/jpeg';
+    return { data, contentType };
   }
 
   async findBySlug(slug: string): Promise<ProductDocument> {

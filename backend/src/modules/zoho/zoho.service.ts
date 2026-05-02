@@ -1306,6 +1306,9 @@ export class ZohoService {
               detail = `${detail}: ${m}`;
             }
           }
+          this.logger.error(
+            `[Zoho] ${String(config.method ?? 'GET').toUpperCase()} ${pathForBudget} failed: ${detail}`,
+          );
           throw new ZohoOAuthException(detail);
         }
 

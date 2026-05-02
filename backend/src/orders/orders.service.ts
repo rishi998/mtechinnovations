@@ -191,6 +191,7 @@ export class OrdersService {
     zohoInvoiceId: string | null;
     zohoPaymentId?: string | null;
     zohoSyncStatus: OrderZohoSyncStatus;
+    zohoSyncLastError?: string | null;
   }): Promise<OrderDocument> {
     const order = await this.orderModel
       .findByIdAndUpdate(
@@ -204,6 +205,10 @@ export class OrdersService {
             zoho_invoice_id: input.zohoInvoiceId,
             zoho_payment_id: input.zohoPaymentId ?? null,
             zoho_sync_status: input.zohoSyncStatus,
+            zoho_sync_last_error:
+              input.zohoSyncLastError === undefined
+                ? null
+                : input.zohoSyncLastError,
             status: 'processing',
           },
         },
@@ -235,6 +240,7 @@ export class OrdersService {
     zohoInvoiceId: string | null,
     zohoPaymentId: string | null,
     zohoSyncStatus: OrderZohoSyncStatus,
+    zohoSyncLastError: string | null = null,
   ): Promise<OrderDocument> {
     const order = await this.orderModel
       .findByIdAndUpdate(
@@ -245,6 +251,7 @@ export class OrdersService {
             zoho_invoice_id: zohoInvoiceId,
             zoho_payment_id: zohoPaymentId,
             zoho_sync_status: zohoSyncStatus,
+            zoho_sync_last_error: zohoSyncLastError,
           },
         },
         { new: true },

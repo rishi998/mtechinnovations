@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ZohoModule } from '../modules/zoho/zoho.module';
 import { Product, ProductSchema } from './schemas/product.schema';
 import {
   ZohoImageCache,
@@ -10,6 +11,7 @@ import { ProductsService } from './products.service';
 
 @Module({
   imports: [
+    ZohoModule,
     MongooseModule.forFeature([
       { name: Product.name, schema: ProductSchema },
       { name: ZohoImageCache.name, schema: ZohoImageCacheSchema },
