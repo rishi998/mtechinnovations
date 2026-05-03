@@ -13,6 +13,7 @@ import {
 } from './zoho-token.persistence';
 import { ZohoTokenState, ZohoTokenStateSchema } from './zoho-token.entity';
 import { ZohoService } from './zoho.service';
+import { ZohoInvoiceService } from './services/zohoInvoiceService';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ZohoService } from './zoho.service';
   controllers: [ZohoController, ZohoDebugController],
   providers: [
     ZohoService,
+    ZohoInvoiceService,
     ZohoApiBudgetService,
     ZohoScopeLogger,
     {
@@ -38,6 +40,7 @@ import { ZohoService } from './zoho.service';
   ],
   exports: [
     ZohoService,
+    ZohoInvoiceService,
     ZohoApiBudgetService,
     ZohoTokenPersistence,
     ZohoScopeLogger,

@@ -9,6 +9,10 @@ import { ZohoScopeLogger } from './zoho-scope-logger';
 import { ZohoApiBudgetService } from './zoho-api-budget.service';
 import type { ZohoApiUsageChannel } from './zoho-api-usage.entity';
 import { ZohoTokenPersistence } from './zoho-token.persistence';
+import {
+  resolveStoredZohoRefreshToken,
+  zohoRefreshTokenFingerprint,
+} from './zoho-refresh-token.resolver';
 import type {
   ZohoTokenBundle,
   ZohoTokenEndpointError,
@@ -163,7 +167,8 @@ export class ZohoService {
   }
 
   /**
-   * Returns a valid access token using `ZOHO_REFRESH_TOKEN` + client credentials.
+   * Returns a valid access token using persisted Mongo OAuth tokens when present,
+   * otherwise `ZOHO_REFRESH_TOKEN` if env fallback is allowed.
    * Uses in-memory cache until near expiry, then POSTs to Accounts token endpoint.
    */
   async getAccessToken(channel: ZohoApiUsageChannel = 'order'): Promise<string> {
@@ -453,8 +458,21 @@ export class ZohoService {
     const data = await this.postTokenForm(body, 'order');
     const bundle = this.mapTokenResponse(data, data.scope ?? '');
     await this.tokens.save(bundle);
+    const verified = await this.tokens.load();
+    if (!verified?.refreshToken?.trim()) {
+      throw new ZohoOAuthException('Zoho refresh token missing after OAuth');
+    }
+    if (verified.refreshToken.trim() !== bundle.refreshToken.trim()) {
+      throw new ZohoOAuthException(
+        'Zoho OAuth callback: refresh token failed to persist or round-trip load from Mongo. Check DB (zoho_oauth_tokens) and MONGODB_URI.',
+      );
+    }
+    await this.forceRefreshAccessToken();
     this.applySuccessfulTokenResponse(data);
     this.scopeLogger.logOAuthStep('callback:stored', bundle.grantedScope);
+    this.logger.log(
+      `[Zoho] OAuth callback persisted refresh_token fingerprint=${zohoRefreshTokenFingerprint(bundle.refreshToken)}`,
+    );
     this.logger.log('Generated new Zoho access token');
     return bundle;
   }
@@ -1292,6 +1310,49 @@ export class ZohoService {
     }
   }
 
+  /** GET /salesorders/{salesorder_id} */
+  async getSalesOrder(
+    salesOrderId: string,
+    channel: ZohoApiUsageChannel = 'order',
+  ): Promise<Record<string, unknown>> {
+    const id = String(salesOrderId ?? '').trim();
+    if (!/^\d+$/.test(id)) {
+      throw new ZohoOAuthException('Invalid salesorder_id for GET /salesorders/{id}');
+    }
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+    const data = await this.requestInventory<Record<string, unknown>>({
+      method: 'GET',
+      url: `/salesorders/${encodeURIComponent(id)}?${qs.toString()}`,
+    }, channel);
+    this.throwIfInventoryMutationFailed(data, 'Zoho get sales order failed');
+    return data;
+  }
+
+  /** POST /salesorders/{salesorder_id}/status/confirmed */
+  async confirmSalesOrder(
+    salesOrderId: string,
+    channel: ZohoApiUsageChannel = 'order',
+  ): Promise<Record<string, unknown>> {
+    const id = String(salesOrderId ?? '').trim();
+    if (!/^\d+$/.test(id)) {
+      throw new ZohoOAuthException('Invalid salesorder_id for confirm');
+    }
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+    const data = await this.requestInventory<Record<string, unknown>>(
+      {
+        method: 'POST',
+        url: `/salesorders/${encodeURIComponent(id)}/status/confirmed?${qs.toString()}`,
+      },
+      channel,
+    );
+    this.throwIfInventoryMutationFailed(data, 'Zoho confirm sales order failed');
+    return data;
+  }
+
   /**
    * Creates an invoice in Zoho Inventory. Requires e.g. ZohoInventory.invoices.CREATE.
    */
@@ -1300,6 +1361,13 @@ export class ZohoService {
     date: string;
     line_items: ZohoCreateSalesOrderLineItem[];
     tax_exemption_id?: string;
+    /** GST / India — supply location; see Zoho Invoice API. */
+    place_of_supply?: string;
+    /**
+     * When true, every line must already include a valid `tax_id` and env-based tax
+     * resolution is skipped (used by {@link ZohoInvoiceService} after GST preflight).
+     */
+    line_items_have_final_tax_ids?: boolean;
   }, channel: ZohoApiUsageChannel = 'order'): Promise<Record<string, unknown>> {
     const cid = String(params.customer_id ?? '').trim();
     if (!/^\d+$/.test(cid)) {
@@ -1309,11 +1377,27 @@ export class ZohoService {
     }
     this.logger.log('Creating Zoho Invoice...');
 
-    const { line_items, tax_exemption_id } =
-      await this.resolveInventoryLineItemsTax(
+    let line_items: ZohoCreateSalesOrderLineItem[];
+    let tax_exemption_id: string | undefined;
+    if (params.line_items_have_final_tax_ids === true) {
+      line_items = params.line_items.map((li) => ({ ...li }));
+      for (let i = 0; i < line_items.length; i++) {
+        const tid = String(line_items[i]?.tax_id ?? '').trim();
+        if (!tid) {
+          throw new ZohoOAuthException(
+            `Invoice line_items[${i}] is missing tax_id (line_items_have_final_tax_ids).`,
+          );
+        }
+      }
+      tax_exemption_id = params.tax_exemption_id;
+    } else {
+      const resolved = await this.resolveInventoryLineItemsTax(
         params.line_items.map((li) => ({ ...li })),
         params.tax_exemption_id,
       );
+      line_items = resolved.line_items;
+      tax_exemption_id = resolved.tax_exemption_id ?? params.tax_exemption_id;
+    }
 
     this.assertLineItemsReadyForZoho(line_items, 'invoice');
     const zohoLineItems = this.toZohoMutationLineItems(line_items, 'invoice');
@@ -1331,6 +1415,10 @@ export class ZohoService {
     };
     if (tax_exemption_id) {
       body.tax_exemption_id = tax_exemption_id;
+    }
+    const pos = String(params.place_of_supply ?? '').trim();
+    if (pos) {
+      body.place_of_supply = pos;
     }
 
     const qs = new URLSearchParams({
@@ -1380,6 +1468,127 @@ export class ZohoService {
       );
       throw err;
     }
+  }
+
+  /** GET /invoices/{invoice_id} */
+  async getInvoice(
+    invoiceId: string,
+    channel: ZohoApiUsageChannel = 'order',
+  ): Promise<Record<string, unknown>> {
+    const id = String(invoiceId ?? '').trim();
+    if (!/^\d+$/.test(id)) {
+      throw new ZohoOAuthException('Invalid invoice_id for GET /invoices/{id}');
+    }
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+    const data = await this.requestInventory<Record<string, unknown>>(
+      {
+        method: 'GET',
+        url: `/invoices/${encodeURIComponent(id)}?${qs.toString()}`,
+      },
+      channel,
+    );
+    this.throwIfInventoryMutationFailed(data, 'Zoho get invoice failed');
+    return data;
+  }
+
+  /** POST /invoices/{invoice_id}/status/sent */
+  async markInvoiceSent(
+    invoiceId: string,
+    channel: ZohoApiUsageChannel = 'order',
+  ): Promise<Record<string, unknown>> {
+    const id = String(invoiceId ?? '').trim();
+    if (!/^\d+$/.test(id)) {
+      throw new ZohoOAuthException('Invalid invoice_id for mark sent');
+    }
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+    const data = await this.requestInventory<Record<string, unknown>>(
+      {
+        method: 'POST',
+        url: `/invoices/${encodeURIComponent(id)}/status/sent?${qs.toString()}`,
+      },
+      channel,
+    );
+    this.throwIfInventoryMutationFailed(data, 'Zoho mark invoice sent failed');
+    return data;
+  }
+
+  /**
+   * POST /invoices/{invoice_id}/email — requires invoice create scope per Zoho docs.
+   * @see https://www.zoho.com/inventory/api/v1/invoices/
+   */
+  async emailInvoice(
+    params: {
+      invoiceId: string;
+      to_mail_ids: string[];
+      cc_mail_ids?: string[];
+      subject?: string;
+      body?: string;
+      send_attachment?: boolean;
+      send_from_org_email_id?: boolean;
+    },
+    channel: ZohoApiUsageChannel = 'order',
+  ): Promise<Record<string, unknown>> {
+    const id = String(params.invoiceId ?? '').trim();
+    if (!/^\d+$/.test(id)) {
+      throw new ZohoOAuthException('Invalid invoice_id for email invoice');
+    }
+    if (!Array.isArray(params.to_mail_ids) || params.to_mail_ids.length === 0) {
+      throw new ZohoOAuthException('to_mail_ids is required to email an invoice');
+    }
+    const qs = new URLSearchParams({
+      organization_id: this.organizationId,
+    });
+    const emailBody: Record<string, unknown> = {
+      to_mail_ids: params.to_mail_ids,
+    };
+    if (params.cc_mail_ids?.length) {
+      emailBody.cc_mail_ids = params.cc_mail_ids;
+    }
+    if (params.subject?.trim()) {
+      emailBody.subject = params.subject.trim();
+    }
+    if (params.body?.trim()) {
+      emailBody.body = params.body.trim();
+    }
+    if (params.send_attachment !== undefined) {
+      emailBody.send_attachment = params.send_attachment;
+    }
+    if (params.send_from_org_email_id !== undefined) {
+      emailBody.send_from_org_email_id = params.send_from_org_email_id;
+    }
+
+    try {
+      this.logger.log(
+        `[Zoho] POST /invoices/{id}/email payload: ${JSON.stringify({
+          ...emailBody,
+          to_mail_ids: params.to_mail_ids,
+        })}`,
+      );
+    } catch {
+      this.logger.log(
+        `[Zoho] POST /invoices/{id}/email payload (logging failed); recipient count=${params.to_mail_ids.length}`,
+      );
+    }
+
+    const data = await this.requestInventory<Record<string, unknown>>(
+      {
+        method: 'POST',
+        url: `/invoices/${encodeURIComponent(id)}/email?${qs.toString()}`,
+        data: emailBody,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      },
+      channel,
+    );
+
+    this.throwIfInventoryMutationFailed(data, 'Zoho email invoice failed');
+    return data;
   }
 
   /**
@@ -1615,7 +1824,7 @@ export class ZohoService {
             detail = String(d.message ?? d.error ?? '').trim();
           }
           const hint =
-            'Check: refresh token must include scopes for this API (sales orders: ZohoInventory.salesorders.CREATE; invoices: ZohoInventory.invoices.CREATE; recording invoice payments: ZohoInventory.customerpayments.CREATE; taxes: ZohoInventory.settings.READ). Re-auth via GET /api/zoho/login?type=order or type=full after updating scopes. Also verify ZOHO_ORGANIZATION_ID and India DC (.in) settings.';
+            'Check: refresh token must include scopes for this API (sales orders: ZohoInventory.salesorders.CREATE; invoices: ZohoInventory.invoices.CREATE + ZohoInventory.invoices.READ; recording invoice payments: ZohoInventory.customerpayments.CREATE; taxes: ZohoInventory.settings.READ). Re-auth via GET /api/zoho/login?type=order or type=full after updating scopes. Also verify ZOHO_ORGANIZATION_ID and India DC (.in) settings.';
           const msg = detail
             ? `Zoho Inventory 401: ${detail}. ${hint}`
             : `Zoho Inventory 401 Unauthorized. ${hint}`;
@@ -1771,22 +1980,18 @@ export class ZohoService {
     await this.tokenFetchLock;
   }
 
-  private async resolveRefreshToken(): Promise<string> {
-    const persisted = await this.tokens.load();
-    if (persisted?.refreshToken?.trim()) {
-      return persisted.refreshToken.trim();
-    }
-    const envRefresh = this.config.get<string>('ZOHO_REFRESH_TOKEN');
-    if (envRefresh?.trim()) {
-      return envRefresh.trim();
-    }
-    throw new ZohoOAuthException(
-      'No Zoho refresh token available. Complete OAuth via GET /api/zoho/login?type=order (or type=full), or set ZOHO_REFRESH_TOKEN in .env.',
-    );
-  }
-
   private async fetchAccessTokenUsingEnvRefreshToken(channel: ZohoApiUsageChannel): Promise<void> {
-    const refreshToken = await this.resolveRefreshToken();
+    const { refreshToken, source } = await resolveStoredZohoRefreshToken(
+      this.tokens,
+      this.config,
+    );
+    this.logger.log(
+      `[Zoho] Accounts token_refresh grant using refresh_source=${source} fingerprint=${zohoRefreshTokenFingerprint(refreshToken)}`,
+    );
+    console.log('[Zoho] Accounts token_refresh', {
+      source,
+      fingerprint: zohoRefreshTokenFingerprint(refreshToken),
+    });
 
     const body = new URLSearchParams({
       grant_type: 'refresh_token',

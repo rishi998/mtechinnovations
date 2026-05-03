@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -35,7 +35,12 @@ export class ZohoInMemoryTokenPersistence extends ZohoTokenPersistence {
 
 @Injectable()
 export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
-  private static readonly DEFAULT_KEY = 'default';
+  /** Single canonical document; matches OAuth callback upserts and cleanup. */
+  static readonly CANONICAL_KEY = 'zoho_oauth' as const;
+  /** Earlier deployments used this key — migrated on load/save. */
+  static readonly LEGACY_KEY = 'default' as const;
+
+  private readonly logger = new Logger(ZohoMongoTokenPersistence.name);
 
   constructor(
     @InjectModel(ZohoTokenState.name)
@@ -44,35 +49,7 @@ export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
     super();
   }
 
-  async save(bundle: ZohoTokenBundle): Promise<void> {
-    await this.tokenModel
-      .findOneAndUpdate(
-        { key: ZohoMongoTokenPersistence.DEFAULT_KEY },
-        {
-          $set: {
-            accessToken: bundle.accessToken,
-            refreshToken: bundle.refreshToken,
-            expiresAt: bundle.expiresAt,
-            grantedScope: bundle.grantedScope,
-            apiDomain: bundle.apiDomain ?? null,
-          },
-          $setOnInsert: { key: ZohoMongoTokenPersistence.DEFAULT_KEY },
-        },
-        {
-          upsert: true,
-          setDefaultsOnInsert: true,
-        },
-      )
-      .exec();
-  }
-
-  async load(): Promise<ZohoTokenBundle | null> {
-    const doc = await this.tokenModel
-      .findOne({ key: ZohoMongoTokenPersistence.DEFAULT_KEY })
-      .exec();
-    if (!doc) {
-      return null;
-    }
+  private bundleFromDoc(doc: ZohoTokenStateDocument): ZohoTokenBundle {
     return {
       accessToken: doc.accessToken,
       refreshToken: doc.refreshToken,
@@ -82,9 +59,79 @@ export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
     };
   }
 
-  async clear(): Promise<void> {
+  async save(bundle: ZohoTokenBundle): Promise<void> {
+    const rt = String(bundle.refreshToken ?? '').trim();
+    if (!rt) {
+      throw new Error('Zoho refresh token missing after OAuth');
+    }
+
     await this.tokenModel
-      .deleteOne({ key: ZohoMongoTokenPersistence.DEFAULT_KEY })
+      .updateOne(
+        { key: ZohoMongoTokenPersistence.CANONICAL_KEY },
+        {
+          $set: {
+            key: ZohoMongoTokenPersistence.CANONICAL_KEY,
+            accessToken: bundle.accessToken,
+            refreshToken: bundle.refreshToken,
+            expiresAt: bundle.expiresAt,
+            grantedScope: bundle.grantedScope,
+            apiDomain: bundle.apiDomain ?? null,
+          },
+        },
+        { upsert: true },
+      )
       .exec();
+
+    const removed = await this.tokenModel
+      .deleteMany({ key: { $ne: ZohoMongoTokenPersistence.CANONICAL_KEY } })
+      .exec();
+
+    if (removed.deletedCount > 0) {
+      this.logger.log(
+        `[Zoho OAuth] Removed ${removed.deletedCount} extra zoho_oauth_tokens document(s); keeping canonical key only`,
+      );
+    }
+
+    this.logger.log(
+      `[Zoho OAuth] Refresh token updated in Mongo: …${rt.slice(-8)}`,
+    );
+  }
+
+  async load(): Promise<ZohoTokenBundle | null> {
+    let doc = await this.tokenModel
+      .findOne({ key: ZohoMongoTokenPersistence.CANONICAL_KEY })
+      .exec();
+
+    if (!doc) {
+      const legacy = await this.tokenModel
+        .findOne({ key: ZohoMongoTokenPersistence.LEGACY_KEY })
+        .exec();
+      if (legacy) {
+        this.logger.warn(
+          `[Zoho OAuth] Migrating legacy token row (key=${ZohoMongoTokenPersistence.LEGACY_KEY}) → ${ZohoMongoTokenPersistence.CANONICAL_KEY}`,
+        );
+        await this.save(this.bundleFromDoc(legacy));
+        doc = await this.tokenModel
+          .findOne({ key: ZohoMongoTokenPersistence.CANONICAL_KEY })
+          .exec();
+      }
+    }
+
+    if (!doc) {
+      return null;
+    }
+
+    const rt = String(doc.refreshToken ?? '').trim();
+    if (rt) {
+      this.logger.debug(
+        `[Zoho OAuth] Using refresh token from Mongo: …${rt.slice(-8)}`,
+      );
+    }
+
+    return this.bundleFromDoc(doc);
+  }
+
+  async clear(): Promise<void> {
+    await this.tokenModel.deleteMany({}).exec();
   }
 }

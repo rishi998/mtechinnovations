@@ -9,6 +9,7 @@ import { RazorpayController } from './razorpay.controller';
 import { OrdersPaymentController } from './orders-payment.controller';
 import { ZohoOrder, ZohoOrderSchema } from './schemas/zoho-order.schema';
 import { ZohoOrderQueueService } from './zoho-order-queue.service';
+import { ZohoPaidInvoiceTriggerController } from './zoho-paid-invoice.controller';
 
 @Module({
   imports: [
@@ -20,7 +21,11 @@ import { ZohoOrderQueueService } from './zoho-order-queue.service';
       { name: ZohoOrder.name, schema: ZohoOrderSchema },
     ]),
   ],
-  controllers: [RazorpayController, OrdersPaymentController],
+  controllers: [
+    RazorpayController,
+    OrdersPaymentController,
+    ZohoPaidInvoiceTriggerController,
+  ],
   providers: [RazorpayPaymentService, ZohoOrderQueueService],
   exports: [RazorpayPaymentService],
 })

@@ -5,7 +5,7 @@ export type ZohoTokenStateDocument = HydratedDocument<ZohoTokenState>;
 
 /**
  * Single-document store for Zoho OAuth token bundle.
- * We keep one row keyed by `default` for this deployment.
+ * Canonical key is `zoho_oauth`; legacy installs may still have `default` until first save/load migrates.
  */
 @Schema({
   timestamps: true,
@@ -13,7 +13,7 @@ export type ZohoTokenStateDocument = HydratedDocument<ZohoTokenState>;
   id: false,
 })
 export class ZohoTokenState {
-  @Prop({ required: true, unique: true, index: true, default: 'default' })
+  @Prop({ required: true, unique: true, index: true, default: 'zoho_oauth' })
   key: string;
 
   @Prop({ required: true })
