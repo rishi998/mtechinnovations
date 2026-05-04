@@ -894,18 +894,40 @@ export class RazorpayPaymentService {
       invoiceId: string;
       paymentId: string | null;
     }> => {
-      const soBody = await this.zoho.createSalesOrder(
-        {
-          customer_id: customerId,
-          date: today,
-          line_items: lines,
-        },
-        'order',
-      );
-      const salesOrderId = extractZohoSalesOrderId(soBody);
-      if (!salesOrderId) {
-        throw new Error('Zoho sales order response missing salesorder_id');
+      const ord = await this.ordersService.findByMongoIdForSystem(String(order._id));
+      if (!ord) {
+        throw new Error(`Order ${String(order._id)} not found for Zoho sync`);
       }
+
+      let salesOrderId = '';
+      const existingSo =
+        typeof ord.zoho_salesorder_id === 'string'
+          ? ord.zoho_salesorder_id.trim()
+          : '';
+      if (existingSo && /^\d+$/.test(existingSo)) {
+        salesOrderId = existingSo;
+        this.logger.log(
+          `[ZOHO] Reusing existing sales order ${salesOrderId} for ${ord.orderId}`,
+        );
+      } else {
+        const soBody = await this.zoho.createSalesOrder(
+          {
+            customer_id: customerId,
+            date: today,
+            line_items: lines,
+          },
+          'order',
+        );
+        salesOrderId = extractZohoSalesOrderId(soBody) ?? '';
+        if (!salesOrderId) {
+          throw new Error('Zoho sales order response missing salesorder_id');
+        }
+      }
+
+      const existingInv =
+        typeof ord.zoho_invoice_id === 'string' ? ord.zoho_invoice_id.trim() : '';
+      const existingInvoiceId =
+        existingInv && /^\d+$/.test(existingInv) ? existingInv : null;
 
       const capture = Number(order.total);
       const lifecycle = await this.zohoInvoiceService.runPaidInvoiceLifecycle(
@@ -922,6 +944,28 @@ export class RazorpayPaymentService {
         },
         {
           salesOrderId,
+          existingInvoiceId,
+          persistAfterInvoiceCreated: async ({ invoiceId: invId, salesOrderId: so }) => {
+            await this.ordersService.updateZohoSyncForOrder(
+              String(ord._id),
+              so,
+              invId,
+              ord.zoho_payment_id ?? null,
+              'pending',
+              null,
+            );
+          },
+          persistSyncError: async (message: string) => {
+            const fresh = await this.ordersService.findByMongoIdForSystem(String(order._id));
+            await this.ordersService.updateZohoSyncForOrder(
+              String(order._id),
+              fresh?.zoho_salesorder_id ?? ord.zoho_salesorder_id ?? null,
+              fresh?.zoho_invoice_id ?? ord.zoho_invoice_id ?? null,
+              fresh?.zoho_payment_id ?? ord.zoho_payment_id ?? null,
+              'pending',
+              truncateZohoErrorMessage(message),
+            );
+          },
           persistSettlement: async (ctx) => {
             await this.ordersService.updateZohoSyncForOrder(
               String(order._id),

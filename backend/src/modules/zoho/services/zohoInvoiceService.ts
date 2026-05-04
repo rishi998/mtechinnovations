@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { isAxiosError } from 'axios';
 import { ZohoOAuthException } from '../zoho.exceptions';
 import type { ZohoApiUsageChannel } from '../zoho-api-usage.entity';
 import type { ZohoCreateSalesOrderLineItem } from '../zoho-inventory-salesorder.types';
@@ -31,7 +32,26 @@ function normalizeStateLabel(value: string): string {
     .replace(/\s+/g, ' ');
 }
 
-function extractInvoiceNode(data: Record<string, unknown>): Record<string, unknown> | null {
+/** Full Zoho error body when available (for order.zoho_sync_last_error). */
+export function formatZohoHttpErrorBody(err: unknown): string {
+  if (isAxiosError(err) && err.response?.data != null) {
+    try {
+      return typeof err.response.data === 'string'
+        ? err.response.data
+        : JSON.stringify(err.response.data);
+    } catch {
+      return String(err.response.data);
+    }
+  }
+  if (err instanceof ZohoOAuthException) {
+    return err.message;
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+export function extractInvoiceNode(
+  data: Record<string, unknown>,
+): Record<string, unknown> | null {
   const inv = data.invoice;
   if (inv && typeof inv === 'object') {
     return inv as Record<string, unknown>;
@@ -51,6 +71,13 @@ function extractZohoInvoiceId(data: Record<string, unknown>): string | null {
     return String(data.invoice_id).trim();
   }
   return null;
+}
+
+function normalizeInvoiceStatus(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
 }
 
 function extractZohoInvoiceAmountDue(data: Record<string, unknown>): number | null {
@@ -80,8 +107,78 @@ function extractZohoCustomerPaymentId(data: Record<string, unknown>): string | n
   return null;
 }
 
+/** Best-effort payment id from GET invoice envelope. */
+function extractPaymentIdFromInvoiceResponse(
+  data: Record<string, unknown>,
+): string | null {
+  const inv = extractInvoiceNode(data);
+  if (!inv) {
+    return null;
+  }
+  const payments = inv.payments ?? inv.payment_history;
+  if (Array.isArray(payments) && payments.length > 0) {
+    const p = payments[0] as Record<string, unknown>;
+    const id = p.payment_id ?? p.invoice_payment_id;
+    if (id != null && String(id).trim() !== '') {
+      return String(id).trim();
+    }
+  }
+  return extractZohoCustomerPaymentId(data);
+}
+
+function parseMoney(v: unknown): number | null {
+  if (v == null) return null;
+  const n = typeof v === 'string' ? parseFloat(v.trim()) : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Invoice `total` or sum of line amounts for preflight (> 0). */
+function resolveInvoiceGrandTotal(inv: Record<string, unknown>): number {
+  const top = parseMoney(inv.total) ?? parseMoney(inv.bcy_total);
+  if (top != null && top > 0) {
+    return top;
+  }
+  const lines = inv.line_items;
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return top ?? 0;
+  }
+  let sum = 0;
+  for (const row of lines) {
+    if (!row || typeof row !== 'object') {
+      continue;
+    }
+    const r = row as Record<string, unknown>;
+    const lineTotal =
+      parseMoney(r.item_total) ??
+      parseMoney(r.line_item_total) ??
+      (() => {
+        const rate = parseMoney(r.rate) ?? parseMoney(r.bcy_rate);
+        const qty = parseMoney(r.quantity) ?? parseMoney(r.qty ?? r.quantity_ordered);
+        if (rate != null && qty != null) {
+          return rate * qty;
+        }
+        return null;
+      })();
+    if (lineTotal != null && Number.isFinite(lineTotal)) {
+      sum += lineTotal;
+    }
+  }
+  if (sum > 0) {
+    return Math.round(sum * 100) / 100;
+  }
+  return top ?? 0;
+}
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
+}
+
+const MARK_SENT_MAX_ATTEMPTS = 3;
+const MARK_SENT_RETRY_DELAY_MIN_MS = 1000;
+const MARK_SENT_RETRY_DELAY_MAX_MS = 2000;
+
+function randomBetween(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 export interface ZohoPaidInvoiceLifecycleInput {
@@ -101,6 +198,33 @@ export interface ZohoPaidInvoiceLifecycleResult {
   paymentId: string | null;
   /** Lowercase Zoho invoice status after verification. */
   finalInvoiceStatus: string;
+}
+
+export interface ZohoInvoiceLifecycleDeps {
+  salesOrderId: string;
+  /** When set, fetch invoice first: skip create if PAID; DRAFT is marked SENT then payment continues. */
+  existingInvoiceId?: string | null;
+  /**
+   * Persist invoice id (+ sales order id) immediately after POST /invoices succeeds,
+   * so mark-SENT failures still leave order.retry with a usable invoice id.
+   */
+  persistAfterInvoiceCreated?: (ctx: {
+    salesOrderId: string;
+    invoiceId: string;
+  }) => Promise<void>;
+  /**
+   * Persist Zoho error (e.g. mark-SENT failure) on the order document;
+   * must not proceed to payment when mark-SENT fails.
+   */
+  persistSyncError?: (message: string) => Promise<void>;
+  /**
+   * Persist Zoho IDs after the invoice is Paid in Zoho but before the customer invoice email is sent.
+   */
+  persistSettlement: (ctx: {
+    salesOrderId: string;
+    invoiceId: string;
+    paymentId: string | null;
+  }) => Promise<void>;
 }
 
 /**
@@ -300,7 +424,6 @@ export class ZohoInvoiceService {
     if (!invoiceId) {
       throw new Error('Zoho invoice response missing invoice_id');
     }
-    this.logger.log(`[ZohoInvoice] created invoice_id=${invoiceId}`);
     return invBody as Record<string, unknown>;
   }
 
@@ -308,8 +431,136 @@ export class ZohoInvoiceService {
     invoiceId: string,
     channel: ZohoApiUsageChannel,
   ): Promise<Record<string, unknown>> {
-    this.logger.log(`[ZohoInvoice] mark invoice sent invoice_id=${invoiceId}`);
-    return this.zoho.markInvoiceSent(invoiceId, channel);
+    return this.markInvoiceSentWithRetries(
+      invoiceId,
+      channel,
+      undefined,
+      'sendInvoice delegate',
+    );
+  }
+
+  /**
+   * Validates invoice envelope from create or GET before POST .../status/sent.
+   */
+  private validateInvoicePayloadBeforeMarkSent(
+    zohoResponse: Record<string, unknown>,
+    expectedCustomerId: string,
+  ): void {
+    const inv = extractInvoiceNode(zohoResponse);
+    const node = inv ?? zohoResponse;
+    if (!node || typeof node !== 'object') {
+      throw new BadRequestException(
+        'Invoice payload invalid: missing invoice object before mark SENT',
+      );
+    }
+    const cid = String((node as Record<string, unknown>).customer_id ?? '').trim();
+    if (!/^\d+$/.test(cid)) {
+      throw new BadRequestException('Invoice missing valid customer_id before mark SENT');
+    }
+    const exp = String(expectedCustomerId ?? '').trim();
+    if (cid !== exp) {
+      throw new BadRequestException(
+        `Invoice customer_id ${cid} does not match expected ${exp}`,
+      );
+    }
+    const lines = (node as Record<string, unknown>).line_items;
+    if (!Array.isArray(lines) || lines.length === 0) {
+      throw new BadRequestException('Invoice has no line_items before mark SENT');
+    }
+    for (const row of lines) {
+      if (!row || typeof row !== 'object') {
+        throw new BadRequestException('Invalid line_items row on invoice');
+      }
+      const itemId = String((row as Record<string, unknown>).item_id ?? '').trim();
+      if (!/^\d+$/.test(itemId)) {
+        throw new BadRequestException(`Invoice line missing valid item_id (got ${itemId || '(empty)'})`);
+      }
+    }
+    const total = resolveInvoiceGrandTotal(node as Record<string, unknown>);
+    if (!Number.isFinite(total) || total <= 0) {
+      throw new BadRequestException(
+        `Invoice total must be > 0 before mark SENT (resolved=${total})`,
+      );
+    }
+  }
+
+  private async invoiceIsPastDraft(
+    invoiceId: string,
+    channel: ZohoApiUsageChannel,
+  ): Promise<boolean> {
+    const data = await this.zoho.getInvoice(invoiceId, channel);
+    const inv = extractInvoiceNode(data);
+    const st = normalizeInvoiceStatus(inv?.status ?? '');
+    return st !== 'draft' && st !== '';
+  }
+
+  /**
+   * POST /invoices/{id}/status/sent — mandatory, awaited, retries, throws on terminal failure.
+   * Logs full Zoho JSON body on success and persists Zoho error body on failure.
+   */
+  private async markInvoiceSentWithRetries(
+    invoiceId: string,
+    channel: ZohoApiUsageChannel,
+    persistSyncError: ZohoInvoiceLifecycleDeps['persistSyncError'],
+    context: string,
+  ): Promise<Record<string, unknown>> {
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= MARK_SENT_MAX_ATTEMPTS; attempt++) {
+      try {
+        const raw = await this.zoho.markInvoiceAsSent(invoiceId, channel);
+        this.logger.log(
+          `[ZOHO] mark-as-sent (${context}) full response invoice_id=${invoiceId} attempt=${attempt}: ${JSON.stringify(raw)}`,
+        );
+        this.logger.log('[ZOHO] Invoice marked as SENT');
+        return raw;
+      } catch (err) {
+        lastErr = err;
+        const formatted = formatZohoHttpErrorBody(err);
+
+        try {
+          if (attempt <= MARK_SENT_MAX_ATTEMPTS) {
+            const pastDraft = await this.invoiceIsPastDraft(invoiceId, channel).catch(() => false);
+            if (pastDraft) {
+              const snap = await this.zoho.getInvoice(invoiceId, channel);
+              this.logger.warn(
+                `[ZOHO] mark-as-sent (${context}) skipped after Zoho rejection — invoice ${invoiceId} already non-draft`,
+              );
+              this.logger.log(
+                `[ZOHO] mark-as-sent reconcile GET invoice_id=${invoiceId}: ${JSON.stringify(snap)}`,
+              );
+              this.logger.log('[ZOHO] Invoice marked as SENT');
+              return snap;
+            }
+          }
+        } catch {
+          /* ignore — fall through to retry/error */
+        }
+
+        this.logger.warn(
+          `[ZOHO] mark-as-sent (${context}) failed invoice_id=${invoiceId} attempt=${attempt}/${MARK_SENT_MAX_ATTEMPTS}: ${formatted}`,
+        );
+
+        if (attempt < MARK_SENT_MAX_ATTEMPTS) {
+          const delay = randomBetween(
+            MARK_SENT_RETRY_DELAY_MIN_MS,
+            MARK_SENT_RETRY_DELAY_MAX_MS,
+          );
+          await sleep(delay);
+          continue;
+        }
+
+        const terminalMessage = `[mark-SENT failed] invoice_id=${invoiceId} ${formatted}`;
+        if (persistSyncError) {
+          await persistSyncError(terminalMessage);
+        }
+        throw new BadRequestException(
+          `Zoho mark invoice SENT failed; payment was not recorded. ${formatted}`,
+        );
+      }
+    }
+    throw lastErr instanceof Error
+      ? lastErr
+      : new BadRequestException('Zoho mark invoice SENT failed after retries');
   }
 
   async recordPayment(
@@ -344,9 +595,11 @@ export class ZohoInvoiceService {
 
     const paymentId = extractZohoCustomerPaymentId(payBody as Record<string, unknown>);
     if (paymentId) {
-      this.logger.log(`[ZohoInvoice] payment_id=${paymentId}`);
+      this.logger.log(`[ZOHO] Payment recorded: ${paymentId}`);
     } else {
-      this.logger.warn(`[ZohoInvoice] Customer payment succeeded but payment_id missing in response`);
+      this.logger.warn(
+        `[ZOHO] Payment recorded without payment_id in Zoho customer payment response for invoice ${input.invoiceId}`,
+      );
     }
     return payBody as Record<string, unknown>;
   }
@@ -395,9 +648,7 @@ export class ZohoInvoiceService {
       const paidLike = balance <= 0.02 && status === 'paid';
 
       if (paidLike && hasPayment) {
-        this.logger.log(
-          `[ZohoInvoice] verified invoice_id=${invoiceId} status=${status} balance=${balance} has_payment_records=${hasPayment}`,
-        );
+        this.logger.log('[ZOHO] Invoice verified as PAID');
         return { status, balance: Number.isFinite(balance) ? balance : 0, raw: last };
       }
     }
@@ -456,21 +707,12 @@ export class ZohoInvoiceService {
   }
 
   /**
-   * End-to-end: validate items + tax → invoice → Sent → Customer payment → verify Paid → notify → email.
+   * Strict sequence (sequential awaits only):
+   * createInvoice (or reuse existing id) → validate → mark SENT → record payment → verify PAID → persist → email.
    */
   async runPaidInvoiceLifecycle(
     input: ZohoPaidInvoiceLifecycleInput,
-    deps: {
-      salesOrderId: string;
-      /**
-       * Persist Zoho IDs after the invoice is Paid in Zoho but before the customer invoice email is sent.
-       */
-      persistSettlement: (ctx: {
-        salesOrderId: string;
-        invoiceId: string;
-        paymentId: string | null;
-      }) => Promise<void>;
-    },
+    deps: ZohoInvoiceLifecycleDeps,
     channel: ZohoApiUsageChannel = 'order',
   ): Promise<ZohoPaidInvoiceLifecycleResult> {
     await this.validateLineItemsActive(input.lineItems, channel);
@@ -516,23 +758,93 @@ export class ZohoInvoiceService {
       );
     }
 
-    const invBody = await this.createInvoice(
-      {
-        customerId: input.customerId,
-        date: input.invoiceDate,
-        lineItems: taxedLines,
-        placeOfSupply: place,
-      },
-      channel,
-    );
+    const persistErr = deps.persistSyncError;
 
-    const invoiceId =
-      extractZohoInvoiceId(invBody as Record<string, unknown>) ?? '';
-    if (!invoiceId || !/^\d+$/.test(invoiceId)) {
-      throw new Error('invoice_id missing after createInvoice');
+    const existingRaw = deps.existingInvoiceId?.trim() ?? '';
+    const useExisting =
+      Boolean(existingRaw) && /^\d+$/.test(existingRaw)
+        ? existingRaw
+        : null;
+
+    let invBody: Record<string, unknown>;
+    let invoiceId: string;
+
+    if (useExisting) {
+      invoiceId = useExisting!;
+      invBody = await this.zoho.getInvoice(invoiceId, channel);
+      const invNode = extractInvoiceNode(invBody);
+      const existingStatus = normalizeInvoiceStatus(invNode?.status ?? '');
+
+      if (existingStatus === 'paid') {
+        this.logger.log(
+          `[ZOHO] Existing invoice ${invoiceId} status=paid — skipping invoice creation`,
+        );
+        const verified = await this.verifyInvoicePaid(invoiceId, channel);
+        let paymentId = extractPaymentIdFromInvoiceResponse(invBody);
+        if (!paymentId) {
+          paymentId =
+            extractZohoCustomerPaymentId(invBody as Record<string, unknown>) ??
+            null;
+        }
+        await deps.persistSettlement({
+          salesOrderId: deps.salesOrderId,
+          invoiceId,
+          paymentId,
+        });
+        this.emitSettlementNotification(input, invoiceId);
+        /** Invoice already finalized in Zoho — avoid redundant customer emails on resume. */
+        this.logger.log(
+          `[ZOHO] Invoice lifecycle short-circuit: invoice ${invoiceId} already PAID`,
+        );
+        return {
+          invoiceId,
+          paymentId,
+          finalInvoiceStatus: verified.status,
+        };
+      }
+
+      /* DRAFT (or unpaid SENT etc.): must reach SENT before payment */
+      this.validateInvoicePayloadBeforeMarkSent(invBody, input.customerId);
+      await this.markInvoiceSentWithRetries(
+        invoiceId,
+        channel,
+        persistErr,
+        'reuse existing invoice_id',
+      );
+      invBody = await this.zoho.getInvoice(invoiceId, channel);
+    } else {
+      invBody = await this.createInvoice(
+        {
+          customerId: input.customerId,
+          date: input.invoiceDate,
+          lineItems: taxedLines,
+          placeOfSupply: place,
+        },
+        channel,
+      );
+
+      invoiceId = extractZohoInvoiceId(invBody as Record<string, unknown>) ?? '';
+      if (!invoiceId || !/^\d+$/.test(invoiceId)) {
+        throw new Error('invoice_id missing after createInvoice');
+      }
+      this.logger.log(`[ZOHO] Invoice created: ${invoiceId}`);
+
+      if (deps.persistAfterInvoiceCreated) {
+        await deps.persistAfterInvoiceCreated({
+          salesOrderId: deps.salesOrderId,
+          invoiceId,
+        });
+      }
+
+      this.validateInvoicePayloadBeforeMarkSent(invBody, input.customerId);
+      await this.markInvoiceSentWithRetries(
+        invoiceId,
+        channel,
+        persistErr,
+        'after createInvoice',
+      );
+      invBody = await this.zoho.getInvoice(invoiceId, channel);
     }
-
-    await this.sendInvoice(invoiceId, channel);
 
     const amountDue =
       extractZohoInvoiceAmountDue(invBody as Record<string, unknown>) ??
@@ -540,7 +852,9 @@ export class ZohoInvoiceService {
 
     const capture = Number(input.razorpayCaptureAmount);
     if (!Number.isFinite(amountDue) || amountDue < 0) {
-      throw new Error('Could not determine invoice balance from Zoho create response');
+      throw new BadRequestException(
+        'Could not determine invoice balance from Zoho after mark SENT',
+      );
     }
 
     let paymentAmount = amountDue;

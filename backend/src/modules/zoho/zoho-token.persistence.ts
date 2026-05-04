@@ -35,10 +35,10 @@ export class ZohoInMemoryTokenPersistence extends ZohoTokenPersistence {
 
 @Injectable()
 export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
-  /** Single canonical document; matches OAuth callback upserts and cleanup. */
-  static readonly CANONICAL_KEY = 'zoho_oauth' as const;
-  /** Earlier deployments used this key — migrated on load/save. */
-  static readonly LEGACY_KEY = 'default' as const;
+  /** Single canonical document key after OAuth redirect/callback persists tokens. */
+  static readonly CANONICAL_KEY = 'Oho_oauth' as const;
+  /** Older rows — migrated to {@link CANONICAL_KEY} on load or next save. */
+  static readonly LEGACY_KEYS = ['default', 'zoho_oauth'] as const;
 
   private readonly logger = new Logger(ZohoMongoTokenPersistence.name);
 
@@ -88,7 +88,7 @@ export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
 
     if (removed.deletedCount > 0) {
       this.logger.log(
-        `[Zoho OAuth] Removed ${removed.deletedCount} extra zoho_oauth_tokens document(s); keeping canonical key only`,
+        `[Zoho OAuth] Removed ${removed.deletedCount} extra zoho_oauth_tokens row(s); canonical key="${ZohoMongoTokenPersistence.CANONICAL_KEY}"`,
       );
     }
 
@@ -103,17 +103,21 @@ export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
       .exec();
 
     if (!doc) {
-      const legacy = await this.tokenModel
-        .findOne({ key: ZohoMongoTokenPersistence.LEGACY_KEY })
-        .exec();
-      if (legacy) {
+      for (const legacyKey of ZohoMongoTokenPersistence.LEGACY_KEYS) {
+        const legacy = await this.tokenModel
+          .findOne({ key: legacyKey })
+          .exec();
+        if (!legacy) {
+          continue;
+        }
         this.logger.warn(
-          `[Zoho OAuth] Migrating legacy token row (key=${ZohoMongoTokenPersistence.LEGACY_KEY}) → ${ZohoMongoTokenPersistence.CANONICAL_KEY}`,
+          `[Zoho OAuth] Migrating legacy token row key="${legacyKey}" → "${ZohoMongoTokenPersistence.CANONICAL_KEY}"`,
         );
         await this.save(this.bundleFromDoc(legacy));
         doc = await this.tokenModel
           .findOne({ key: ZohoMongoTokenPersistence.CANONICAL_KEY })
           .exec();
+        break;
       }
     }
 

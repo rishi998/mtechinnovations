@@ -1516,6 +1516,14 @@ export class ZohoService {
     return data;
   }
 
+  /** POST `/invoices/{invoice_id}/status/sent` — alias for invoice lifecycle readability. */
+  async markInvoiceAsSent(
+    invoiceId: string,
+    channel: ZohoApiUsageChannel = 'order',
+  ): Promise<Record<string, unknown>> {
+    return this.markInvoiceSent(invoiceId, channel);
+  }
+
   /**
    * POST /invoices/{invoice_id}/email — requires invoice create scope per Zoho docs.
    * @see https://www.zoho.com/inventory/api/v1/invoices/

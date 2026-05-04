@@ -7,6 +7,13 @@ import {
   ZohoOrderSyncStatus,
 } from './schemas/zoho-order.schema';
 
+/**
+ * Persists failed Razorpay→Zoho invoice jobs for cron retry.
+ *
+ * When `orders.zoho_invoice_id` exists but Zoho still has DRAFT, the retry path in
+ * `RazorpayPaymentService.runZohoSync` reuses that id: `POST .../status/sent` with retries,
+ * then continues payment recording (see `ZohoInvoiceService.runPaidInvoiceLifecycle`).
+ */
 @Injectable()
 export class ZohoOrderQueueService {
   constructor(
