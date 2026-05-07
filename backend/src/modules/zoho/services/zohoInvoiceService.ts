@@ -189,6 +189,8 @@ export interface ZohoPaidInvoiceLifecycleInput {
   invoiceDate: string;
   razorpayCaptureAmount: number;
   paymentMode?: string;
+  /** Gateway reference (e.g. Razorpay `pay_*`) stored on Zoho customer payment */
+  gatewayPaymentReference?: string | null;
   shippingState: string;
   shippingPincode?: string | null;
 }
@@ -570,6 +572,7 @@ export class ZohoInvoiceService {
       amount: number;
       date: string;
       paymentMode: string;
+      gatewayPaymentReference?: string | null;
     },
     channel: ZohoApiUsageChannel,
   ): Promise<Record<string, unknown>> {
@@ -589,6 +592,9 @@ export class ZohoInvoiceService {
         amount: normalized,
         date: input.date,
         payment_mode: input.paymentMode,
+        reference_number: input.gatewayPaymentReference?.trim()
+          ? input.gatewayPaymentReference.trim()
+          : undefined,
       },
       channel,
     );
@@ -629,25 +635,10 @@ export class ZohoInvoiceService {
           ? parseFloat(balRaw.trim())
           : Number(balRaw ?? NaN);
 
-      const paymentSignals = (): boolean => {
-        if (Array.isArray(inv.payments) && inv.payments.length > 0) {
-          return true;
-        }
-        if (Array.isArray(inv.payment_history) && inv.payment_history.length > 0) {
-          return true;
-        }
-        const pm = Number(inv.payment_made ?? 0);
-        if (Number.isFinite(pm) && pm > 0.009) {
-          return true;
-        }
-        const lpd = String(inv.last_payment_date ?? '').trim();
-        return Boolean(lpd && lpd !== '' && !/^[\s:]+$/.test(lpd));
-      };
+      const paidLike =
+        Number.isFinite(balance) && balance <= 0.02 && status === 'paid';
 
-      const hasPayment = paymentSignals();
-      const paidLike = balance <= 0.02 && status === 'paid';
-
-      if (paidLike && hasPayment) {
+      if (paidLike) {
         this.logger.log('[ZOHO] Invoice verified as PAID');
         return { status, balance: Number.isFinite(balance) ? balance : 0, raw: last };
       }
@@ -828,6 +819,8 @@ export class ZohoInvoiceService {
         throw new Error('invoice_id missing after createInvoice');
       }
       this.logger.log(`[ZOHO] Invoice created: ${invoiceId}`);
+      /** Create response sometimes omits line_item fields this flow validates before mark SENT */
+      invBody = await this.zoho.getInvoice(invoiceId, channel);
 
       if (deps.persistAfterInvoiceCreated) {
         await deps.persistAfterInvoiceCreated({
@@ -871,6 +864,7 @@ export class ZohoInvoiceService {
           amount: paymentAmount,
           date: input.invoiceDate,
           paymentMode: input.paymentMode ?? 'Razorpay',
+          gatewayPaymentReference: input.gatewayPaymentReference,
         },
         channel,
       );

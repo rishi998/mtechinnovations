@@ -1509,6 +1509,11 @@ export class ZohoService {
       {
         method: 'POST',
         url: `/invoices/${encodeURIComponent(id)}/status/sent?${qs.toString()}`,
+        data: {},
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
       },
       channel,
     );
@@ -1609,6 +1614,8 @@ export class ZohoService {
     amount: number;
     date: string;
     payment_mode?: string;
+    /** e.g. Razorpay payment id — shown as reference on Zoho customer payment */
+    reference_number?: string | null;
   }, channel: ZohoApiUsageChannel = 'order'): Promise<Record<string, unknown>> {
     const cid = String(params.customer_id ?? '').trim();
     const invId = String(params.invoice_id ?? '').trim();
@@ -1632,7 +1639,8 @@ export class ZohoService {
     }
     const normalizedAmount = Math.round(amount * 100) / 100;
 
-    const body = {
+    const ref = String(params.reference_number ?? '').trim();
+    const body: Record<string, unknown> = {
       customer_id: cid,
       payment_mode: params.payment_mode ?? 'Razorpay',
       amount: normalizedAmount,
@@ -1644,6 +1652,9 @@ export class ZohoService {
         },
       ],
     };
+    if (ref) {
+      body.reference_number = ref.slice(0, 500);
+    }
 
     const qs = new URLSearchParams({
       organization_id: this.organizationId,

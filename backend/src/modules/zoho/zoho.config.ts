@@ -91,7 +91,12 @@ export function buildScopesFromFeatures(features: {
   if (features.readItems) out.push(ZOHO_SCOPES.ITEMS_READ);
   if (features.createItems) out.push(ZOHO_SCOPES.ITEMS_CREATE);
   if (features.createSalesOrders) out.push(ZOHO_SCOPES.SALESORDERS_CREATE);
-  if (features.createInvoices) out.push(ZOHO_SCOPES.INVOICES_CREATE);
+  if (features.createInvoices) {
+    out.push(ZOHO_SCOPES.INVOICES_CREATE);
+    out.push(ZOHO_SCOPES.INVOICES_READ);
+    out.push(ZOHO_SCOPES.CUSTOMER_PAYMENTS_CREATE);
+    out.push(ZOHO_SCOPES.SETTINGS_READ);
+  }
   if (out.length === 0) {
     out.push(ZOHO_SCOPES.ITEMS_READ);
   }

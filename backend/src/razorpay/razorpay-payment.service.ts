@@ -939,6 +939,12 @@ export class RazorpayPaymentService {
           invoiceDate: today,
           razorpayCaptureAmount: capture,
           paymentMode: 'Razorpay',
+          gatewayPaymentReference:
+            (typeof ord.razorpay_payment_id === 'string'
+              ? ord.razorpay_payment_id.trim()
+              : '') ||
+            (typeof ord.paymentId === 'string' ? ord.paymentId.trim() : '') ||
+            null,
           shippingState: order.shippingAddress?.state ?? '',
           shippingPincode: order.shippingAddress?.pincode ?? null,
         },
