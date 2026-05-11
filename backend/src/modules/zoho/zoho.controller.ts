@@ -60,7 +60,10 @@ export class ZohoController {
       ok: true,
       message: 'Zoho OAuth complete. Tokens stored.',
       expiresAt: bundle.expiresAt,
+      /** @deprecated Prefer `grantedScopes` (full array, never ellipsized by the server). */
       scope: bundle.grantedScope,
+      grantedScope: bundle.grantedScope,
+      grantedScopes: bundle.grantedScopes,
       apiDomain: bundle.apiDomain ?? null,
     };
   }

@@ -1,3 +1,5 @@
+import { ZohoMissingScopeException } from './zoho.exceptions';
+
 /**
  * Central registry of Zoho Inventory OAuth scopes.
  *
@@ -22,6 +24,11 @@ export const ZOHO_SCOPES = {
   CONTACTS_CREATE: 'ZohoInventory.contacts.CREATE',
   /** Required for GET /settings/taxes (list taxes for ZOHO_SALES_ORDER_LINE_TAX_ID). */
   SETTINGS_READ: 'ZohoInventory.settings.READ',
+  /**
+   * Dedicated taxes scope (if Zoho returns it on the token response).
+   * Official Inventory OAuth table groups tax APIs under {@link ZOHO_SCOPES.SETTINGS_READ}.
+   */
+  TAXES_READ: 'ZohoInventory.taxes.READ',
 } as const;
 
 export type ZohoScopeKey = keyof typeof ZOHO_SCOPES;
@@ -75,6 +82,48 @@ export function buildScopeString(scopes: Iterable<ZohoScopeConstant>): string {
 
 export function buildScopesForPreset(preset: ZohoScopePreset): string {
   return buildScopeString(ZOHO_SCOPE_PRESETS[preset]);
+}
+
+/**
+ * Zoho token responses use comma and/or space separated scope strings.
+ * Normalizes to a deduped, trimmed list (order preserved).
+ */
+export function parseZohoGrantedScopeList(
+  raw: string | undefined | null,
+): string[] {
+  const s = String(raw ?? '').trim();
+  if (!s) {
+    return [];
+  }
+  const parts = s
+    .split(/[\s,]+/)
+    .map((x) => x.trim())
+    .filter((x) => x.length > 0);
+  return Array.from(new Set(parts));
+}
+
+/** Stable storage / API form for the full grant (no truncation). */
+export function joinGrantedScopesForStorage(scopes: readonly string[]): string {
+  return Array.from(scopes).join(',');
+}
+
+/**
+ * After OAuth, ensure the grant can read tax configuration.
+ * Zoho Inventory documents tax APIs under `settings`; some token responses may list `taxes.READ` instead.
+ */
+export function assertGrantedScopesIncludeTaxApiAccess(
+  grantedScopes: readonly string[],
+): void {
+  const set = new Set(grantedScopes);
+  if (set.has(ZOHO_SCOPES.TAXES_READ)) {
+    return;
+  }
+  if (set.has(ZOHO_SCOPES.SETTINGS_READ)) {
+    return;
+  }
+  throw new ZohoMissingScopeException(
+    `Missing required Zoho scope for taxes: need ${ZOHO_SCOPES.TAXES_READ} or ${ZOHO_SCOPES.SETTINGS_READ}. Re-authenticate with GET /api/zoho/login?type=order (or type=full).`,
+  );
 }
 
 /**

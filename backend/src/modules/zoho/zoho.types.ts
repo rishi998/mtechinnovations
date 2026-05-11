@@ -3,8 +3,13 @@ export interface ZohoTokenBundle {
   refreshToken: string;
   /** Epoch ms when access_token is no longer valid */
   expiresAt: number;
-  /** Scopes Zoho associated with this grant (format may be comma or space separated). */
+  /**
+   * Full normalized scope grant as a single string (comma-separated, no truncation).
+   * Mirrors {@link grantedScopes}; kept for backward compatibility and logs.
+   */
   grantedScope: string;
+  /** Individual scopes from the Zoho token response (deduped, trimmed). */
+  grantedScopes: string[];
   /** e.g. www.zohoapis.com — use to build regional Inventory base URL */
   apiDomain?: string;
 }

@@ -2,8 +2,16 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
+import { appendFileSync } from 'fs';
+import { basename, join, normalize } from 'path';
 import { firstValueFrom } from 'rxjs';
-import { buildScopesForPreset, type ZohoScopePreset } from './zoho.config';
+import {
+  assertGrantedScopesIncludeTaxApiAccess,
+  buildScopesForPreset,
+  joinGrantedScopesForStorage,
+  parseZohoGrantedScopeList,
+  type ZohoScopePreset,
+} from './zoho.config';
 import { ZohoMissingScopeException, ZohoOAuthException } from './zoho.exceptions';
 import { ZohoScopeLogger } from './zoho-scope-logger';
 import { ZohoApiBudgetService } from './zoho-api-budget.service';
@@ -120,6 +128,58 @@ export class ZohoService {
   private get organizationId(): string {
     return this.config.getOrThrow<string>('ZOHO_ORGANIZATION_ID');
   }
+
+  // #region agent log 444458
+  /**
+   * Debug NDJSON ingest (session 444458). Never log tokens/secrets/client_secret.
+   * Also appends to workspace `debug-444458.log` when writable (HTTP ingest may omit file).
+   */
+  private debugZoho444458(payload: Record<string, unknown>): void {
+    const line =
+      JSON.stringify({
+        sessionId: '444458',
+        timestamp: Date.now(),
+        ...payload,
+      }) + '\n';
+
+    const fileCandidates: string[] = [];
+    const fromEnv = process.env.CLIENTECOMM_ZOHO_DEBUG_LOG?.trim();
+    if (fromEnv) {
+      fileCandidates.push(normalize(fromEnv));
+    }
+    const cwd = process.cwd();
+    fileCandidates.push(join(cwd, 'debug-444458.log'));
+    fileCandidates.push(join(cwd, 'backend', 'debug-444458.log'));
+    if (basename(cwd) === 'backend') {
+      fileCandidates.push(join(cwd, '..', 'debug-444458.log'));
+    }
+
+    for (const p of fileCandidates) {
+      try {
+        appendFileSync(p, line, 'utf8');
+        break;
+      } catch {
+        /* try next */
+      }
+    }
+
+    void fetch(
+      'http://127.0.0.1:7608/ingest/81c6480a-f2fe-4a11-8ad5-c4d020c88552',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Debug-Session-Id': '444458',
+        },
+        body: JSON.stringify({
+          sessionId: '444458',
+          timestamp: Date.now(),
+          ...payload,
+        }),
+      },
+    ).catch(() => {});
+  }
+  // #endregion
 
   // #region agent log
   private agentDebugLog(payload: {
@@ -456,7 +516,11 @@ export class ZohoService {
     });
 
     const data = await this.postTokenForm(body, 'order');
-    const bundle = this.mapTokenResponse(data, data.scope ?? '');
+    const bundle = this.mapTokenResponse(data, String(data.scope ?? ''));
+    const rawScope = String(data.scope ?? '');
+    console.log('Zoho scopes:', rawScope);
+    console.log('Parsed scopes:', bundle.grantedScopes);
+    assertGrantedScopesIncludeTaxApiAccess(bundle.grantedScopes);
     await this.tokens.save(bundle);
     const verified = await this.tokens.load();
     if (!verified?.refreshToken?.trim()) {
@@ -467,9 +531,20 @@ export class ZohoService {
         'Zoho OAuth callback: refresh token failed to persist or round-trip load from Mongo. Check DB (zoho_oauth_tokens) and MONGODB_URI.',
       );
     }
+    if (
+      joinGrantedScopesForStorage(verified.grantedScopes) !==
+      joinGrantedScopesForStorage(bundle.grantedScopes)
+    ) {
+      throw new ZohoOAuthException(
+        'Zoho OAuth callback: granted scopes failed to persist or round-trip load from Mongo. Check DB (zoho_oauth_tokens) and MONGODB_URI.',
+      );
+    }
     await this.forceRefreshAccessToken();
     this.applySuccessfulTokenResponse(data);
-    this.scopeLogger.logOAuthStep('callback:stored', bundle.grantedScope);
+    this.scopeLogger.logOAuthStep(
+      'callback:stored',
+      `count=${bundle.grantedScopes.length} grantedScope=${bundle.grantedScope}`,
+    );
     this.logger.log(
       `[Zoho] OAuth callback persisted refresh_token fingerprint=${zohoRefreshTokenFingerprint(bundle.refreshToken)}`,
     );
@@ -1842,6 +1917,35 @@ export class ZohoService {
             const d = res.data as Record<string, unknown>;
             detail = String(d.message ?? d.error ?? '').trim();
           }
+          // #region agent log 444458
+          try {
+            const orgRaw = this.organizationId;
+            const org = orgRaw.trim();
+            const pathNoQuery = pathForBudget.split('?')[0] ?? pathForBudget;
+            const invBase = this.resolveInventoryBaseUrl();
+            this.debugZoho444458({
+              hypothesisId: 'A,B,C,D',
+              location: 'zoho.service.ts:requestInventory:401',
+              message: 'inventory_api_401',
+              runId: 'pre-fix',
+              data: {
+                method: String(config.method ?? 'GET').toUpperCase(),
+                path: pathNoQuery,
+                zohoBodyMessage: detail,
+                organizationIdRawLen: orgRaw.length,
+                organizationIdTrimmed: org,
+                organizationIdMatchesUserExpected60066210103: org === '60066210103',
+                organizationIdHasSurroundingWhitespace: orgRaw !== org,
+                inventoryResolvedBaseUrl: invBase,
+                defaultInventoryBaseEnv: this.defaultInventoryBase,
+                cachedApiDomainFromToken: this.cachedApiDomain,
+                accountsBaseConfigured: this.accountsBase,
+              },
+            });
+          } catch {
+            /* ignore debug */
+          }
+          // #endregion
           const hint =
             'Check: refresh token must include scopes for this API (sales orders: ZohoInventory.salesorders.CREATE; invoices: ZohoInventory.invoices.CREATE + ZohoInventory.invoices.READ; recording invoice payments: ZohoInventory.customerpayments.CREATE; taxes: ZohoInventory.settings.READ). Re-auth via GET /api/zoho/login?type=order or type=full after updating scopes. Also verify ZOHO_ORGANIZATION_ID and India DC (.in) settings.';
           const msg = detail
@@ -2021,6 +2125,25 @@ export class ZohoService {
 
     const data = await this.postTokenForm(body, channel);
     this.applySuccessfulTokenResponse(data);
+    // #region agent log 444458
+    try {
+      this.debugZoho444458({
+        hypothesisId: 'C',
+        location: 'zoho.service.ts:fetchAccessTokenUsingEnvRefreshToken:after_refresh',
+        message: 'access_token_refresh_applied',
+        runId: 'pre-fix',
+        data: {
+          refreshTokenFingerprint: zohoRefreshTokenFingerprint(refreshToken),
+          refreshSource: source,
+          apiDomainNormalized: this.cachedApiDomain,
+          resolvedInventoryBaseUrl: this.resolveInventoryBaseUrl(),
+          accountsBaseConfigured: this.accountsBase,
+        },
+      });
+    } catch {
+      /* ignore debug */
+    }
+    // #endregion
     this.logger.log('Generated new Zoho access token');
   }
 
@@ -2086,11 +2209,18 @@ export class ZohoService {
         'Zoho did not return refresh_token; ensure access_type=offline and prompt=consent if re-linking.',
       );
     }
+    const raw = String(data.scope ?? scopeFallback ?? '').trim();
+    const grantedScopes = parseZohoGrantedScopeList(raw);
+    const grantedScope =
+      grantedScopes.length > 0
+        ? joinGrantedScopesForStorage(grantedScopes)
+        : raw;
     return {
       accessToken: data.access_token,
       refreshToken: refresh,
       expiresAt,
-      grantedScope: data.scope ?? scopeFallback,
+      grantedScope,
+      grantedScopes,
       apiDomain: data.api_domain,
     };
   }

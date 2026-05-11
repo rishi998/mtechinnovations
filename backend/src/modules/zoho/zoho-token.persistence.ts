@@ -5,6 +5,10 @@ import {
   ZohoTokenState,
   ZohoTokenStateDocument,
 } from './zoho-token.entity';
+import {
+  joinGrantedScopesForStorage,
+  parseZohoGrantedScopeList,
+} from './zoho.config';
 import type { ZohoTokenBundle } from './zoho.types';
 
 /**
@@ -50,11 +54,23 @@ export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
   }
 
   private bundleFromDoc(doc: ZohoTokenStateDocument): ZohoTokenBundle {
+    const rowScopes = Array.isArray(doc.grantedScopes)
+      ? doc.grantedScopes.map((s) => String(s).trim()).filter((x) => x.length > 0)
+      : [];
+    const grantedScopes =
+      rowScopes.length > 0
+        ? Array.from(new Set(rowScopes))
+        : parseZohoGrantedScopeList(doc.grantedScope);
+    const grantedScope =
+      grantedScopes.length > 0
+        ? joinGrantedScopesForStorage(grantedScopes)
+        : String(doc.grantedScope ?? '');
     return {
       accessToken: doc.accessToken,
       refreshToken: doc.refreshToken,
       expiresAt: doc.expiresAt,
-      grantedScope: doc.grantedScope,
+      grantedScope,
+      grantedScopes,
       ...(doc.apiDomain ? { apiDomain: doc.apiDomain } : {}),
     };
   }
@@ -75,6 +91,7 @@ export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
             refreshToken: bundle.refreshToken,
             expiresAt: bundle.expiresAt,
             grantedScope: bundle.grantedScope,
+            grantedScopes: bundle.grantedScopes,
             apiDomain: bundle.apiDomain ?? null,
           },
         },
@@ -93,7 +110,7 @@ export class ZohoMongoTokenPersistence extends ZohoTokenPersistence {
     }
 
     this.logger.log(
-      `[Zoho OAuth] Refresh token updated in Mongo: …${rt.slice(-8)}`,
+      `[Zoho OAuth] OAuth document upserted (canonical key); refresh …${rt.slice(-8)}; grantedScopes count=${bundle.grantedScopes.length}`,
     );
   }
 

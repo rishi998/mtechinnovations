@@ -28,6 +28,10 @@ export class ZohoTokenState {
   @Prop({ required: true })
   grantedScope: string;
 
+  /** Parsed scopes from Zoho (full list; Mongo string elements are not length-capped by the app). */
+  @Prop({ type: [String], default: [] })
+  grantedScopes: string[];
+
   @Prop({ type: String, default: null })
   apiDomain: string | null;
 }
